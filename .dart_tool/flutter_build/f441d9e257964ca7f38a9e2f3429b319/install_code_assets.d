@@ -1,0 +1,1 @@
+ C:\\Users\\rhest\\Documents\\Faculdade\\ProjetoDart\\defesaemfoco\\.dart_tool\\flutter_build\\f441d9e257964ca7f38a9e2f3429b319\\native_assets.json: 

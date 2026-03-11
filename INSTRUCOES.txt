@@ -1,0 +1,139 @@
+================================================================================
+ARQUIVOS MODIFICADOS - DEFESA CIVIL APP (SEM GOOGLE MAPS)
+================================================================================
+
+MUDANÇA PRINCIPAL: Google Maps → OpenStreetMap (Gratuito)
+
+================================================================================
+ARQUIVOS INCLUSOS
+================================================================================
+
+1. pubspec.yaml
+   - Removido: google_maps_flutter
+   - Adicionado: flutter_map (OpenStreetMap gratuito)
+   - Adicionado: latlong2 (dependência do flutter_map)
+
+2. lib/screens/mapa_screen.dart
+   - Completamente reescrito para usar Flutter Map
+   - Usa OpenStreetMap (totalmente gratuito)
+   - Sem necessidade de chave de API
+
+3. README.md
+   - Atualizado com informações sobre OpenStreetMap
+   - Removidas referências ao Google Maps
+
+4. android/app/src/main/AndroidManifest.xml
+   - Mantém as permissões necessárias
+   - Sem configuração de Google Maps
+
+================================================================================
+COMO USAR ESTES ARQUIVOS
+================================================================================
+
+1. BACKUP DO SEU PROJETO (importante!)
+   - Faça backup da pasta defesa_civil_app antes de continuar
+
+2. COPIE OS ARQUIVOS:
+   
+   a) Copie pubspec.yaml para a raiz do projeto:
+      cp pubspec.yaml /caminho/seu/projeto/defesa_civil_app/
+   
+   b) Copie mapa_screen.dart:
+      cp lib/screens/mapa_screen.dart /caminho/seu/projeto/defesa_civil_app/lib/screens/
+   
+   c) Copie README.md:
+      cp README.md /caminho/seu/projeto/defesa_civil_app/
+   
+   d) Copie AndroidManifest.xml:
+      cp android/app/src/main/AndroidManifest.xml /caminho/seu/projeto/defesa_civil_app/android/app/src/main/
+
+3. ATUALIZE AS DEPENDÊNCIAS:
+   cd /caminho/seu/projeto/defesa_civil_app
+   flutter pub get
+
+4. EXECUTE O PROJETO:
+   flutter run
+
+================================================================================
+PRINCIPAIS MUDANÇAS NO CÓDIGO
+================================================================================
+
+Antes (Google Maps):
+  import 'package:google_maps_flutter/google_maps_flutter.dart';
+  GoogleMap(...)
+
+Depois (OpenStreetMap):
+  import 'package:flutter_map/flutter_map.dart';
+  import 'package:latlong2/latlong2.dart';
+  FlutterMap(...)
+
+================================================================================
+VANTAGENS DO OPENSTREETMAP
+================================================================================
+
+✅ Totalmente GRATUITO
+✅ Sem taxas iniciais
+✅ Sem limite de requisições
+✅ Open-source
+✅ Funciona offline com cache
+✅ Sem necessidade de chave de API
+✅ Mesmas funcionalidades do Google Maps
+
+================================================================================
+PERMISSÕES NECESSÁRIAS
+================================================================================
+
+Todas as permissões já estão configuradas no AndroidManifest.xml:
+- Localização (GPS)
+- Câmera
+- Armazenamento
+- Internet
+
+================================================================================
+PRÓXIMOS PASSOS
+================================================================================
+
+1. Copie os arquivos conforme instruído acima
+2. Execute: flutter pub get
+3. Execute: flutter run
+4. Teste o mapa - deve funcionar normalmente
+5. Registre uma ocorrência para testar
+
+================================================================================
+DÚVIDAS OU PROBLEMAS?
+================================================================================
+
+Se encontrar problemas:
+
+1. Limpe o cache:
+   flutter clean
+
+2. Reinstale as dependências:
+   flutter pub get
+
+3. Reconstrua o projeto:
+   flutter run
+
+4. Se o mapa não carregar, verifique:
+   - Conexão com internet
+   - Permissões do aplicativo
+   - Logs: flutter logs
+
+================================================================================
+ESTRUTURA DE PASTAS ESPERADA
+================================================================================
+
+defesa_civil_app/
+├── pubspec.yaml                    (MODIFICADO)
+├── README.md                       (MODIFICADO)
+├── lib/
+│   └── screens/
+│       └── mapa_screen.dart        (MODIFICADO)
+├── android/
+│   └── app/
+│       └── src/
+│           └── main/
+│               └── AndroidManifest.xml (VERIFICADO)
+└── ... (outros arquivos permanecem iguais)
+
+================================================================================
