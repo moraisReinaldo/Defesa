@@ -69,7 +69,8 @@ public class UsuarioService {
                 throw new RuntimeException("Já existe um administrador cadastrado ou pendente para a cidade de " + request.getCidade());
             }
 
-            statusInicial = Status.PENDENTE;
+            // Temporário: permitir login imediato para ADMINISTRADOR durante testes
+            statusInicial = Status.ATIVO;
         }
 
         Usuario usuario = new Usuario();

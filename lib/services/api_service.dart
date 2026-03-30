@@ -32,7 +32,7 @@ class ApiService {
     } on TimeoutException {
       throw Exception('O servidor está acordando (Render Cloud). Por favor, aguarde alguns segundos e tente novamente.');
     } catch (e) {
-      throw Exception('Erro de conexão: Verifique sua internet ou tente mais tarde.');
+      throw Exception('Erro de conexão ($e): Verifique sua internet ou tente mais tarde.');
     }
   }
 
@@ -79,11 +79,8 @@ class ApiService {
       return jsonDecode(response.body);
     }
     
-    if (response.statusCode == 403) {
-      throw Exception(response.body); 
-    }
-    
-    return null;
+    // Para depuração: lançar exceção com detalhes do erro
+    throw Exception('Erro ${response.statusCode}: ${response.body}');
   }
 
   Future<Map<String, dynamic>?> cadastrarUsuario(UsuarioRequest req) async {

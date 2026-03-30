@@ -48,9 +48,9 @@ public class OcorrenciaService {
 
         // Regra de Aprovação
         if (oc.isCriadoPorAgente()) {
-            oc.setStatus(OcorrenciaStatus.APROVADA);
+            oc.setStatus(OcorrenciaStatus.APROVADA.name());
         } else {
-            oc.setStatus(OcorrenciaStatus.PENDENTE_APROVACAO);
+            oc.setStatus(OcorrenciaStatus.PENDENTE_APROVACAO.name());
             // Notificar todos os Administradores daquela cidade
             List<Usuario> admins = usuarioRepository.findByCidadeAndRole(oc.getCidade(), Role.ADMINISTRADOR.name());
             for (Usuario admin : admins) {
@@ -71,7 +71,7 @@ public class OcorrenciaService {
 
         Ocorrencia oc = ocorrenciaRepository.findById(id);
         if (oc != null) {
-            oc.setStatus(OcorrenciaStatus.APROVADA);
+            oc.setStatus(OcorrenciaStatus.APROVADA.name());
             Ocorrencia salva = ocorrenciaRepository.save(oc);
             
             // Notificar o munícipe que criou (se houver usuarioId)

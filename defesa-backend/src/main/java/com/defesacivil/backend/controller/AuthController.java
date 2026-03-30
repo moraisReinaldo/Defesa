@@ -54,7 +54,9 @@ public class AuthController {
         String senha = credentials.get("senha");
 
         if (email == null || senha == null) {
-            return ResponseEntity.badRequest().body("Email e senha são obrigatórios");
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Email e senha são obrigatórios");
+            return ResponseEntity.badRequest().body(errorResponse);
         }
 
         Optional<Usuario> usuarioOpt = usuarioService.login(email, senha);
@@ -62,7 +64,9 @@ public class AuthController {
             Usuario usuario = usuarioOpt.get();
             
             if (Status.PENDENTE.name().equals(usuario.getStatus())) {
-                return ResponseEntity.status(403).body("Seu cadastro ainda está pendente de aprovação por e-mail.");
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("message", "Seu cadastro ainda está pendente de aprovação por e-mail.");
+                return ResponseEntity.status(403).body(errorResponse);
             }
 
             // Gerar Token JWT com a Role do usuário
@@ -78,14 +82,18 @@ public class AuthController {
             return ResponseEntity.ok(response);
         }
 
-        return ResponseEntity.status(401).body("Email ou senha incorretos");
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("message", "Email ou senha incorretos");
+        return ResponseEntity.status(401).body(errorResponse);
     }
 
     @PostMapping("/auth/admin-login")
     public ResponseEntity<?> loginAdmin(@RequestBody Map<String, String> body) {
         String senha = body.get("senha");
         if (senha == null) {
-            return ResponseEntity.badRequest().body("Senha é obrigatória");
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Senha é obrigatória");
+            return ResponseEntity.badRequest().body(errorResponse);
         }
 
         if (usuarioService.validarSenhaAdmin(senha)) {
@@ -97,6 +105,8 @@ public class AuthController {
             return ResponseEntity.ok().body(response);
         }
 
-        return ResponseEntity.status(401).body("Senha de administrador incorreta");
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("message", "Senha de administrador incorreta");
+        return ResponseEntity.status(401).body(errorResponse);
     }
 }

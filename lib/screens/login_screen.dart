@@ -111,10 +111,18 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(
-                content: Text(e.toString().replaceAll('Exception: ', '')),
-                backgroundColor: AppColors.statusActive));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'DEBUG ERR: ${e.toString().replaceAll('Exception: ', '')}',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: AppColors.statusActive,
+            duration: const Duration(seconds: 15),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _carregando = false);
