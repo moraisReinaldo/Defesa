@@ -57,8 +57,8 @@ public class UsuarioService {
 
             List<Usuario> adminsNaCidade = repository.findByCidadeIgnoreCaseAndRoleAndStatusIn(
                     cidadeReq,
-                    Role.ADMINISTRADOR,
-                    Arrays.asList(Status.ATIVO, Status.PENDENTE)
+                    Role.ADMINISTRADOR.name(),
+                    Arrays.asList(Status.ATIVO.name(), Status.PENDENTE.name())
             );
 
             // Filtro manual para case insensitive, já que o Firebase whereEqualTo é case sensitive
@@ -79,8 +79,8 @@ public class UsuarioService {
         // Hash da senha com BCrypt — nunca armazenar em texto puro
         usuario.setSenha(passwordEncoder.encode(request.getSenha()));
         usuario.setCidade(request.getCidade());
-        usuario.setRole(roleReq);
-        usuario.setStatus(statusInicial);
+        usuario.setRole(roleReq.name());
+        usuario.setStatus(statusInicial.name());
 
         Usuario salvo = repository.save(usuario);
 

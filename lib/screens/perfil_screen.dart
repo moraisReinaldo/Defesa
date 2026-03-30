@@ -36,6 +36,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
           return _buildAdmin(context, prov);
         }
 
+        if (prov.usuarioLogado == null) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
         final usuario = prov.usuarioLogado!;
 
         return Scaffold(

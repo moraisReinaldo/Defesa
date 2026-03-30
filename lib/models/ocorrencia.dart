@@ -70,32 +70,44 @@ class Ocorrencia {
 
   factory Ocorrencia.fromJson(Map<String, dynamic> json) {
     return Ocorrencia(
-      id: json['id'],
-      tipo: json['tipo'],
-      descricao: json['descricao'],
-      latitude: json['latitude'],
-      longitude: json['longitude'],
+      id: json['id'] ?? '',
+      tipo: json['tipo'] ?? 'OUTROS',
+      descricao: json['descricao'] ?? '',
+      latitude: (json['latitude'] ?? 0.0).toDouble(),
+      longitude: (json['longitude'] ?? 0.0).toDouble(),
       caminhoFoto: json['caminhoFoto'],
-      dataHora: DateTime.parse(json['dataHora']),
+      dataHora: _parseSafe(json['dataHora']) ?? DateTime.now(),
       usuarioId: json['usuarioId'],
       status: OcorrenciaStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => OcorrenciaStatus.PENDENTE_APROVACAO,
       ),
       resolvida: json['resolvida'] ?? false,
-      dataResolucao: json['dataResolucao'] != null
-          ? DateTime.parse(json['dataResolucao'])
-          : null,
+      dataResolucao: _parseSafe(json['dataResolucao']),
       agentes: json['agentes'],
       comentarios: json['comentarios'] != null
           ? (json['comentarios'] as List).map((c) => Comentario.fromJson(c)).toList()
           : [],
       criadoPorAgente: json['criadoPorAgente'] ?? false,
       agenteNoLocal: json['agenteNoLocal'] ?? false,
-      dataChegadaAgente: json['dataChegadaAgente'] != null
-          ? DateTime.parse(json['dataChegadaAgente'])
-          : null,
+      dataChegadaAgente: _parseSafe(json['dataChegadaAgente']),
     );
+  }
+
+  static DateTime? _parseSafe(dynamic val) {
+    if (val == null) return null;
+    try {
+      String s = val.toString();
+      if (s.contains('.')) {
+        var parts = s.split('.');
+        if (parts[1].length > 6) {
+          s = '${parts[0]}.${parts[1].substring(0, 6)}';
+        }
+      }
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
   }
 
   Ocorrencia copyWith({

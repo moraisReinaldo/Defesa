@@ -14,8 +14,8 @@ public class Usuario {
     private String senha;
     private String cidade;
     private String especialidade;
-    private Role role;
-    private Status status;
+    private String role;
+    private String status;
     @JsonIgnore
     private String dataCriacao;
     private String fcmToken; // Token para Push (FCM)
@@ -39,10 +39,10 @@ public class Usuario {
     public void setCidade(String cidade) { this.cidade = cidade; }
     public String getEspecialidade() { return especialidade; }
     public void setEspecialidade(String especialidade) { this.especialidade = especialidade; }
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public String getDataCriacao() { return dataCriacao; }
     public void setDataCriacao(String dataCriacao) { this.dataCriacao = dataCriacao; }
     public String getFcmToken() { return fcmToken; }

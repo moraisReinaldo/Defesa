@@ -31,7 +31,7 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             String mensagem = "Cadastro realizado! ";
             
-            if (usuarioSalvo.getStatus() == Status.PENDENTE) {
+            if (Status.PENDENTE.name().equals(usuarioSalvo.getStatus())) {
                 mensagem += "Seu acesso como Administrador ficará PENDENTE de aprovação. Um e-mail de confirmação foi enviado à equipe para moderação.";
                 response.put("pendente", true);
             } else {
@@ -61,12 +61,12 @@ public class AuthController {
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
             
-            if (usuario.getStatus() == Status.PENDENTE) {
+            if (Status.PENDENTE.name().equals(usuario.getStatus())) {
                 return ResponseEntity.status(403).body("Seu cadastro ainda está pendente de aprovação por e-mail.");
             }
 
             // Gerar Token JWT com a Role do usuário
-            String token = jwtService.generateToken(usuario.getEmail(), usuario.getRole().name());
+            String token = jwtService.generateToken(usuario.getEmail(), usuario.getRole());
             
             // Retornar usuário e token (removendo senha por segurança)
             usuario.setSenha(null);

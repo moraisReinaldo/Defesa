@@ -58,13 +58,13 @@ public class UsuarioRepository {
         return Optional.empty();
     }
 
-    public List<Usuario> findByCidadeAndRole(String cidade, Role role) {
+    public List<Usuario> findByCidadeAndRole(String cidade, String role) {
         if (firestore == null) return new ArrayList<>();
         List<Usuario> usuariosEncontrados = new ArrayList<>();
         try {
             ApiFuture<QuerySnapshot> query = firestore.collection(COLLECTION_NAME)
                     .whereEqualTo("cidade", cidade)
-                    .whereEqualTo("role", role.name())
+                    .whereEqualTo("role", role)
                     .get();
 
             List<QueryDocumentSnapshot> documents = query.get().getDocuments();
@@ -77,14 +77,14 @@ public class UsuarioRepository {
         return usuariosEncontrados;
     }
 
-    public List<Usuario> findByCidadeIgnoreCaseAndRoleAndStatusIn(String cidade, Role role, List<Status> statuses) {
+    public List<Usuario> findByCidadeIgnoreCaseAndRoleAndStatusIn(String cidade, String role, List<String> statuses) {
         if (firestore == null) return new ArrayList<>();
         List<Usuario> usuariosEncontrados = new ArrayList<>();
         try {
             ApiFuture<QuerySnapshot> query = firestore.collection(COLLECTION_NAME)
                     .whereEqualTo("cidade", cidade)
-                    .whereEqualTo("role", role.name())
-                    .whereIn("status", statuses.stream().map(Status::name).toList())
+                    .whereEqualTo("role", role)
+                    .whereIn("status", statuses)
                     .get();
 
             List<QueryDocumentSnapshot> documents = query.get().getDocuments();

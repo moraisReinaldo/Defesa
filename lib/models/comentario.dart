@@ -33,13 +33,29 @@ class Comentario {
   // Criar Comentario a partir de JSON
   factory Comentario.fromJson(Map<String, dynamic> json) {
     return Comentario(
-      id: json['id'],
-      texto: json['texto'],
+      id: json['id'] ?? '',
+      texto: json['texto'] ?? '',
       usuarioId: json['usuarioId'],
-      usuarioNome: json['usuarioNome'],
-      dataHora: DateTime.parse(json['dataHora']),
+      usuarioNome: json['usuarioNome'] ?? 'Usuário',
+      dataHora: _parseSafe(json['dataHora']) ?? DateTime.now(),
       agentes: json['agentes'],
     );
+  }
+
+  static DateTime? _parseSafe(dynamic val) {
+    if (val == null) return null;
+    try {
+      String s = val.toString();
+      if (s.contains('.')) {
+        var parts = s.split('.');
+        if (parts[1].length > 6) {
+          s = '${parts[0]}.${parts[1].substring(0, 6)}';
+        }
+      }
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
   }
 
   // Copiar com alterações

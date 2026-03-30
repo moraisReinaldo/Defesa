@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/ocorrencia.dart';
@@ -14,6 +15,40 @@ class ApiService {
     defaultValue: 'https://defesa-civil-backend.onrender.com/api',
   );
 
+  static const Duration _timeoutLimit = Duration(seconds: 90);
+
+  // ========== METODOS BASE COM RESILIÊNCIA ==========
+
+  Future<http.Response> _post(String path, dynamic body, {bool secure = true}) async {
+    final headers = secure ? await _getHeaders() : {'Content-Type': 'application/json'};
+    try {
+      return await http
+          .post(
+            Uri.parse('$baseUrl$path'),
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(_timeoutLimit);
+    } on TimeoutException {
+      throw Exception('O servidor está acordando (Render Cloud). Por favor, aguarde alguns segundos e tente novamente.');
+    } catch (e) {
+      throw Exception('Erro de conexão: Verifique sua internet ou tente mais tarde.');
+    }
+  }
+
+  Future<http.Response> _get(String path) async {
+    final headers = await _getHeaders();
+    try {
+      return await http
+          .get(Uri.parse('$baseUrl$path'), headers: headers)
+          .timeout(_timeoutLimit);
+    } on TimeoutException {
+      throw Exception('O servidor demorou para responder. Tente novamente em instantes.');
+    } catch (e) {
+      throw Exception('Erro ao conectar com o servidor.');
+    }
+  }
+
   // ========== HEADERS SECURE ==========
 
   Future<Map<String, String>> _getHeaders() async {
@@ -25,11 +60,11 @@ class ApiService {
     };
     
     if (token != null) {
-      headers['Authorization'] = 'Bearer $token'; // JWT Token
+      headers['Authorization'] = 'Bearer $token';
     }
     
     if (user != null) {
-      headers['X-User-Id'] = user.id; // Para verificação rápida de Role no Service Layer
+      headers['X-User-Id'] = user.id;
     }
     
     return headers;
@@ -38,17 +73,12 @@ class ApiService {
   // ========== AUTH & USUARIO ==========
 
   Future<Map<String, dynamic>?> login(String email, String senha) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/usuarios/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'senha': senha}),
-    );
+    final response = await _post('/usuarios/login', {'email': email, 'senha': senha}, secure: false);
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body); // Retorna {usuario: {...}, token: "..."}
+      return jsonDecode(response.body);
     }
     
-    // Trata erro de pendência de aprovação (403 do controller)
     if (response.statusCode == 403) {
       throw Exception(response.body); 
     }
@@ -58,48 +88,39 @@ class ApiService {
 
   Future<Map<String, dynamic>?> cadastrarUsuario(UsuarioRequest req) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/cadastro'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(req.toJson()),
-      ).timeout(const Duration(seconds: 15));
-
+      final response = await _post('/auth/cadastro', req.toJson(), secure: false);
       final data = jsonDecode(response.body);
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return data; 
       } else {
-        // Retorna o erro vindo do backend (Spring Boot)
         return {
           'sucesso': false,
           'message': data is Map ? data['message'] : response.body,
         };
       }
     } catch (e) {
-      return {'sucesso': false, 'message': 'Erro de conexão: $e'};
+      return {'sucesso': false, 'message': e.toString().replaceAll('Exception: ', '')};
     }
   }
 
   // ========== OCORRÊNCIAS ==========
 
   Future<List<Ocorrencia>> listarOcorrencias() async {
-    final headers = await _getHeaders();
-    final response = await http.get(Uri.parse('$baseUrl/ocorrencias'), headers: headers);
-    
-    if (response.statusCode == 200) {
-      final List vindoDaApi = jsonDecode(response.body);
-      return vindoDaApi.map((o) => Ocorrencia.fromJson(o)).toList();
+    try {
+      final response = await _get('/ocorrencias');
+      if (response.statusCode == 200) {
+        final List vindoDaApi = jsonDecode(response.body);
+        return vindoDaApi.map((o) => Ocorrencia.fromJson(o)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
-    return [];
   }
 
   Future<Ocorrencia?> criarOcorrencia(Ocorrencia ocorrencia) async {
-    final headers = await _getHeaders();
-    final response = await http.post(
-      Uri.parse('$baseUrl/ocorrencias'),
-      headers: headers,
-      body: jsonEncode(ocorrencia.toJson()),
-    );
+    final response = await _post('/ocorrencias', ocorrencia.toJson());
 
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
@@ -108,8 +129,7 @@ class ApiService {
   }
 
   Future<Ocorrencia?> aprovarOcorrencia(String id) async {
-    final headers = await _getHeaders();
-    final response = await http.post(Uri.parse('$baseUrl/ocorrencias/$id/aprovar'), headers: headers);
+    final response = await _post('/ocorrencias/$id/aprovar', {});
     
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
@@ -118,8 +138,7 @@ class ApiService {
   }
 
   Future<Ocorrencia?> registrarChegadaAgente(String id) async {
-    final headers = await _getHeaders();
-    final response = await http.post(Uri.parse('$baseUrl/ocorrencias/$id/chegada'), headers: headers);
+    final response = await _post('/ocorrencias/$id/chegada', {});
     
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
@@ -130,15 +149,11 @@ class ApiService {
   // ========== ADMIN (ROOT) ==========
 
   Future<String?> loginAdmin(String senha) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/admin-login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'senha': senha}),
-    );
+    final response = await _post('/auth/admin-login', {'senha': senha}, secure: false);
     
     if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['token']; // Retorna o Master JWT
+        return data['token'];
     }
     return null;
   }

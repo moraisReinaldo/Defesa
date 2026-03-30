@@ -57,10 +57,10 @@ class Usuario {
   // Criar Usuario a partir de JSON
   factory Usuario.fromJson(Map<String, dynamic> json) {
     return Usuario(
-      id: json['id'],
-      nome: json['nome'],
-      email: json['email'],
-      telefone: json['telefone'],
+      id: json['id'] ?? '',
+      nome: json['nome'] ?? 'Usuário',
+      email: json['email'] ?? '',
+      telefone: json['telefone'] ?? '',
       senha: json['senha'],
       role: Role.values.firstWhere(
         (e) => e.name == json['role'], 
@@ -70,9 +70,24 @@ class Usuario {
       cidade: json['cidade'],
       especialidade: json['especialidade'],
       fcmToken: json['fcmToken'],
-      dataCriacao: json['dataCriacao'] != null 
-          ? DateTime.parse(json['dataCriacao'])
-          : null,
+      dataCriacao: _parseSafe(json['dataCriacao']) ?? DateTime.now(),
     );
+  }
+
+  static DateTime? _parseSafe(dynamic val) {
+    if (val == null) return null;
+    try {
+      String s = val.toString();
+      // Se tiver nanosegundos (Java), corta para microsegundos (Dart aceita até 6 dígitos após o ponto)
+      if (s.contains('.')) {
+        var parts = s.split('.');
+        if (parts[1].length > 6) {
+          s = '${parts[0]}.${parts[1].substring(0, 6)}';
+        }
+      }
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
   }
 }

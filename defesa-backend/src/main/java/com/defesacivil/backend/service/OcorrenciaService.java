@@ -52,7 +52,7 @@ public class OcorrenciaService {
         } else {
             oc.setStatus(OcorrenciaStatus.PENDENTE_APROVACAO);
             // Notificar todos os Administradores daquela cidade
-            List<Usuario> admins = usuarioRepository.findByCidadeAndRole(oc.getCidade(), Role.ADMINISTRADOR);
+            List<Usuario> admins = usuarioRepository.findByCidadeAndRole(oc.getCidade(), Role.ADMINISTRADOR.name());
             for (Usuario admin : admins) {
                 notificationService.sendPushNotification(
                     admin.getFcmToken(), 
@@ -120,7 +120,7 @@ public class OcorrenciaService {
             return;
         }
         Optional<Usuario> usuario = usuarioRepository.findById(userId);
-        if (usuario.isEmpty() || usuario.get().getRole() != roleRequerida) {
+        if (usuario.isEmpty() || !roleRequerida.name().equals(usuario.get().getRole())) {
             throw new SecurityException(mensagem);
         }
     }
@@ -131,7 +131,7 @@ public class OcorrenciaService {
             return;
         }
         Optional<Usuario> usuario = usuarioRepository.findById(userId);
-        if (usuario.isEmpty() || !rolesPermitidas.contains(usuario.get().getRole())) {
+        if (usuario.isEmpty() || !rolesPermitidas.stream().map(Enum::name).toList().contains(usuario.get().getRole())) {
             throw new SecurityException(mensagem);
         }
     }
