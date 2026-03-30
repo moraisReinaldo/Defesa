@@ -5,12 +5,16 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
 import '../models/comentario.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
 import '../services/localizacao_service.dart';
+import '../widgets/search_bar_widget.dart';
+import '../widgets/status_badge.dart';
+import '../widgets/ocorrencia_card.dart';
 import 'registro_ocorrencia_screen.dart';
 import 'historico_screen.dart';
 import 'perfil_screen.dart';
@@ -26,26 +30,26 @@ class _MapaScreenState extends State<MapaScreen> {
   final MapController _mapController = MapController();
   final LocalizacaoService _localizacaoService = LocalizacaoService();
   final ImagePicker _imagePicker = ImagePicker();
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _comentarioController = TextEditingController();
+
   Position? _posicaoAtual;
   final List<Marker> _markers = [];
   int _indiceAbaAtual = 0;
-  final TextEditingController comentarioController = TextEditingController();
+  String _searchQuery = '';
+  bool _showSearchResults = false;
 
   @override
   void initState() {
     super.initState();
     _inicializarMapa();
-    // ouvir mudanças para atualizar marcadores automaticamente
     context.read<OcorrenciaProvider>().addListener(_atualizarMarcadores);
   }
 
   Future<void> _inicializarMapa() async {
-    // Carregar ocorrências
     await context.read<OcorrenciaProvider>().carregarOcorrencias();
-    
-    // Obter localização atual
     _posicaoAtual = await _localizacaoService.obterPosicaoAtual();
-    
+
     if (_posicaoAtual != null && mounted) {
       _atualizarMarcadores();
       _mapController.move(
@@ -55,21 +59,35 @@ class _MapaScreenState extends State<MapaScreen> {
     }
   }
 
+  List<Ocorrencia> _getFilteredOcorrencias() {
+    final todas = context.read<OcorrenciaProvider>().ocorrencias;
+    if (_searchQuery.isEmpty) return [];
+
+    final query = _searchQuery.toLowerCase();
+    return todas.where((o) {
+      final tipoNome = OcorrenciaTipos.getTipoNome(o.tipo).toLowerCase();
+      final desc = o.descricao.toLowerCase();
+      return tipoNome.contains(query) || desc.contains(query);
+    }).toList();
+  }
+
   void _atualizarMarcadores() {
     final ocorrencias = context.read<OcorrenciaProvider>().ocorrenciasAtivas;
-    
+
     _markers.clear();
-    
+
     for (final ocorrencia in ocorrencias) {
       Color cor;
       if (ocorrencia.resolvida) {
-        cor = Colors.green;
-      } else if (ocorrencia.agentes != null && ocorrencia.agentes!.isNotEmpty) {
-        // em caminho
-        cor = Colors.orange;
+        cor = AppColors.statusResolved;
+      } else if (ocorrencia.agentes != null &&
+          ocorrencia.agentes!.isNotEmpty) {
+        cor = AppColors.statusEnRoute;
       } else {
-        cor = Colors.red;
+        cor = AppColors.statusActive;
       }
+
+      final tipoColor = AppColors.getTipoColor(ocorrencia.tipo);
 
       _markers.add(
         Marker(
@@ -77,23 +95,28 @@ class _MapaScreenState extends State<MapaScreen> {
           builder: (context) => GestureDetector(
             onTap: () => _mostrarDetalhesOcorrencia(ocorrencia),
             child: Container(
-              width: 60,
-              height: 60,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
-                color: cor,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [tipoColor, tipoColor.withOpacity(0.8)],
+                ),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: Colors.white, width: 3),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 4,
+                    color: tipoColor.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.emergency,
+              child: Icon(
+                OcorrenciaTipos.getTipoIcone(ocorrencia.tipo),
                 color: Colors.white,
-                size: 30,
+                size: 22,
               ),
             ),
           ),
@@ -105,283 +128,553 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   void _mostrarDetalhesOcorrencia(Ocorrencia ocorrencia) {
-    final agentesController = TextEditingController(text: ocorrencia.agentes ?? '');
+    final agentesController =
+        TextEditingController(text: ocorrencia.agentes ?? '');
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Permite altura variável
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8, // Máximo 80% da tela
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                OcorrenciaTipos.getTipoNome(ocorrencia.tipo),
-                style: Theme.of(context).textTheme.headlineSmall,
+        decoration: const BoxDecoration(
+          color: AppColors.backgroundOffWhite,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.borderLight,
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(height: 8),
-              Text(
-                ocorrencia.descricao,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              if (ocorrencia.caminhoFoto != null && ocorrencia.caminhoFoto!.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(ocorrencia.caminhoFoto!),
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Text(
-                'Data: ${_formatarData(ocorrencia.dataHora)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Text(
-                'Coordenadas: ${ocorrencia.latitude.toStringAsFixed(4)}, ${ocorrencia.longitude.toStringAsFixed(4)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              if (context.watch<UsuarioProvider>().isAdmin && !ocorrencia.resolvida)
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: () => _editarCoordenadas(ocorrencia),
-                      icon: const Icon(Icons.edit_location, size: 18),
-                      label: const Text('Alterar coordenadas'),
-                    ),
-                    const SizedBox(width: 8),
-                    TextButton.icon(
-                      onPressed: () => _editarFoto(ocorrencia),
-                      icon: const Icon(Icons.photo_camera, size: 18),
-                      label: const Text('Trocar foto'),
-                    ),
+            ),
+
+            // Header com gradiente
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.getTipoColor(ocorrencia.tipo),
+                    AppColors.getTipoColor(ocorrencia.tipo).withOpacity(0.8),
                   ],
                 ),
-              Text(
-                'Status: ${ocorrencia.resolvida ? 'Resolvida' : 'Ativa'}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: ocorrencia.resolvida ? Colors.green : Colors.red,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
                     ),
+                    child: Icon(
+                      OcorrenciaTipos.getTipoIcone(ocorrencia.tipo),
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          OcorrenciaTipos.getTipoNome(ocorrencia.tipo),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        StatusBadge(
+                          resolvida: ocorrencia.resolvida,
+                          agentes: ocorrencia.agentes,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              // Seção de comentários
-              Text(
-                'Comentários',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              if (ocorrencia.comentarios.isEmpty)
-                Text(
-                  'Nenhum comentário ainda.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
+            ),
+
+            // Conteúdo scrollável
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Descrição
+                    _buildSectionCard(
+                      icon: Icons.description_rounded,
+                      title: 'Descrição',
+                      child: Text(
+                        ocorrencia.descricao,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
                       ),
-                )
-              else
-                Column(
-                  children: ocorrencia.comentarios.map((comentario) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
+                    ),
+
+                    // Foto
+                    if (ocorrencia.caminhoFoto != null &&
+                        ocorrencia.caminhoFoto!.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.shadowColor,
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.file(
+                            File(ocorrencia.caminhoFoto!),
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  color: AppColors.shimmer,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Center(
+                                  child: Icon(Icons.image_not_supported_rounded,
+                                      color: AppColors.textLight, size: 40),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
+
+                    // Informações
+                    _buildSectionCard(
+                      icon: Icons.info_rounded,
+                      title: 'Informações',
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                comentario.usuarioNome,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _formatarData(comentario.dataHora),
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Colors.grey,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            comentario.texto,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          if (comentario.agentes != null && comentario.agentes!.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                'Agentes: ${comentario.agentes}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(fontStyle: FontStyle.italic),
-                              ),
-                            ),
+                          _buildInfoRow(Icons.calendar_today_rounded,
+                              'Data', _formatarData(ocorrencia.dataHora)),
+                          const SizedBox(height: 8),
+                          _buildInfoRow(Icons.location_on_rounded,
+                              'Coordenadas',
+                              '${ocorrencia.latitude.toStringAsFixed(4)}, ${ocorrencia.longitude.toStringAsFixed(4)}'),
                         ],
                       ),
-                    );
-                  }).toList(),
-                ),
-              const SizedBox(height: 16),
-              // Campo para adicionar comentário - somente admins
-              if (context.watch<UsuarioProvider>().isAdmin)
-                TextFormField(
-                  controller: comentarioController,
-                  decoration: InputDecoration(
-                    hintText: 'Adicionar comentário...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
                     ),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: () => _adicionarComentario(ocorrencia),
-                    ),
-                  ),
-                  maxLines: 3,
-                  onFieldSubmitted: (_) => _adicionarComentario(ocorrencia),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Comentários disponíveis apenas para administradores.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.grey),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              if (context.watch<UsuarioProvider>().isAdmin)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Agentes a caminho',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: agentesController,
-                      decoration: InputDecoration(
-                        hintText: 'Ex: João Silva, Maria Santos',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.send),
-                          onPressed: () {
-                            final texto = agentesController.text.trim();
-                            if (texto.isEmpty) return;
-                            final atualizada = ocorrencia.copyWith(agentes: texto);
-                            context
-                                .read<OcorrenciaProvider>()
-                                .atualizarOcorrencia(atualizada);
 
-                            // criar comentário de envio de agentes
-                            final comentario = Comentario(
-                              texto: 'Agentes a caminho',
-                              agentes: texto,
-                              usuarioNome: 'Administrador',
-                            );
-                            context
-                                .read<OcorrenciaProvider>()
-                                .adicionarComentario(ocorrencia.id, comentario);
-
-                            _atualizarMarcadores();
-                          },
+                    // Admin: editar coordenadas/foto
+                    if (context.watch<UsuarioProvider>().isAdmin &&
+                        !ocorrencia.resolvida)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _buildActionChip(
+                                icon: Icons.edit_location_alt_rounded,
+                                label: 'Coordenadas',
+                                onTap: () => _editarCoordenadas(ocorrencia),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildActionChip(
+                                icon: Icons.photo_camera_rounded,
+                                label: 'Trocar foto',
+                                onTap: () => _editarFoto(ocorrencia),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          final texto = agentesController.text.trim();
-                          if (texto.isEmpty) return;
-                          final atualizada = ocorrencia.copyWith(agentes: texto);
-                          context
-                              .read<OcorrenciaProvider>()
-                              .atualizarOcorrencia(atualizada);
 
-                          // criar comentário de envio de agentes
-                          final comentario = Comentario(
-                            texto: 'Agentes a caminho',
-                            agentes: texto,
-                            usuarioNome: 'Administrador',
-                          );
-                          context
-                              .read<OcorrenciaProvider>()
-                              .adicionarComentario(ocorrencia.id, comentario);
+                    // Comentários
+                    _buildSectionCard(
+                      icon: Icons.chat_bubble_rounded,
+                      title: 'Comentários',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (ocorrencia.comentarios.isEmpty)
+                            Text(
+                              'Nenhum comentário ainda.',
+                              style: TextStyle(
+                                color: AppColors.textLight,
+                                fontSize: 13,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            )
+                          else
+                            ...ocorrencia.comentarios.map((c) =>
+                                _buildComentarioItem(c)),
 
-                          agentesController.clear();
-                          agentesController.clear();
-                          _atualizarMarcadores();
-                        },
-                        child: const Text('Enviar agentes'),
+                          // Admin: adicionar comentário
+                          if (context.watch<UsuarioProvider>().isAdmin) ...[
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _comentarioController,
+                              decoration: InputDecoration(
+                                hintText: 'Adicionar comentário...',
+                                filled: true,
+                                fillColor: AppColors.backgroundOffWhite,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.send_rounded,
+                                      color: AppColors.primaryTeal),
+                                  onPressed: () =>
+                                      _adicionarComentario(ocorrencia),
+                                ),
+                              ),
+                              maxLines: 2,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+
+                    // Admin: Agentes
+                    if (context.watch<UsuarioProvider>().isAdmin)
+                      _buildSectionCard(
+                        icon: Icons.groups_rounded,
+                        title: 'Agentes a caminho',
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: agentesController,
+                              decoration: InputDecoration(
+                                hintText: 'Ex: João Silva, Maria Santos',
+                                filled: true,
+                                fillColor: AppColors.backgroundOffWhite,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  final texto =
+                                      agentesController.text.trim();
+                                  if (texto.isEmpty) return;
+                                  final atualizada =
+                                      ocorrencia.copyWith(agentes: texto);
+                                  context
+                                      .read<OcorrenciaProvider>()
+                                      .atualizarOcorrencia(atualizada);
+
+                                  final comentario = Comentario(
+                                    texto: 'Agentes a caminho',
+                                    agentes: texto,
+                                    usuarioNome: 'Administrador',
+                                  );
+                                  context
+                                      .read<OcorrenciaProvider>()
+                                      .adicionarComentario(
+                                          ocorrencia.id, comentario);
+                                  _atualizarMarcadores();
+                                  Navigator.pop(context);
+                                },
+                                icon: const Icon(Icons.send_rounded, size: 18),
+                                label: const Text('Enviar agentes'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accentAmber,
+                                  foregroundColor: AppColors.textOnAccent,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // Botões de ação
+                    if (context.watch<UsuarioProvider>().isAdmin)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () =>
+                                    _alterarStatusOcorrencia(ocorrencia),
+                                icon: Icon(
+                                  ocorrencia.resolvida
+                                      ? Icons.refresh_rounded
+                                      : Icons.check_circle_rounded,
+                                  size: 18,
+                                ),
+                                label: Text(
+                                  ocorrencia.resolvida
+                                      ? 'Reativar'
+                                      : 'Resolver',
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: ocorrencia.resolvida
+                                      ? AppColors.statusEnRoute
+                                      : AppColors.statusResolved,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () =>
+                                    _deletarOcorrencia(ocorrencia),
+                                icon: const Icon(Icons.delete_rounded,
+                                    size: 18),
+                                label: const Text('Excluir'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusActive,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (!ocorrencia.resolvida)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                _alterarStatusOcorrencia(ocorrencia),
+                            icon: const Icon(Icons.check_circle_rounded,
+                                size: 18),
+                            label: const Text('Marcar como Resolvida'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.statusResolved,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-              // Botões
-              if (context.watch<UsuarioProvider>().isAdmin)
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _alterarStatusOcorrencia(ocorrencia),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ocorrencia.resolvida ? Colors.orange : Colors.green,
-                        ),
-                        child: Text(
-                          ocorrencia.resolvida ? 'Marcar como Ativa' : 'Marcar como Resolvida',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _deletarOcorrencia(ocorrencia),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                        ),
-                        child: const Text('Deletar'),
-                      ),
-                    ),
-                  ],
-                )
-              else if (!ocorrencia.resolvida)
-                ElevatedButton(
-                  onPressed: () => _alterarStatusOcorrencia(ocorrencia),
-                  child: const Text('Marcar como Resolvida'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: AppColors.primaryTeal),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
                 ),
+              ),
             ],
           ),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: AppColors.textLight),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildComentarioItem(Comentario comentario) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundOffWhite,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryTeal.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    comentario.usuarioNome.isNotEmpty
+                        ? comentario.usuarioNome[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: AppColors.primaryTeal,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  comentario.usuarioNome,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Text(
+                _formatarData(comentario.dataHora),
+                style: const TextStyle(
+                  color: AppColors.textLight,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            comentario.texto,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          if (comentario.agentes != null && comentario.agentes!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.groups_rounded,
+                      size: 14, color: AppColors.accentAmber),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Agentes: ${comentario.agentes}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.accentAmber,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        decoration: BoxDecoration(
+          color: AppColors.primaryTeal.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.primaryTeal.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: AppColors.primaryTeal),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryTeal,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -389,32 +682,30 @@ class _MapaScreenState extends State<MapaScreen> {
 
   void _adicionarComentario(Ocorrencia ocorrencia) {
     final usuarioProvider = context.read<UsuarioProvider>();
-    if (!usuarioProvider.isAdmin) return; // somente admins podem comentar
-
-    if (comentarioController.text.trim().isEmpty) return;
+    if (!usuarioProvider.isAdmin) return;
+    if (_comentarioController.text.trim().isEmpty) return;
 
     final comentario = Comentario(
-      texto: comentarioController.text.trim(),
+      texto: _comentarioController.text.trim(),
       usuarioNome: 'Administrador',
       usuarioId: usuarioProvider.usuarioLogado?.id,
     );
 
-    context.read<OcorrenciaProvider>().adicionarComentario(ocorrencia.id, comentario);
-    comentarioController.clear();
-    Navigator.pop(context); // Fechar o bottom sheet
-    _atualizarMarcadores(); // Atualizar marcadores se necessário
+    context.read<OcorrenciaProvider>().adicionarComentario(
+        ocorrencia.id, comentario);
+    _comentarioController.clear();
+    Navigator.pop(context);
+    _atualizarMarcadores();
   }
 
   void _alterarStatusOcorrencia(Ocorrencia ocorrencia) {
     if (ocorrencia.resolvida) {
-      // Marcar como ativa
       final atualizada = ocorrencia.copyWith(
         resolvida: false,
         dataResolucao: null,
       );
       context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
     } else {
-      // Marcar como resolvida
       context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id);
     }
     Navigator.pop(context);
@@ -425,21 +716,29 @@ class _MapaScreenState extends State<MapaScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: const Text('Confirmar exclusão'),
-        content: const Text('Tem certeza que deseja deletar esta ocorrência?'),
+        content:
+            const Text('Tem certeza que deseja deletar esta ocorrência?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
-              context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id);
-              Navigator.pop(context); // Fechar dialog
-              Navigator.pop(context); // Fechar bottom sheet
+              context.read<OcorrenciaProvider>().deletarOcorrencia(
+                  ocorrencia.id);
+              Navigator.pop(context);
+              Navigator.pop(context);
               _atualizarMarcadores();
             },
-            child: const Text('Deletar', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.statusActive,
+            ),
+            child: const Text('Excluir'),
           ),
         ],
       ),
@@ -447,30 +746,61 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   Future<void> _editarFoto(Ocorrencia ocorrencia) async {
-    // menu para camera/galeria
     final escolha = await showModalBottomSheet<ImageSource?>(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Tirar foto'),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Escolher da galeria'),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-              ListTile(
-                leading: const Icon(Icons.close),
-                title: const Text('Cancelar'),
-                onTap: () => Navigator.pop(context, null),
-              ),
-            ],
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.camera_alt_rounded,
+                        color: AppColors.primaryTeal),
+                  ),
+                  title: const Text('Tirar foto',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentAmber.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.photo_library_rounded,
+                        color: AppColors.accentAmber),
+                  ),
+                  title: const Text('Escolher da galeria',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         );
       },
@@ -487,9 +817,10 @@ class _MapaScreenState extends State<MapaScreen> {
       );
       if (foto != null) {
         final atualizada = ocorrencia.copyWith(caminhoFoto: foto.path);
-        await context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
+        await context
+            .read<OcorrenciaProvider>()
+            .atualizarOcorrencia(atualizada);
         _atualizarMarcadores();
-        // fechar sheet e reabrir para atualizar
         Navigator.pop(sheetCtx);
         await Future.delayed(const Duration(milliseconds: 100));
         _mostrarDetalhesOcorrencia(atualizada);
@@ -502,27 +833,34 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   Future<void> _editarCoordenadas(Ocorrencia ocorrencia) async {
-    final latController = TextEditingController(text: ocorrencia.latitude.toString());
-    final lngController = TextEditingController(text: ocorrencia.longitude.toString());
-    // salvar contexto do estado pai para fechar o bottom sheet
+    final latController =
+        TextEditingController(text: ocorrencia.latitude.toString());
+    final lngController =
+        TextEditingController(text: ocorrencia.longitude.toString());
     final sheetCtx = context;
 
     await showDialog(
       context: context,
       builder: (dlgCtx) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text('Editar Coordenadas'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: latController,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Latitude'),
               ),
+              const SizedBox(height: 12),
               TextField(
                 controller: lngController,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Longitude'),
               ),
             ],
@@ -532,16 +870,19 @@ class _MapaScreenState extends State<MapaScreen> {
               onPressed: () => Navigator.pop(dlgCtx),
               child: const Text('Cancelar'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 final lat = double.tryParse(latController.text);
                 final lng = double.tryParse(lngController.text);
                 if (lat != null && lng != null) {
-                  final atualizada = ocorrencia.copyWith(latitude: lat, longitude: lng);
-                  context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
+                  final atualizada =
+                      ocorrencia.copyWith(latitude: lat, longitude: lng);
+                  context
+                      .read<OcorrenciaProvider>()
+                      .atualizarOcorrencia(atualizada);
                   _atualizarMarcadores();
-                  Navigator.pop(dlgCtx); // fecha dialog
-                  Navigator.pop(sheetCtx); // fecha sheet
+                  Navigator.pop(dlgCtx);
+                  Navigator.pop(sheetCtx);
                   Future.delayed(const Duration(milliseconds: 100), () {
                     _mostrarDetalhesOcorrencia(atualizada);
                   });
@@ -558,115 +899,131 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   String _formatarData(DateTime data) {
-    return '${data.day}/${data.month}/${data.year} às ${data.hour}:${data.minute.toString().padLeft(2, '0')}';
+    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour}:${data.minute.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final usuarioProvider = context.watch<UsuarioProvider>();
+    final nomeUsuario = usuarioProvider.estaLogado
+        ? usuarioProvider.usuarioLogado!.nome.split(' ').first
+        : 'Cidadão';
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Defesa Civil Municipal'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _inicializarMapa();
-            },
-          ),
-        ],
-      ),
       body: _indiceAbaAtual == 0
-          ? _construirTelaMapa()
+          ? _construirTelaMapa(nomeUsuario)
           : _indiceAbaAtual == 1
               ? const HistoricoScreen()
               : const PerfilScreen(),
       floatingActionButton: _indiceAbaAtual == 0
-          ? FloatingActionButton(
+          ? FloatingActionButton.extended(
               onPressed: () async {
                 final resultado = await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const RegistroOcorrenciaScreen(),
+                    builder: (context) =>
+                        const RegistroOcorrenciaScreen(),
                   ),
                 );
                 if (resultado == true) {
                   _inicializarMapa();
                 }
               },
-              child: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded, size: 22),
+              label: const Text('Nova Ocorrência'),
             )
           : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indiceAbaAtual,
-        onTap: (indice) {
-          setState(() {
-            _indiceAbaAtual = indice;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Mapa',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'Histórico',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _indiceAbaAtual,
+          onTap: (indice) {
+            setState(() {
+              _indiceAbaAtual = indice;
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.map_rounded),
+              activeIcon: Icon(Icons.map_rounded),
+              label: 'Mapa',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history_rounded),
+              activeIcon: Icon(Icons.history_rounded),
+              label: 'Histórico',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded),
+              activeIcon: Icon(Icons.person_rounded),
+              label: 'Perfil',
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _construirTelaMapa() {
+  Widget _construirTelaMapa(String nomeUsuario) {
+    final searchResults = _getFilteredOcorrencias();
+
     return Stack(
       children: [
+        // Mapa
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
             center: _posicaoAtual != null
-                ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude)
-                : const LatLng(-22.9292618, -46.2753862), // Joanópolis, SP como padrão
+                ? LatLng(
+                    _posicaoAtual!.latitude, _posicaoAtual!.longitude)
+                : const LatLng(-22.9292618, -46.2753862),
             zoom: 14,
             minZoom: 5,
             maxZoom: 18,
+            onTap: (_, __) {
+              setState(() {
+                _showSearchResults = false;
+              });
+            },
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate:
+                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.defensacivil.app',
               retinaMode: true,
             ),
-            MarkerLayer(
-              markers: _markers,
-            ),
+            MarkerLayer(markers: _markers),
             if (_posicaoAtual != null)
               MarkerLayer(
                 markers: [
                   Marker(
-                    point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude),
+                    point: LatLng(_posicaoAtual!.latitude,
+                        _posicaoAtual!.longitude),
                     builder: (context) => Container(
                       width: 20,
                       height: 20,
                       decoration: BoxDecoration(
-                        color: Colors.blue,
+                        color: AppColors.primaryTeal,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border:
+                            Border.all(color: Colors.white, width: 3),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 2,
+                            color:
+                                AppColors.primaryTeal.withOpacity(0.4),
+                            blurRadius: 8,
                           ),
                         ],
-                      ),
-                      child: const Icon(
-                        Icons.my_location,
-                        color: Colors.white,
-                        size: 12,
                       ),
                     ),
                   ),
@@ -674,36 +1031,194 @@ class _MapaScreenState extends State<MapaScreen> {
               ),
           ],
         ),
+
+        // Header com gradiente
         Positioned(
-          top: 16,
-          left: 16,
-          right: 16,
+          top: 0,
+          left: 0,
+          right: 0,
           child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+            decoration: const BoxDecoration(
+              gradient: AppColors.headerGradient,
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(28),
+              ),
             ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Saudação
+                    Row(
+                      mainAxisAlignment:
+                          MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Olá, $nomeUsuario! 👋',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Defesa em Foco',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.7),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            // Refresh
+                            GestureDetector(
+                              onTap: _inicializarMapa,
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.refresh_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Search bar
+                    SearchBarWidget(
+                      controller: _searchController,
+                      hintText: 'Buscar ocorrências...',
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                          _showSearchResults = value.isNotEmpty;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Resultados da pesquisa
+        if (_showSearchResults && searchResults.isNotEmpty)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 140,
+            left: 16,
+            right: 16,
+            bottom: 100,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.backgroundOffWhite,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: searchResults.length,
+                  itemBuilder: (context, index) {
+                    final ocorrencia = searchResults[index];
+                    return OcorrenciaCard(
+                      ocorrencia: ocorrencia,
+                      onTap: () {
+                        setState(() {
+                          _showSearchResults = false;
+                          _searchController.clear();
+                          _searchQuery = '';
+                        });
+                        _mapController.move(
+                          LatLng(ocorrencia.latitude,
+                              ocorrencia.longitude),
+                          16,
+                        );
+                        Future.delayed(
+                            const Duration(milliseconds: 300),
+                            () =>
+                                _mostrarDetalhesOcorrencia(ocorrencia));
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+
+        // Contador
+        if (!_showSearchResults)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 150,
+            left: 16,
             child: Consumer<OcorrenciaProvider>(
               builder: (context, provider, _) {
-                return Text(
-                  'Ocorrências Ativas: ${provider.ocorrenciasAtivas.length}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.shadowColor,
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.statusActive,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${provider.ocorrenciasAtivas.length} ocorrências ativas',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
             ),
           ),
-        ),
       ],
     );
   }

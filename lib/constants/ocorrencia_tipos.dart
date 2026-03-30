@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'app_colors.dart';
 
 class OcorrenciaTipos {
   static const Map<String, String> tipos = {
     'alagamento': 'Alagamento / Inundação',
-    'deslizamento': 'Deslizamento de Terra / Encosta',
+    'deslizamento': 'Deslizamento de Terra',
     'queda_arvore': 'Queda de Árvore',
-    'incendio_vegetacao': 'Incêndio em Vegetação (Queimada)',
-    'colapso_estrutural': 'Colapso Estrutural (Prédio, Muro, Ponte)',
-    'vazamento_perigoso': 'Vazamento de Produtos Perigosos',
-    'tempestade': 'Tempestade / Vendaval Forte',
-    'outro': 'Outro (Emergência Geral)',
+    'incendio_vegetacao': 'Incêndio em Vegetação',
+    'colapso_estrutural': 'Colapso Estrutural',
+    'vazamento_perigoso': 'Vazamento Perigoso',
+    'tempestade': 'Tempestade / Vendaval',
+    'outro': 'Outro (Emergência)',
   };
 
   static const Map<String, String> tiposDescricao = {
@@ -24,14 +25,14 @@ class OcorrenciaTipos {
   };
 
   static const Map<String, IconData> tiposIcones = {
-    'alagamento': Icons.water_drop,
-    'deslizamento': Icons.terrain,
-    'queda_arvore': Icons.park,
-    'incendio_vegetacao': Icons.local_fire_department,
-    'colapso_estrutural': Icons.business,
-    'vazamento_perigoso': Icons.warning,
-    'tempestade': Icons.thunderstorm,
-    'outro': Icons.emergency,
+    'alagamento': Icons.water_drop_rounded,
+    'deslizamento': Icons.terrain_rounded,
+    'queda_arvore': Icons.park_rounded,
+    'incendio_vegetacao': Icons.local_fire_department_rounded,
+    'colapso_estrutural': Icons.domain_disabled_rounded,
+    'vazamento_perigoso': Icons.warning_amber_rounded,
+    'tempestade': Icons.thunderstorm_rounded,
+    'outro': Icons.emergency_rounded,
   };
 
   static List<String> getTiposLista() => tipos.keys.toList();
@@ -41,5 +42,11 @@ class OcorrenciaTipos {
   static String getTipoDescricao(String tipo) =>
       tiposDescricao[tipo] ?? 'Emergência';
 
-  static IconData getTipoIcone(String tipo) => tiposIcones[tipo] ?? Icons.emergency;
+  static IconData getTipoIcone(String tipo) =>
+      tiposIcones[tipo] ?? Icons.emergency_rounded;
+
+  static Color getTipoColor(String tipo) => AppColors.getTipoColor(tipo);
+
+  static Color getTipoColorLight(String tipo) =>
+      AppColors.getTipoColorLight(tipo);
 }

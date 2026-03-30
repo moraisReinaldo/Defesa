@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
 import '../models/comentario.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
+import '../widgets/search_bar_widget.dart';
+import '../widgets/ocorrencia_card.dart';
+import '../widgets/status_badge.dart';
 
 class HistoricoScreen extends StatefulWidget {
   const HistoricoScreen({super.key});
@@ -15,25 +19,40 @@ class HistoricoScreen extends StatefulWidget {
 }
 
 class _HistoricoScreenState extends State<HistoricoScreen> {
-  String _filtroSelecionado = 'todas'; // todas, ativas, resolvidas, minhas
-  final TextEditingController comentarioController = TextEditingController();
+  String _filtroSelecionado = 'todas';
+  final TextEditingController _comentarioController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
-  bool _selectionMode = false; // quando administrador ativar seleção em massa
-  final Set<String> _selecionadas = {}; // ids selecionados
+  bool _selectionMode = false;
+  final Set<String> _selecionadas = {};
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.backgroundOffWhite,
       appBar: AppBar(
         title: _selectionMode
             ? Text('${_selecionadas.length} selecionada(s)')
-            : const Text('Histórico de Ocorrências'),
+            : const Text('Histórico'),
         elevation: 0,
         actions: [
           if (context.watch<UsuarioProvider>().isAdmin)
             IconButton(
-              icon: Icon(_selectionMode ? Icons.close : Icons.checklist),
-              tooltip: _selectionMode ? 'Cancelar seleção' : 'Selecionar múltiplas',
+              icon: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  _selectionMode ? Icons.close_rounded : Icons.checklist_rounded,
+                  size: 20,
+                ),
+              ),
+              tooltip:
+                  _selectionMode ? 'Cancelar seleção' : 'Selecionar múltiplas',
               onPressed: () {
                 setState(() {
                   _selectionMode = !_selectionMode;
@@ -45,60 +64,108 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       ),
       body: Column(
         children: [
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: SearchBarWidget(
+              controller: _searchController,
+              hintText: 'Pesquisar no histórico...',
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
+          ),
+
           // Filtros
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _construirBotaoFiltro('todas', 'Todas'),
+                  _construirBotaoFiltro('todas', 'Todas', Icons.list_rounded),
                   const SizedBox(width: 8),
-                  _construirBotaoFiltro('ativas', 'Ativas'),
+                  _construirBotaoFiltro(
+                      'ativas', 'Ativas', Icons.error_rounded),
                   const SizedBox(width: 8),
-                  _construirBotaoFiltro('resolvidas', 'Resolvidas'),
+                  _construirBotaoFiltro(
+                      'resolvidas', 'Resolvidas', Icons.check_circle_rounded),
                   const SizedBox(width: 8),
                   if (context.watch<UsuarioProvider>().estaLogado)
-                    _construirBotaoFiltro('minhas', 'Minhas'),
+                    _construirBotaoFiltro(
+                        'minhas', 'Minhas', Icons.person_rounded),
                 ],
               ),
             ),
           ),
-          // Lista de Ocorrências
+
+          // Lista
           Expanded(
-            child: Stack(
-              children: [
-                Consumer<OcorrenciaProvider>(
+            child: Consumer<OcorrenciaProvider>(
               builder: (context, provider, _) {
                 List<Ocorrencia> ocorrencias = _obterOcorrenciasFiltradas(
                   provider,
                   context.read<UsuarioProvider>(),
                 );
 
+                // Filtrar por busca
+                if (_searchQuery.isNotEmpty) {
+                  final query = _searchQuery.toLowerCase();
+                  ocorrencias = ocorrencias.where((o) {
+                    return OcorrenciaTipos.getTipoNome(o.tipo)
+                            .toLowerCase()
+                            .contains(query) ||
+                        o.descricao.toLowerCase().contains(query);
+                  }).toList();
+                }
+
                 if (ocorrencias.isEmpty) {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.inbox,
-                          size: 64,
-                          color: Colors.grey,
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const Icon(
+                            Icons.inbox_rounded,
+                            size: 40,
+                            color: AppColors.primaryTeal,
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
+                        const Text(
                           'Nenhuma ocorrência encontrada',
-                          style: Theme.of(context).textTheme.bodyLarge,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Tente alterar os filtros de busca',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textLight,
+                          ),
                         ),
                       ],
                     ),
                   );
                 }
 
-                // agrupar por dia
+                // Agrupar por dia
                 final Map<String, List<Ocorrencia>> agrupado = {};
                 for (var o in ocorrencias) {
-                  final key = '${o.dataHora.day.toString().padLeft(2, '0')}/${o.dataHora.month.toString().padLeft(2, '0')}/${o.dataHora.year}';
+                  final key =
+                      '${o.dataHora.day.toString().padLeft(2, '0')}/${o.dataHora.month.toString().padLeft(2, '0')}/${o.dataHora.year}';
                   agrupado.putIfAbsent(key, () => []).add(o);
                 }
 
@@ -106,66 +173,184 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   padding: const EdgeInsets.all(16),
                   children: agrupado.entries.expand((entry) {
                     return [
+                      // Data header
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(entry.key,
-                            style: Theme.of(context).textTheme.headlineSmall),
+                        padding: const EdgeInsets.only(top: 8, bottom: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryTeal.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded,
+                                      size: 14, color: AppColors.primaryTeal),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    entry.key,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primaryTeal,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                height: 1,
+                                color: AppColors.borderLight,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      ...entry.value.map((ocorrencia) => _construirCartaoOcorrencia(context, ocorrencia)).toList(),
+                      // Cards
+                      ...entry.value
+                          .map((ocorrencia) => OcorrenciaCard(
+                                ocorrencia: ocorrencia,
+                                selectable: _selectionMode,
+                                selected:
+                                    _selecionadas.contains(ocorrencia.id),
+                                onSelectToggle: () {
+                                  setState(() {
+                                    if (_selecionadas.contains(ocorrencia.id)) {
+                                      _selecionadas.remove(ocorrencia.id);
+                                    } else {
+                                      _selecionadas.add(ocorrencia.id);
+                                    }
+                                  });
+                                },
+                                onTap: () => _mostrarDetalhesOcorrencia(
+                                    context, ocorrencia),
+                              ))
+                          .toList(),
                     ];
                   }).toList(),
                 );
               },
             ),
-                // placeholder for overlay if needed
-              ],
-            ),
           ),
         ],
       ),
-      bottomNavigationBar: _selectionMode && _selecionadas.isNotEmpty
-          ? Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _apagarSelecionadas,
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Excluir'),
+      bottomNavigationBar:
+          _selectionMode && _selecionadas.isNotEmpty
+              ? Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: SafeArea(
+                    top: false,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _apagarSelecionadas,
+                            icon: const Icon(Icons.delete_rounded, size: 18),
+                            label: const Text('Excluir'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.statusActive,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                _marcarSelecionadasResolvidas(true),
+                            icon: const Icon(Icons.check_circle_rounded,
+                                size: 18),
+                            label: const Text('Resolver'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.statusResolved,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                _marcarSelecionadasResolvidas(false),
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('Reativar'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.statusEnRoute,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _marcarSelecionadasResolvidas(true),
-                      child: const Text('Marcar resolvidas'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => _marcarSelecionadasResolvidas(false),
-                      child: const Text('Marcar ativas'),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : null,
+                )
+              : null,
     );
   }
 
-  Widget _construirBotaoFiltro(String valor, String label) {
-    return FilterChip(
-      label: Text(label),
-      selected: _filtroSelecionado == valor,
-      onSelected: (selecionado) {
+  Widget _construirBotaoFiltro(String valor, String label, IconData icon) {
+    final selected = _filtroSelecionado == valor;
+    return GestureDetector(
+      onTap: () {
         setState(() {
           _filtroSelecionado = valor;
         });
       },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryTeal : AppColors.surfaceCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primaryTeal : AppColors.borderLight,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primaryTeal.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? Colors.white : AppColors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -193,363 +378,392 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         ocorrencias = provider.ocorrencias;
     }
 
-    // Ordenar por data decrescente
     ocorrencias.sort((a, b) => b.dataHora.compareTo(a.dataHora));
     return ocorrencias;
   }
 
-  Widget _construirCartaoOcorrencia(
-    BuildContext context,
-    Ocorrencia ocorrencia,
-  ) {
-    final selecionado = _selecionadas.contains(ocorrencia.id);
-    return Card(
-      color: selecionado ? Colors.blue.withOpacity(0.2) : null,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: _selectionMode
-            ? Checkbox(
-                value: selecionado,
-                onChanged: (_) {
-                  setState(() {
-                    if (selecionado)
-                      _selecionadas.remove(ocorrencia.id);
-                    else
-                      _selecionadas.add(ocorrencia.id);
-                  });
-                },
-              )
-            : Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: ocorrencia.resolvida ? Colors.green : Colors.red,
-                  borderRadius: BorderRadius.circular(8),
+  void _mostrarDetalhesOcorrencia(
+      BuildContext context, Ocorrencia ocorrencia) {
+    final agentesController =
+        TextEditingController(text: ocorrencia.agentes ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        decoration: const BoxDecoration(
+          color: AppColors.backgroundOffWhite,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.borderLight,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            // Header
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.getTipoColor(ocorrencia.tipo),
+                    AppColors.getTipoColor(ocorrencia.tipo).withOpacity(0.8),
+                  ],
                 ),
-                child: Center(
-                  child: Icon(
-                    OcorrenciaTipos.getTipoIcone(ocorrencia.tipo),
-                    color: Colors.white,
-                    size: 24,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      OcorrenciaTipos.getTipoIcone(ocorrencia.tipo),
+                      color: Colors.white,
+                      size: 30,
+                    ),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          OcorrenciaTipos.getTipoNome(ocorrencia.tipo),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          OcorrenciaTipos.getTipoDescricao(ocorrencia.tipo),
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Descrição
+                    _buildSection('Descrição', Icons.description_rounded,
+                        child: Text(
+                          ocorrencia.descricao,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                            height: 1.5,
+                          ),
+                        )),
+
+                    // Foto
+                    if (ocorrencia.caminhoFoto != null &&
+                        ocorrencia.caminhoFoto!.isNotEmpty)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.file(
+                            File(ocorrencia.caminhoFoto!),
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, _, __) => Container(
+                              height: 200,
+                              color: AppColors.shimmer,
+                              child: const Center(
+                                child: Icon(Icons.image_not_supported_rounded,
+                                    color: AppColors.textLight, size: 40),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // Info
+                    _buildSection('Informações', Icons.info_rounded,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _infoRow('Data', _formatarData(ocorrencia.dataHora)),
+                            const SizedBox(height: 6),
+                            _infoRow('Lat/Lng',
+                                '${ocorrencia.latitude.toStringAsFixed(6)}, ${ocorrencia.longitude.toStringAsFixed(6)}'),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Text('Status: ',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textSecondary)),
+                                StatusBadge(
+                                  resolvida: ocorrencia.resolvida,
+                                  agentes: ocorrencia.agentes,
+                                ),
+                              ],
+                            ),
+                            if (ocorrencia.dataResolucao != null) ...[
+                              const SizedBox(height: 6),
+                              _infoRow('Resolvida em',
+                                  _formatarData(ocorrencia.dataResolucao!)),
+                            ],
+                          ],
+                        )),
+
+                    // Comentários
+                    _buildSection('Comentários', Icons.chat_bubble_rounded,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (ocorrencia.comentarios.isEmpty)
+                              const Text('Nenhum comentário.',
+                                  style: TextStyle(
+                                      color: AppColors.textLight,
+                                      fontSize: 13,
+                                      fontStyle: FontStyle.italic))
+                            else
+                              ...ocorrencia.comentarios.map((c) => Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.backgroundOffWhite,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(c.usuarioNome,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 13)),
+                                            const Spacer(),
+                                            Text(
+                                                _formatarData(c.dataHora),
+                                                style: const TextStyle(
+                                                    color: AppColors.textLight,
+                                                    fontSize: 11)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(c.texto,
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                color:
+                                                    AppColors.textSecondary)),
+                                      ],
+                                    ),
+                                  )),
+                            if (context.watch<UsuarioProvider>().isAdmin) ...[
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: _comentarioController,
+                                decoration: InputDecoration(
+                                  hintText: 'Adicionar comentário...',
+                                  filled: true,
+                                  fillColor: AppColors.backgroundOffWhite,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.send_rounded,
+                                        color: AppColors.primaryTeal),
+                                    onPressed: () =>
+                                        _adicionarComentario(context, ocorrencia),
+                                  ),
+                                ),
+                                maxLines: 2,
+                              ),
+                            ],
+                          ],
+                        )),
+
+                    // Admin: Agentes
+                    if (context.watch<UsuarioProvider>().isAdmin)
+                      _buildSection('Agentes', Icons.groups_rounded,
+                          child: TextField(
+                            controller: agentesController,
+                            decoration: InputDecoration(
+                              hintText: 'Ex: João Silva, Maria Santos',
+                              filled: true,
+                              fillColor: AppColors.backgroundOffWhite,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            onChanged: (value) {
+                              final atualizada =
+                                  ocorrencia.copyWith(agentes: value);
+                              context
+                                  .read<OcorrenciaProvider>()
+                                  .atualizarOcorrencia(atualizada);
+                            },
+                          )),
+
+                    // Botões admin
+                    if (context.watch<UsuarioProvider>().isAdmin)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _alterarStatusOcorrencia(
+                                    context, ocorrencia),
+                                icon: Icon(
+                                    ocorrencia.resolvida
+                                        ? Icons.refresh_rounded
+                                        : Icons.check_circle_rounded,
+                                    size: 18),
+                                label: Text(ocorrencia.resolvida
+                                    ? 'Reativar'
+                                    : 'Resolver'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: ocorrencia.resolvida
+                                      ? AppColors.statusEnRoute
+                                      : AppColors.statusResolved,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () =>
+                                    _deletarOcorrencia(context, ocorrencia),
+                                icon: const Icon(Icons.delete_rounded,
+                                    size: 18),
+                                label: const Text('Excluir'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusActive,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
-        title: Text(
-          OcorrenciaTipos.getTipoNome(ocorrencia.tipo),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Text(
-              ocorrencia.descricao,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _formatarData(ocorrencia.dataHora),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
-                  ),
             ),
           ],
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: ocorrencia.resolvida
-                ? Colors.green
-                : (ocorrencia.agentes != null && ocorrencia.agentes!.isNotEmpty)
-                    ? Colors.orange
-                    : Colors.red,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            ocorrencia.resolvida
-                ? 'Resolvida'
-                : (ocorrencia.agentes != null && ocorrencia.agentes!.isNotEmpty)
-                    ? 'Em caminho'
-                    : 'Ativa',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        onTap: _selectionMode
-            ? () {
-                setState(() {
-                  if (selecionado)
-                    _selecionadas.remove(ocorrencia.id);
-                  else
-                    _selecionadas.add(ocorrencia.id);
-                });
-              }
-            : () => _mostrarDetalhesOcorrencia(context, ocorrencia),
       ),
     );
   }
 
-  void _mostrarDetalhesOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
-    final agentesController = TextEditingController(text: ocorrencia.agentes ?? '');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true, // Permite altura variável
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8, // Máximo 80% da tela
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                OcorrenciaTipos.getTipoNome(ocorrencia.tipo),
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                OcorrenciaTipos.getTipoDescricao(ocorrencia.tipo),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Descrição',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                ocorrencia.descricao,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              if (ocorrencia.caminhoFoto != null && ocorrencia.caminhoFoto!.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(ocorrencia.caminhoFoto!),
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: const Center(
-                          child: Icon(Icons.image_not_supported),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              const SizedBox(height: 16),
-              Text(
-                'Informações',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Data: ${_formatarData(ocorrencia.dataHora)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Text(
-                'Latitude: ${ocorrencia.latitude.toStringAsFixed(6)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Text(
-                'Longitude: ${ocorrencia.longitude.toStringAsFixed(6)}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              Text(
-                'Status: ${ocorrencia.resolvida ? 'Resolvida' : 'Ativa'}',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: ocorrencia.resolvida ? Colors.green : Colors.red,
-                    ),
-              ),
-              if (ocorrencia.dataResolucao != null)
-                Text(
-                  'Resolvida em: ${_formatarData(ocorrencia.dataResolucao!)}',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              const SizedBox(height: 16),
-              // Seção de comentários
-              Text(
-                'Comentários',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              const SizedBox(height: 8),
-              if (ocorrencia.comentarios.isEmpty)
-                Text(
-                  'Nenhum comentário ainda.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
-                      ),
-                )
-              else
-                Column(
-                  children: ocorrencia.comentarios.map((comentario) {
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                comentario.usuarioNome,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _formatarData(comentario.dataHora),
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: Colors.grey,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            comentario.texto,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              const SizedBox(height: 16),
-              // Campo para adicionar comentário (somente admins)
-              if (context.watch<UsuarioProvider>().isAdmin)
-                TextFormField(
-                  controller: comentarioController,
-                  decoration: InputDecoration(
-                    hintText: 'Adicionar comentário...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.send),
-                      onPressed: () => _adicionarComentario(context, ocorrencia),
-                    ),
-                  ),
-                  maxLines: 3,
-                  onFieldSubmitted: (_) => _adicionarComentario(context, ocorrencia),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    'Comentários disponíveis apenas para administradores.',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: Colors.grey),
-                  ),
-                ),
-              const SizedBox(height: 16),
-              if (context.watch<UsuarioProvider>().isAdmin)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Agentes a caminho',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: agentesController,
-                      decoration: InputDecoration(
-                        hintText: 'Ex: João Silva, Maria Santos',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        // Atualizar a ocorrência com os agentes
-                        final atualizada = ocorrencia.copyWith(agentes: value);
-                        context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              // Botões para admin
-              if (context.watch<UsuarioProvider>().isAdmin)
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _alterarStatusOcorrencia(context, ocorrencia),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ocorrencia.resolvida ? Colors.orange : Colors.green,
-                        ),
-                        child: Text(
-                          ocorrencia.resolvida ? 'Marcar como Ativa' : 'Marcar como Resolvida',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => _deletarOcorrencia(context, ocorrencia),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                        ),
-                        child: const Text('Deletar'),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
+  Widget _buildSection(String title, IconData icon, {required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
-        ),
+        ],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(icon, size: 18, color: AppColors.primaryTeal),
+            const SizedBox(width: 8),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary)),
+          ]),
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Row(
+      children: [
+        Text('$label: ',
+            style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary)),
+        Expanded(
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 13, color: AppColors.textSecondary))),
+      ],
     );
   }
 
   void _adicionarComentario(BuildContext context, Ocorrencia ocorrencia) {
     final usuarioProvider = context.read<UsuarioProvider>();
     if (!usuarioProvider.isAdmin) return;
-
-    if (comentarioController.text.trim().isEmpty) return;
+    if (_comentarioController.text.trim().isEmpty) return;
 
     final comentario = Comentario(
-      texto: comentarioController.text.trim(),
+      texto: _comentarioController.text.trim(),
       usuarioNome: 'Administrador',
       usuarioId: usuarioProvider.usuarioLogado?.id,
     );
 
-    context.read<OcorrenciaProvider>().adicionarComentario(ocorrencia.id, comentario);
-    comentarioController.clear();
+    context
+        .read<OcorrenciaProvider>()
+        .adicionarComentario(ocorrencia.id, comentario);
+    _comentarioController.clear();
   }
 
   void _alterarStatusOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
     if (ocorrencia.resolvida) {
-      // Marcar como ativa
       final atualizada = ocorrencia.copyWith(
         resolvida: false,
         dataResolucao: null,
       );
       context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
     } else {
-      // Marcar como resolvida
       context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id);
     }
     Navigator.pop(context);
@@ -558,28 +772,35 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   void _deletarOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: const Text('Confirmar exclusão'),
         content: const Text('Tem certeza que deseja deletar esta ocorrência?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
-              context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id);
-              Navigator.pop(context); // Fechar dialog
-              Navigator.pop(context); // Fechar bottom sheet
+              context
+                  .read<OcorrenciaProvider>()
+                  .deletarOcorrencia(ocorrencia.id);
+              Navigator.pop(ctx);
+              Navigator.pop(context);
             },
-            child: const Text('Deletar', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.statusActive,
+            ),
+            child: const Text('Excluir'),
           ),
         ],
       ),
     );
   }
 
-  // ações de seleção em massa
   Future<void> _apagarSelecionadas() async {
     final provider = context.read<OcorrenciaProvider>();
     for (var id in _selecionadas.toList()) {
@@ -610,7 +831,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   }
 
   String _formatarData(DateTime data) {
-    return '${data.day}/${data.month}/${data.year} às ${data.hour}:${data.minute.toString().padLeft(2, '0')}';
+    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour}:${data.minute.toString().padLeft(2, '0')}';
   }
 }
-

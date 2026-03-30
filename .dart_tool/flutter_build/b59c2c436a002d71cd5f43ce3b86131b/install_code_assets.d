@@ -1,0 +1,1 @@
+ /home/rhmorais/Documentos/GitHub/Defesa/.dart_tool/flutter_build/b59c2c436a002d71cd5f43ce3b86131b/native_assets.json: 
