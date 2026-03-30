@@ -46,8 +46,20 @@ public class OcorrenciaService {
         oc.setUsuarioId(request.getUsuarioId());
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
 
-        // Regra de Aprovação
-        if (oc.isCriadoPorAgente()) {
+        // Regra de Aprovação: Admins e Agentes são sempre aprovados
+        boolean autoAprovado = oc.isCriadoPorAgente();
+        
+        if (oc.getUsuarioId() != null) {
+            Optional<Usuario> criador = usuarioRepository.findById(oc.getUsuarioId());
+            if (criador.isPresent()) {
+                String role = criador.get().getRole();
+                if (Role.ADMINISTRADOR.name().equals(role) || Role.AGENTE.name().equals(role)) {
+                    autoAprovado = true;
+                }
+            }
+        }
+
+        if (autoAprovado) {
             oc.setStatus(OcorrenciaStatus.APROVADA.name());
         } else {
             oc.setStatus(OcorrenciaStatus.PENDENTE_APROVACAO.name());

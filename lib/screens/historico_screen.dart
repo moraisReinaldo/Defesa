@@ -745,8 +745,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         ),
                       ),
 
-                    // 2. Registro de Chegada (Somente Agente e se Aprovada)
+                    // 2. Registro de Chegada (Somente Agente e se Aprovada, NÃO MOSTRAR PARA ADMIN)
                     if (context.watch<UsuarioProvider>().usuarioLogado?.isAgente == true && 
+                        !context.watch<UsuarioProvider>().isAdmin &&
                         ocorrencia.status == OcorrenciaStatus.APROVADA &&
                         !ocorrencia.agenteNoLocal)
                       Padding(

@@ -67,10 +67,13 @@ class TipoOcorrenciaCard extends StatelessWidget {
                           : tipoColorLight,
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(
-                      icone,
-                      color: tipoColor,
-                      size: 28,
+                    child: Transform.translate(
+                      offset: tipo == 'queda_arvore' ? const Offset(0, -2) : (tipo == 'vazamento_perigoso' || tipo == 'outro' ? const Offset(0, -1) : Offset.zero),
+                      child: Icon(
+                        icone,
+                        color: tipoColor,
+                        size: 28,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
