@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/ocorrencia.dart';
+import '../models/ponto_interesse.dart';
 import 'storage_service.dart';
 
 class ApiService {
@@ -66,6 +67,19 @@ class ApiService {
       throw Exception('O servidor demorou para responder. Tente novamente em instantes.');
     } catch (e) {
       throw Exception('Erro ao conectar com o servidor.');
+    }
+  }
+
+  Future<http.Response> _delete(String path) async {
+    final headers = await _getHeaders();
+    try {
+      return await http
+          .delete(Uri.parse('$baseUrl$path'), headers: headers)
+          .timeout(_timeoutLimit);
+    } on TimeoutException {
+      throw Exception('Tempo esgotado ao tentar deletar.');
+    } catch (e) {
+      throw Exception('Erro ao conectar com o servidor para deletar.');
     }
   }
 
@@ -172,6 +186,35 @@ class ApiService {
         return data['token'];
     }
     return null;
+  }
+
+  // ========== PONTOS DE INTERESSE ==========
+
+  Future<List<PontoInteresse>> listarPontosInteresse({String? cidade}) async {
+    try {
+      final query = cidade != null ? '?cidade=$cidade' : '';
+      final response = await _get('/pontos-interesse$query');
+      if (response.statusCode == 200) {
+        final List vindoDaApi = jsonDecode(response.body);
+        return vindoDaApi.map((p) => PontoInteresse.fromJson(p)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<PontoInteresse?> criarPontoInteresse(PontoInteresse ponto) async {
+    final response = await _post('/pontos-interesse', ponto.toJson());
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return PontoInteresse.fromJson(jsonDecode(response.body));
+    }
+    return null;
+  }
+
+  Future<bool> deletarPontoInteresse(String id) async {
+    final response = await _delete('/pontos-interesse/$id');
+    return response.statusCode == 200 || response.statusCode == 204;
   }
 }
 

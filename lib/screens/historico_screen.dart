@@ -415,7 +415,11 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         }
         break;
       default:
-        ocorrencias = provider.ocorrencias;
+        if (usuarioProvider.isAdmin) {
+          ocorrencias = provider.ocorrencias;
+        } else {
+          ocorrencias = provider.ocorrenciasAtivas;
+        }
     }
 
     if (_filtroAgenteNome != null) {
