@@ -11,7 +11,7 @@ class ApiService {
   // URL configurável via --dart-define=API_BASE_URL=https://sua-api.com/api
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://bionomic-glaiked-ramonita.ngrok-free.dev/api',
+    defaultValue: 'https://defesa-civil-backend.onrender.com/api',
   );
 
   // ========== HEADERS SECURE ==========
