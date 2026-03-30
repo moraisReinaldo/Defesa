@@ -42,7 +42,7 @@ public class OcorrenciaService {
         oc.setLongitude(request.getLongitude());
         oc.setCidade(sanitizeInput(request.getCidade()));
         oc.setCaminhoFoto(request.getCaminhoFoto());
-        oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now());
+        oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
         oc.setUsuarioId(request.getUsuarioId());
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
 
@@ -98,7 +98,7 @@ public class OcorrenciaService {
         Ocorrencia oc = ocorrenciaRepository.findById(id);
         if (oc != null) {
             oc.setAgenteNoLocal(true);
-            oc.setDataChegadaAgente(LocalDateTime.now());
+            oc.setDataChegadaAgente(LocalDateTime.now().toString());
             return ocorrenciaRepository.save(oc);
         }
         return null;

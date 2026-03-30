@@ -1,6 +1,5 @@
 package com.defesacivil.backend.dto;
 
-import java.time.LocalDateTime;
 
 public class OcorrenciaRequest {
     private String tipo;
@@ -10,7 +9,7 @@ public class OcorrenciaRequest {
     private String cidade;
     private String caminhoFoto; // pode ser uma URL ou Base64 (simplificado)
     private String usuarioId;
-    private LocalDateTime dataHora;
+    private String dataHora;
     private boolean criadoPorAgente; // Novo campo
 
     public String getTipo() { return tipo; }
@@ -27,8 +26,8 @@ public class OcorrenciaRequest {
     public void setCaminhoFoto(String caminhoFoto) { this.caminhoFoto = caminhoFoto; }
     public String getUsuarioId() { return usuarioId; }
     public void setUsuarioId(String usuarioId) { this.usuarioId = usuarioId; }
-    public LocalDateTime getDataHora() { return dataHora; }
-    public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
+    public String getDataHora() { return dataHora; }
+    public void setDataHora(String dataHora) { this.dataHora = dataHora; }
     public boolean isCriadoPorAgente() { return criadoPorAgente; }
     public void setCriadoPorAgente(boolean criadoPorAgente) { this.criadoPorAgente = criadoPorAgente; }
 }

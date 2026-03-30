@@ -112,7 +112,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erro: $e')));
+            .showSnackBar(SnackBar(
+                content: Text(e.toString().replaceAll('Exception: ', '')),
+                backgroundColor: AppColors.statusActive));
       }
     } finally {
       if (mounted) setState(() => _carregando = false);

@@ -42,6 +42,7 @@ public class SecurityConfig {
                 // Endpoints públicos
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/usuarios/login").permitAll()
+                .requestMatchers("/api/ocorrencias").permitAll()
                 // Apenas Administradores podem aprovar ocorrências
                 .requestMatchers("/api/ocorrencias/*/aprovar").hasRole("ADMINISTRADOR")
                 // Agentes e Admins podem registrar chegada
