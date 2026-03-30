@@ -19,8 +19,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _senhaController = TextEditingController();
   final _nomeController = TextEditingController();
   final _telefoneController = TextEditingController();
+  final _cidadeController = TextEditingController();
   bool _senhaVisivel = false;
   bool _carregando = false;
+  String _roleSelecionada = 'CIDADAO'; 
 
   @override
   void initState() {
@@ -73,8 +75,8 @@ class _LoginScreenState extends State<LoginScreen> {
             email: _emailController.text,
             telefone: _telefoneController.text,
             senha: _senhaController.text,
-            cidade: '', 
-            role: 'CIDADAO',
+            cidade: _roleSelecionada == 'ADMINISTRADOR' ? _cidadeController.text : '', 
+            role: _roleSelecionada,
             concordaLGPD: _concordaLGPD,
           ),
         );
@@ -184,7 +186,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     if (_modoRegistro) _field('Nome completo', _nomeController, Icons.person_rounded, 'Seu nome', validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
                     _field('Email', _emailController, Icons.email_rounded, 'seu@email.com', keyboardType: TextInputType.emailAddress, validator: (v) { if (v == null || v.isEmpty) return 'Obrigatório'; if (!v.contains('@')) return 'Email inválido'; return null; }),
-                    if (_modoRegistro) _field('Telefone', _telefoneController, Icons.phone_rounded, '(11) 99999-9999', keyboardType: TextInputType.phone, validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
+                    if (_modoRegistro) ...[
+                      _field('Telefone', _telefoneController, Icons.phone_rounded, '(11) 99999-9999', keyboardType: TextInputType.phone, validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
+                      
+                      const SizedBox(height: 8),
+                      const Align(alignment: Alignment.centerLeft, child: Text('Tipo de Perfil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                      Row(children: [
+                        Flexible(child: RadioListTile<String>(title: const Text('Cidadão', style: TextStyle(fontSize: 13)), value: 'CIDADAO', groupValue: _roleSelecionada, onChanged: (v) => setState(() => _roleSelecionada = v!), contentPadding: EdgeInsets.zero)),
+                        Flexible(child: RadioListTile<String>(title: const Text('Admin', style: TextStyle(fontSize: 13)), value: 'ADMINISTRADOR', groupValue: _roleSelecionada, onChanged: (v) => setState(() => _roleSelecionada = v!), contentPadding: EdgeInsets.zero)),
+                      ]),
+
+                      if (_roleSelecionada == 'ADMINISTRADOR')
+                        _field('Cidade de Atuação', _cidadeController, Icons.location_city_rounded, 'Ex: Rio de Janeiro', validator: (v) => v == null || v.isEmpty ? 'Obrigatório para Admin' : null),
+                      const SizedBox(height: 8),
+                    ],
                     _field('Senha', _senhaController, Icons.lock_rounded, 'Sua senha', obscure: !_senhaVisivel,
                         suffixIcon: IconButton(icon: Icon(_senhaVisivel ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: AppColors.textLight), onPressed: () => setState(() => _senhaVisivel = !_senhaVisivel)),
                         validator: (v) { if (v == null || v.isEmpty) return 'Obrigatório'; if (v.length < 6) return 'Mínimo 6 caracteres'; return null; }),
@@ -270,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-  void dispose() { _emailController.dispose(); _senhaController.dispose(); _nomeController.dispose(); _telefoneController.dispose(); super.dispose(); }
+  void dispose() { _emailController.dispose(); _senhaController.dispose(); _nomeController.dispose(); _telefoneController.dispose(); _cidadeController.dispose(); super.dispose(); }
 }
 
 class _SenhaAdminDialog extends StatefulWidget {

@@ -23,3 +23,9 @@
 # Prevent stripping of debug info needed for crash reports
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Fix missing Play Store classes (R8/ProGuard)
+-dontwarn com.google.android.play.core.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.tasks.**

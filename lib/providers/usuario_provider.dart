@@ -92,17 +92,21 @@ class UsuarioProvider extends ChangeNotifier {
     _setLoading(true);
     try {
       final response = await _apiService.cadastrarUsuario(request);
-      if (response != null) {
+      if (response != null && response['sucesso'] != false) {
         return {
           'sucesso': true,
           'message': response['message'],
           'pendente': response['pendente'] ?? false,
         };
+      } else {
+        return {
+          'sucesso': false,
+          'message': response?['message'] ?? 'Erro inesperado no servidor.',
+        };
       }
-      return {'sucesso': false, 'message': 'Erro ao realizar cadastro.'};
     } catch (e) {
-      if (kDebugMode) print('Erro ao cadastrar: $e');
-      return {'sucesso': false, 'message': e.toString()};
+      if (kDebugMode) print('Erro no cadastro: $e');
+      return {'sucesso': false, 'message': 'Erro de conexão ou servidor.'};
     } finally {
       _setLoading(false);
     }

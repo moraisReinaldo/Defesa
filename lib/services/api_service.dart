@@ -57,16 +57,27 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>?> cadastrarUsuario(UsuarioRequest req) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/cadastro'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(req.toJson()),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/cadastro'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(req.toJson()),
+      ).timeout(const Duration(seconds: 15));
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body); // Retorna {message: "...", pendente: true/false}
+      final data = jsonDecode(response.body);
+      
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return data; 
+      } else {
+        // Retorna o erro vindo do backend (Spring Boot)
+        return {
+          'sucesso': false,
+          'message': data is Map ? data['message'] : response.body,
+        };
+      }
+    } catch (e) {
+      return {'sucesso': false, 'message': 'Erro de conexão: $e'};
     }
-    return null;
   }
 
   // ========== OCORRÊNCIAS ==========
