@@ -40,6 +40,7 @@ dependencies:
   uuid: ^4.0.0
   permission_handler: ^11.4.0
   latlong2: 0.9.0
+  geocoding: ^4.0.0
 
 dev_dependencies:
   flutter_test:

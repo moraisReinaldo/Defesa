@@ -20,6 +20,7 @@ class HistoricoScreen extends StatefulWidget {
 
 class _HistoricoScreenState extends State<HistoricoScreen> {
   String _filtroSelecionado = 'todas';
+  String? _filtroAgenteNome;
   final TextEditingController _comentarioController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -378,15 +379,16 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         ocorrencias = provider.ocorrencias;
     }
 
+    if (_filtroAgenteNome != null) {
+      ocorrencias = ocorrencias.where((o) => o.agentes?.contains(_filtroAgenteNome!) == true).toList();
+    }
+
     ocorrencias.sort((a, b) => b.dataHora.compareTo(a.dataHora));
     return ocorrencias;
   }
 
   void _mostrarDetalhesOcorrencia(
       BuildContext context, Ocorrencia ocorrencia) {
-    final agentesController =
-        TextEditingController(text: ocorrencia.agentes ?? '');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -618,25 +620,45 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     // Admin: Agentes
                     if (context.watch<UsuarioProvider>().isAdmin)
                       _buildSection('Agentes', Icons.groups_rounded,
-                          child: TextField(
-                            controller: agentesController,
-                            decoration: InputDecoration(
-                              hintText: 'Ex: João Silva, Maria Santos',
-                              filled: true,
-                              fillColor: AppColors.backgroundOffWhite,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            onChanged: (value) {
-                              final atualizada =
-                                  ocorrencia.copyWith(agentes: value);
-                              context
-                                  .read<OcorrenciaProvider>()
-                                  .atualizarOcorrencia(atualizada);
-                            },
-                          )),
+                        child: StatefulBuilder(
+                          builder: (context, setSheetState) {
+                            final agentesGerais = context.watch<UsuarioProvider>().todosAgentes;
+                            final agentesAtuais = ocorrencia.agentes?.split(', ').where((s) => s.isNotEmpty).toList() ?? [];
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (agentesGerais.isEmpty)
+                                  const Text('Nenhum agente cadastrado.', style: TextStyle(color: AppColors.textSecondary)),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: agentesGerais.map((agente) {
+                                    final isSelected = agentesAtuais.contains(agente.nome);
+                                    return FilterChip(
+                                      label: Text(agente.nome, style: TextStyle(fontSize: 12, color: isSelected ? AppColors.primaryTeal : AppColors.textPrimary)),
+                                      selected: isSelected,
+                                      onSelected: (selected) {
+                                        if (selected) {
+                                          agentesAtuais.add(agente.nome);
+                                        } else {
+                                          agentesAtuais.remove(agente.nome);
+                                        }
+                                        final novoTexto = agentesAtuais.join(', ');
+                                        final atualizada = ocorrencia.copyWith(agentes: novoTexto);
+                                        context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
+                                        setSheetState(() {});
+                                      },
+                                      selectedColor: AppColors.primaryTeal.withOpacity(0.2),
+                                      checkmarkColor: AppColors.primaryTeal,
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            );
+                          }
+                        ),
+                      ),
 
                     // Botões admin
                     if (context.watch<UsuarioProvider>().isAdmin)

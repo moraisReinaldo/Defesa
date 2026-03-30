@@ -96,6 +96,13 @@ class StorageService {
     }
   }
 
+  Future<void> deletarUsuario(String id) async {
+    final usuarios = await obterTodosUsuarios();
+    usuarios.removeWhere((u) => u.id == id);
+    final json = usuarios.map((u) => jsonEncode(u.toJson())).toList();
+    await _prefs.setStringList(_usuariosKey, json);
+  }
+
   // ========== USUÁRIO LOGADO ==========
 
   Future<void> salvarUsuarioLogado(Usuario usuario) async {

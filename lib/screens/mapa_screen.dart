@@ -128,9 +128,6 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   void _mostrarDetalhesOcorrencia(Ocorrencia ocorrencia) {
-    final agentesController =
-        TextEditingController(text: ocorrencia.agentes ?? '');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -362,60 +359,56 @@ class _MapaScreenState extends State<MapaScreen> {
                       ),
                     ),
 
-                    // Admin: Agentes
                     if (context.watch<UsuarioProvider>().isAdmin)
                       _buildSectionCard(
                         icon: Icons.groups_rounded,
                         title: 'Agentes a caminho',
-                        child: Column(
-                          children: [
-                            TextField(
-                              controller: agentesController,
-                              decoration: InputDecoration(
-                                hintText: 'Ex: João Silva, Maria Santos',
-                                filled: true,
-                                fillColor: AppColors.backgroundOffWhite,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  final texto =
-                                      agentesController.text.trim();
-                                  if (texto.isEmpty) return;
-                                  final atualizada =
-                                      ocorrencia.copyWith(agentes: texto);
-                                  context
-                                      .read<OcorrenciaProvider>()
-                                      .atualizarOcorrencia(atualizada);
+                        child: StatefulBuilder(
+                          builder: (context, setSheetState) {
+                            final agentesGerais = context.watch<UsuarioProvider>().todosAgentes;
+                            final agentesAtuais = ocorrencia.agentes?.split(', ').where((s) => s.isNotEmpty).toList() ?? [];
 
-                                  final comentario = Comentario(
-                                    texto: 'Agentes a caminho',
-                                    agentes: texto,
-                                    usuarioNome: 'Administrador',
-                                  );
-                                  context
-                                      .read<OcorrenciaProvider>()
-                                      .adicionarComentario(
-                                          ocorrencia.id, comentario);
-                                  _atualizarMarcadores();
-                                  Navigator.pop(context);
-                                },
-                                icon: const Icon(Icons.send_rounded, size: 18),
-                                label: const Text('Enviar agentes'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.accentAmber,
-                                  foregroundColor: AppColors.textOnAccent,
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (agentesGerais.isEmpty)
+                                  const Text('Nenhum agente cadastrado.', style: TextStyle(color: AppColors.textSecondary)),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: agentesGerais.map((agente) {
+                                    final isSelected = agentesAtuais.contains(agente.nome);
+                                    return FilterChip(
+                                      label: Text(agente.nome, style: TextStyle(fontSize: 12, color: isSelected ? AppColors.primaryTeal : AppColors.textPrimary)),
+                                      selected: isSelected,
+                                      onSelected: (selected) {
+                                        if (selected) {
+                                          agentesAtuais.add(agente.nome);
+                                        } else {
+                                          agentesAtuais.remove(agente.nome);
+                                        }
+                                        final novoTexto = agentesAtuais.join(', ');
+                                        final atualizada = ocorrencia.copyWith(agentes: novoTexto);
+                                        context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
+                                        setSheetState(() {});
+                                        
+                                        if (selected) {
+                                          final comentario = Comentario(
+                                            texto: 'Agente ${agente.nome} associado à ocorrência',
+                                            usuarioNome: 'Sistema',
+                                          );
+                                          context.read<OcorrenciaProvider>().adicionarComentario(ocorrencia.id, comentario);
+                                          _atualizarMarcadores();
+                                        }
+                                      },
+                                      selectedColor: AppColors.primaryTeal.withOpacity(0.2),
+                                      checkmarkColor: AppColors.primaryTeal,
+                                    );
+                                  }).toList(),
                                 ),
-                              ),
-                            ),
-                          ],
+                              ],
+                            );
+                          }
                         ),
                       ),
 
@@ -922,7 +915,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        const RegistroOcorrenciaScreen(),
+                        const SelecaoTipoOcorrenciaScreen(),
                   ),
                 );
                 if (resultado == true) {

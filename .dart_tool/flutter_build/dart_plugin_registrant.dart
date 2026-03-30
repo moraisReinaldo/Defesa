@@ -6,9 +6,11 @@
 // @dart = 3.5
 
 import 'dart:io'; // flutter_ignore: dart_io_import.
+import 'package:geocoding_android/geocoding_android.dart' as geocoding_android;
 import 'package:geolocator_android/geolocator_android.dart' as geolocator_android;
 import 'package:image_picker_android/image_picker_android.dart' as image_picker_android;
 import 'package:shared_preferences_android/shared_preferences_android.dart' as shared_preferences_android;
+import 'package:geocoding_ios/geocoding_ios.dart' as geocoding_ios;
 import 'package:geolocator_apple/geolocator_apple.dart' as geolocator_apple;
 import 'package:image_picker_ios/image_picker_ios.dart' as image_picker_ios;
 import 'package:shared_preferences_foundation/shared_preferences_foundation.dart' as shared_preferences_foundation;
@@ -31,6 +33,15 @@ class _PluginRegistrant {
   @pragma('vm:entry-point')
   static void register() {
     if (Platform.isAndroid) {
+      try {
+        geocoding_android.GeocodingAndroid.registerWith();
+      } catch (err) {
+        print(
+          '`geocoding_android` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
       try {
         geolocator_android.GeolocatorAndroid.registerWith();
       } catch (err) {
@@ -59,6 +70,15 @@ class _PluginRegistrant {
       }
 
     } else if (Platform.isIOS) {
+      try {
+        geocoding_ios.GeocodingIOS.registerWith();
+      } catch (err) {
+        print(
+          '`geocoding_ios` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
       try {
         geolocator_apple.GeolocatorApple.registerWith();
       } catch (err) {

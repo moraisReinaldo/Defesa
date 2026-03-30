@@ -6,6 +6,9 @@ class Usuario {
   final String email;
   final String telefone;
   final String? senha; // Armazenado localmente (hash em produção)
+  final bool isAgente;
+  final String? cidade;
+  final String? especialidade;
   final DateTime dataCriacao;
 
   Usuario({
@@ -14,13 +17,12 @@ class Usuario {
     required this.email,
     required this.telefone,
     this.senha,
+    this.isAgente = false,
+    this.cidade,
+    this.especialidade,
     DateTime? dataCriacao,
   })  : id = id ?? const Uuid().v4(),
         dataCriacao = dataCriacao ?? DateTime.now();
-
-  // Removido verificação de administrador por telefone.
-  // Se precisar de flags adicionais, adicione campo separado.
-
 
   // Converter para JSON
   Map<String, dynamic> toJson() {
@@ -30,6 +32,9 @@ class Usuario {
       'email': email,
       'telefone': telefone,
       'senha': senha,
+      'isAgente': isAgente,
+      'cidade': cidade,
+      'especialidade': especialidade,
       'dataCriacao': dataCriacao.toIso8601String(),
     };
   }
@@ -42,6 +47,9 @@ class Usuario {
       email: json['email'],
       telefone: json['telefone'],
       senha: json['senha'],
+      isAgente: json['isAgente'] ?? false,
+      cidade: json['cidade'],
+      especialidade: json['especialidade'],
       dataCriacao: DateTime.parse(json['dataCriacao']),
     );
   }
@@ -53,6 +61,9 @@ class Usuario {
     String? email,
     String? telefone,
     String? senha,
+    bool? isAgente,
+    String? cidade,
+    String? especialidade,
     DateTime? dataCriacao,
   }) {
     return Usuario(
@@ -61,6 +72,9 @@ class Usuario {
       email: email ?? this.email,
       telefone: telefone ?? this.telefone,
       senha: senha ?? this.senha,
+      isAgente: isAgente ?? this.isAgente,
+      cidade: cidade ?? this.cidade,
+      especialidade: especialidade ?? this.especialidade,
       dataCriacao: dataCriacao ?? this.dataCriacao,
     );
   }

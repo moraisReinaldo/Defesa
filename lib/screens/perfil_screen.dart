@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
 import 'login_screen.dart';
+import 'cadastro_agente_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -410,6 +411,30 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   style: TextStyle(
                       fontSize: 14, color: AppColors.textSecondary)),
               const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CadastroAgenteScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.group_add_rounded, size: 18),
+                  label: const Text('Cadastrar Agentes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(

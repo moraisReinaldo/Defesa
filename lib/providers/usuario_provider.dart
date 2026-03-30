@@ -7,6 +7,7 @@ class UsuarioProvider extends ChangeNotifier {
   Usuario? _usuarioLogado;
   bool _carregando = false;
   bool _isAdmin = false;
+  List<Usuario> _todosUsuarios = [];
 
   UsuarioProvider(this._storageService);
 
@@ -14,6 +15,9 @@ class UsuarioProvider extends ChangeNotifier {
   bool get estaLogado => _usuarioLogado != null;
   bool get carregando => _carregando;
   bool get isAdmin => _isAdmin;
+  
+  List<Usuario> get todosUsuarios => _todosUsuarios;
+  List<Usuario> get todosAgentes => _todosUsuarios.where((u) => u.isAgente).toList();
 
   /// Reseta o estado de administrador
   void logoutAdmin() {
@@ -44,6 +48,11 @@ class UsuarioProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> carregarTudo() async {
+    _todosUsuarios = await _storageService.obterTodosUsuarios();
+    notifyListeners();
+  }
+
   Future<bool> cadastrar({
     required String nome,
     required String email,
@@ -69,12 +78,48 @@ class UsuarioProvider extends ChangeNotifier {
       await _storageService.salvarUsuario(novoUsuario);
       await _storageService.salvarUsuarioLogado(novoUsuario);
       _usuarioLogado = novoUsuario;
-      notifyListeners();
+      await carregarTudo();
       return true;
     } catch (e) {
       print('Erro ao cadastrar: $e');
       return false;
     }
+  }
+
+  Future<bool> cadastrarAgente({
+    required String nome,
+    required String email,
+    required String telefone,
+    required String senha,
+    required String cidade,
+    required String especialidade,
+  }) async {
+    try {
+      final usuarioExistente = await _storageService.obterUsuarioPorEmail(email);
+      if (usuarioExistente != null) return false;
+
+      final novoAgente = Usuario(
+        nome: nome,
+        email: email,
+        telefone: telefone,
+        senha: senha,
+        isAgente: true,
+        cidade: cidade,
+        especialidade: especialidade,
+      );
+
+      await _storageService.salvarUsuario(novoAgente);
+      await carregarTudo();
+      return true;
+    } catch (e) {
+      print('Erro ao cadastrar agente: $e');
+      return false;
+    }
+  }
+
+  Future<void> deletarUsuario(String id) async {
+    await _storageService.deletarUsuario(id);
+    await carregarTudo();
   }
 
   Future<bool> login({
@@ -124,7 +169,7 @@ class UsuarioProvider extends ChangeNotifier {
       await _storageService.atualizarUsuario(usuarioAtualizado);
       await _storageService.salvarUsuarioLogado(usuarioAtualizado);
       _usuarioLogado = usuarioAtualizado;
-      notifyListeners();
+      await carregarTudo();
       return true;
     } catch (e) {
       print('Erro ao atualizar perfil: $e');
