@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
 import 'status_badge.dart';
+import 'ocorrencia_image.dart';
 
 class OcorrenciaCard extends StatelessWidget {
   final Ocorrencia ocorrencia;
@@ -154,12 +154,15 @@ class OcorrenciaCard extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 6),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        image: DecorationImage(
-                          image: FileImage(File(ocorrencia.caminhoFoto!)),
-                          fit: BoxFit.cover,
-                          onError: (_, __) {},
-                        ),
                         color: AppColors.shimmer,
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: OcorrenciaImage(
+                          caminho: ocorrencia.caminhoFoto!,
+                          height: 44,
+                          width: 44,
+                        ),
                       ),
                     ),
                   StatusBadge(

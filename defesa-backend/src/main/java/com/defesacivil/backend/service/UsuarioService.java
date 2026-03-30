@@ -110,4 +110,14 @@ public class UsuarioService {
         }
         return adminPassword.equals(senhaDigitada);
     }
+
+    public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
+        if (cidade == null || cidade.isBlank()) {
+            // Em caso de Admin root sem cidade definida, retornamos todos ou limitamos (Firestore precisa de índice)
+            // Para simplificar, assumimos que cidade é necessária ou retornamos do repositório padrão
+            // TODO: no repositório Firestore, filtrar apenas por role se cidade for null
+            return repository.findByCidadeAndRole(null, role); 
+        }
+        return repository.findByCidadeAndRole(cidade, role);
+    }
 }

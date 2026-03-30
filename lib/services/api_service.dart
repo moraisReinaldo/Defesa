@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/ocorrencia.dart';
 import '../models/ponto_interesse.dart';
+import '../models/usuario.dart';
 import 'storage_service.dart';
 
 class ApiService {
@@ -228,6 +230,23 @@ class ApiService {
   Future<bool> deletarPontoInteresse(String id) async {
     final response = await _delete('/pontos-interesse/$id');
     return response.statusCode == 200 || response.statusCode == 204;
+  }
+
+  // ========== USUARIOS / AGENTES ==========
+
+  Future<List<Usuario>> listarAgentes({String? cidade}) async {
+    try {
+      final query = cidade != null ? '?cidade=$cidade' : '';
+      final response = await _get('/usuarios/agentes$query');
+      if (response.statusCode == 200) {
+        final List vindoDaApi = jsonDecode(response.body);
+        return vindoDaApi.map((u) => Usuario.fromJson(u)).toList();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) print('Erro ao listar agentes: $e');
+      return [];
+    }
   }
 }
 

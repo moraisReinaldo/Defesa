@@ -9,6 +9,7 @@ class UsuarioProvider extends ChangeNotifier {
   Usuario? _usuarioLogado;
   bool _isAdmin = false;
   bool _isLoading = false;
+  List<Usuario> _todosAgentes = [];
 
   UsuarioProvider(this._storageService, this._apiService);
 
@@ -17,11 +18,14 @@ class UsuarioProvider extends ChangeNotifier {
   bool get isAdmin => _isAdmin;
   bool get isLoading => _isLoading;
 
-  // Placeholder para telas que ainda usam listas locais de agentes
-  List<Usuario> get todosAgentes => []; 
+  // Lista de agentes da cidade do administrador
+  List<Usuario> get todosAgentes => _todosAgentes; 
 
   Future<void> carregarTudo() async {
     await verificarUsuarioLogado();
+    if (_isAdmin) {
+      await carregarAgentes();
+    }
   }
 
   Future<bool> atualizarPerfil({
@@ -149,8 +153,20 @@ class UsuarioProvider extends ChangeNotifier {
     if (logado != null && token != null) {
       _usuarioLogado = logado;
       _isAdmin = logado.role == Role.ADMINISTRADOR;
+      if (_isAdmin) {
+        carregarAgentes();
+      }
       notifyListeners();
     }
+  }
+
+  Future<void> carregarAgentes() async {
+    if (_usuarioLogado?.cidade == null && !_isAdmin) return;
+    
+    // Se for Admin master sem cidade, tenta carregar geral ou de uma cidade padrão
+    final agentes = await _apiService.listarAgentes(cidade: _usuarioLogado?.cidade);
+    _todosAgentes = agentes;
+    notifyListeners();
   }
 
   void _setLoading(bool val) {

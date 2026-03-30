@@ -3,9 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'dart:convert';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
@@ -18,6 +16,7 @@ import '../services/localizacao_service.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ocorrencia_card.dart';
+import '../widgets/ocorrencia_image.dart';
 import 'registro_ocorrencia_screen.dart'; // Contém SelecaoTipoOcorrenciaScreen
 import 'historico_screen.dart';
 import 'perfil_screen.dart';
@@ -188,7 +187,7 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: _buildOcorrenciaImage(ocorrencia.caminhoFoto!),
+                          child: OcorrenciaImage(caminho: ocorrencia.caminhoFoto!),
                         ),
                       ),
 
@@ -504,7 +503,29 @@ class _MapaScreenState extends State<MapaScreen> {
       body: _indiceAbaAtual == 0
           ? _construirTelaMapa(nomeUsuario, markers, usuarioProvider)
           : _indiceAbaAtual == 1 ? const HistoricoScreen() : const PerfilScreen(),
-      floatingActionButton: _indiceAbaAtual == 0 ? FloatingActionButton.extended(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen())), icon: const Icon(Icons.add), label: const Text('Nova Ocorrência')) : null,
+      floatingActionButton: _indiceAbaAtual == 0 
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (usuarioProvider.isAdmin) ...[
+                  FloatingActionButton.extended(
+                    heroTag: 'fab_poi',
+                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.center),
+                    icon: const Icon(Icons.add_location_alt_rounded),
+                    label: const Text('Ponto de Apoio'),
+                    backgroundColor: Colors.orange,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                FloatingActionButton.extended(
+                  heroTag: 'fab_ocorrencia',
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen())),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Nova Ocorrência'),
+                ),
+              ],
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _indiceAbaAtual,
         onTap: (i) => setState(() => _indiceAbaAtual = i),
@@ -547,47 +568,9 @@ class _MapaScreenState extends State<MapaScreen> {
     );
   }
 
-  Widget _buildOcorrenciaImage(String caminho) {
-    if (caminho.startsWith('data:image')) {
-      try {
-        final base64Content = caminho.split(',').last;
-        final bytes = base64Decode(base64Content);
-        return Image.memory(
-          bytes, 
-          height: 200, 
-          width: double.infinity, 
-          fit: BoxFit.cover,
-          errorBuilder: (ctx, err, st) => _buildErrorImage(),
-        );
-      } catch (e) {
-        return _buildErrorImage();
-      }
-    } else if (caminho.startsWith('http')) {
-      return Image.network(
-        caminho,
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (ctx, err, st) => _buildErrorImage(),
-      );
-    } else {
-      return Image.file(
-        File(caminho),
-        height: 200,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (ctx, err, st) => _buildErrorImage(),
-      );
-    }
-  }
+  // _buildOcorrenciaImage removido pois agora usamos o widget OcorrenciaImage
 
-  Widget _buildErrorImage() {
-    return Container(
-      height: 200,
-      color: AppColors.shimmer,
-      child: const Center(child: Icon(Icons.image_not_supported_rounded, color: AppColors.textLight, size: 40)),
-    );
-  }
+  // _buildOcorrenciaImage removido pois agora usamos o widget OcorrenciaImage
 
   void _confirmarNovoPontoInteresse(LatLng latlng) async {
     final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => RegistroPontoInteresseScreen(posicao: latlng)));

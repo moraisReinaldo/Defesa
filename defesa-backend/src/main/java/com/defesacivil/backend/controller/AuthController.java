@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -108,5 +109,13 @@ public class AuthController {
         Map<String, String> errorResponse = new HashMap<>();
         errorResponse.put("message", "Senha de administrador incorreta");
         return ResponseEntity.status(401).body(errorResponse);
+    }
+
+    @GetMapping("/usuarios/agentes")
+    public ResponseEntity<List<Usuario>> listarAgentes(@RequestParam(required = false) String cidade) {
+        List<Usuario> agentes = usuarioService.buscarUsuariosPorRole("AGENTE", cidade);
+        // Remover senhas antes de retornar
+        agentes.forEach(a -> a.setSenha(null));
+        return ResponseEntity.ok(agentes);
     }
 }
