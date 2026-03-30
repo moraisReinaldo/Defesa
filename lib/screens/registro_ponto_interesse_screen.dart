@@ -5,6 +5,7 @@ import '../constants/app_colors.dart';
 import '../models/ponto_interesse.dart';
 import '../providers/ponto_interesse_provider.dart';
 import '../providers/usuario_provider.dart';
+import '../services/geocoding_service.dart';
 
 class RegistroPontoInteresseScreen extends StatefulWidget {
   final LatLng posicao;
@@ -19,6 +20,9 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   final _formKey = GlobalKey<FormState>();
   final _descricaoController = TextEditingController();
   String _tipoSelecionado = 'PONTO_COLETA_AGUA';
+  String? _cidadeDetectada;
+  bool _buscandoCidade = true;
+  final _geocodingService = GeocodingService();
 
   final List<Map<String, dynamic>> _tipos = [
     {'valor': 'PONTO_COLETA_AGUA', 'label': 'Coleta de Água', 'icon': Icons.water_drop_rounded, 'color': Colors.blue},
@@ -27,6 +31,25 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
     {'valor': 'DESLIZAMENTO', 'label': 'Risco Deslizamento', 'icon': Icons.terrain_rounded, 'color': Colors.brown},
     {'valor': 'OUTRO', 'label': 'Outro Ponto', 'icon': Icons.location_on_rounded, 'color': Colors.grey},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _detectarCidade();
+  }
+
+  Future<void> _detectarCidade() async {
+    final cidade = await _geocodingService.obterCidade(
+      widget.posicao.latitude,
+      widget.posicao.longitude,
+    );
+    if (mounted) {
+      setState(() {
+        _cidadeDetectada = cidade;
+        _buscandoCidade = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -74,6 +97,22 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
               
               const SizedBox(height: 24),
               
+              // Cidade Detectada
+              const Text('Cidade Detectada (via GPS)', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              if (_buscandoCidade)
+                const Row(children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 8), Text('Localizando...', style: TextStyle(fontSize: 13))])
+              else
+                Text(
+                  _cidadeDetectada ?? 'Não identificada',
+                  style: TextStyle(
+                    color: _cidadeDetectada == null ? Colors.red : AppColors.primaryTeal,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              
+              const SizedBox(height: 24),
+              
               // Descrição
               TextFormField(
                 controller: _descricaoController,
@@ -106,14 +145,38 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   void _salvar() async {
     if (!_formKey.currentState!.validate()) return;
     
-    final user = context.read<UsuarioProvider>().usuarioLogado;
+    final userProvider = context.read<UsuarioProvider>();
+    final user = userProvider.usuarioLogado;
+    
+    // Verificação de Cidade para Admin
+    if (userProvider.isAdmin) {
+      if (_cidadeDetectada == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível identificar a cidade pelo GPS. Tente novamente.')));
+        return;
+      }
+      
+      final cidadeUsuario = user?.cidade?.toLowerCase().trim();
+      final cidadeGPS = _cidadeDetectada?.toLowerCase().trim();
+      
+      if (cidadeUsuario != cidadeGPS) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Acesso Negado'),
+            content: Text('Você é administrador da cidade "$cidadeUsuario" e não pode cadastrar pontos em "$cidadeGPS".'),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          )
+        );
+        return;
+      }
+    }
     
     final novoPonto = PontoInteresse(
       tipo: _tipoSelecionado,
       descricao: _descricaoController.text.trim(),
       latitude: widget.posicao.latitude,
       longitude: widget.posicao.longitude,
-      cidade: user?.cidade,
+      cidade: _cidadeDetectada ?? user?.cidade,
       criadoPor: user?.id,
     );
     

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import '../services/geocoding_service.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
@@ -28,6 +28,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
 
   final ImagePicker _imagePicker = ImagePicker();
   final LocalizacaoService _localizacaoService = LocalizacaoService();
+  final GeocodingService _geocodingService = GeocodingService();
 
   File? _fotoSelecionada;
   Position? _posicaoAtual;
@@ -48,16 +49,15 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           _posicaoAtual = posicao;
         });
         
-        // Tentar obter a cidade (Reverse Geocoding)
+        // Tentar obter a cidade (Reverse Geocoding usando nosso serviço)
         try {
-          List<Placemark> placemarks = await placemarkFromCoordinates(
+          final cidade = await _geocodingService.obterCidade(
             posicao.latitude, 
             posicao.longitude
           );
-          if (placemarks.isNotEmpty) {
-            Placemark place = placemarks[0];
+          if (mounted && cidade != null) {
             setState(() {
-              _cidadeDetectada = place.subAdministrativeArea ?? place.locality;
+              _cidadeDetectada = cidade;
             });
           }
         } catch (e) {
@@ -213,6 +213,39 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     setState(() {
       _carregando = true;
     });
+    
+    // Verificação de Cidade para Admin
+    final userProvider = context.read<UsuarioProvider>();
+    final user = userProvider.usuarioLogado;
+    
+    if (userProvider.isAdmin) {
+      if (_cidadeDetectada == null) {
+        // Tenta buscar novamente se falhou antes
+        await _obterLocalizacao();
+      }
+      
+      if (_cidadeDetectada == null) {
+        setState(() => _carregando = false);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível identificar a cidade pelo GPS. Tente novamente.')));
+        return;
+      }
+      
+      final cidadeUsuario = user?.cidade?.toLowerCase().trim();
+      final cidadeGPS = _cidadeDetectada?.toLowerCase().trim();
+      
+      if (cidadeUsuario != cidadeGPS) {
+        setState(() => _carregando = false);
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Acesso Negado'),
+            content: Text('Você é administrador da cidade "$cidadeUsuario" e não pode registrar ocorrências em "$cidadeGPS".'),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          )
+        );
+        return;
+      }
+    }
 
     try {
       final usuarioProvider = context.read<UsuarioProvider>();

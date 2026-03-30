@@ -23,7 +23,10 @@ public class PontoInteresseRepository {
         if (ponto.getId() == null) {
             ponto.setId(UUID.randomUUID().toString());
         }
-        firestore.collection(COLLECTION_NAME).document(ponto.getId()).set(ponto);
+        String idParaSalvar = ponto.getId();
+        if (idParaSalvar != null) {
+            firestore.collection(COLLECTION_NAME).document(idParaSalvar).set(ponto);
+        }
         return ponto;
     }
 
@@ -58,7 +61,7 @@ public class PontoInteresseRepository {
     }
 
     public void deleteById(String id) {
-        if (firestore == null) return;
+        if (firestore == null || id == null) return;
         firestore.collection(COLLECTION_NAME).document(id).delete();
     }
 }

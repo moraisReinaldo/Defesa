@@ -4,6 +4,7 @@ import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
 import 'login_screen.dart';
 import 'cadastro_agente_screen.dart';
+import 'gerenciar_poi_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -206,6 +207,30 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryTeal,
                               foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const GerenciarPOIScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.map_rounded, size: 18),
+                            label: const Text('Gerenciar Pontos de Apoio'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryTeal,
+                              side: const BorderSide(color: AppColors.primaryTeal),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -485,6 +510,30 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryTeal,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const GerenciarPOIScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.map_rounded, size: 18),
+                  label: const Text('Gerenciar Pontos de Apoio'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryTeal,
+                    side: const BorderSide(color: AppColors.primaryTeal),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),

@@ -51,9 +51,7 @@ class _MapaScreenState extends State<MapaScreen> {
     if (!mounted) return;
     await context.read<OcorrenciaProvider>().carregarOcorrencias();
     if (!mounted) return;
-    await context.read<PontoInteresseProvider>().carregarPontos(
-      cidade: context.read<UsuarioProvider>().usuarioLogado?.cidade
-    );
+    await context.read<PontoInteresseProvider>().carregarPontos();
     _posicaoAtual = await _localizacaoService.obterPosicaoAtual();
 
     if (_posicaoAtual != null && mounted) {

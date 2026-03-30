@@ -56,8 +56,11 @@ class UsuarioProvider extends ChangeNotifier {
       telefone: telefone,
       role: 'AGENTE',
       cidade: cidade ?? _usuarioLogado?.cidade ?? '',
-      concordaLGPD: true, // Agentes criados por Admin são considerados concordantes
+      concordaLGPD: true,
     ));
+    if (res['sucesso'] == true) {
+      await carregarAgentes();
+    }
     return res['sucesso'] == true;
   }
 
