@@ -127,7 +127,8 @@ class _MapaScreenState extends State<MapaScreen> {
     setState(() {});
   }
 
-  void _mostrarDetalhesOcorrencia(Ocorrencia ocorrencia) {
+  void _mostrarDetalhesOcorrencia(Ocorrencia pOcorrencia) {
+    Ocorrencia ocorrencia = pOcorrencia;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -366,7 +367,8 @@ class _MapaScreenState extends State<MapaScreen> {
                         child: StatefulBuilder(
                           builder: (context, setSheetState) {
                             final agentesGerais = context.watch<UsuarioProvider>().todosAgentes;
-                            final agentesAtuais = ocorrencia.agentes?.split(', ').where((s) => s.isNotEmpty).toList() ?? [];
+                            final o = context.watch<OcorrenciaProvider>().ocorrencias.firstWhere((x) => x.id == ocorrencia.id, orElse: () => ocorrencia);
+                            final agentesAtuais = o.agentes?.split(', ').where((s) => s.isNotEmpty).toList() ?? [];
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,10 +390,17 @@ class _MapaScreenState extends State<MapaScreen> {
                                           agentesAtuais.remove(agente.nome);
                                         }
                                         final novoTexto = agentesAtuais.join(', ');
-                                        final atualizada = ocorrencia.copyWith(agentes: novoTexto);
-                                        context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
-                                        setSheetState(() {});
+                                        ocorrencia = ocorrencia.copyWith(agentes: novoTexto, resolvida: false);
+                                        context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia);
                                         
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(selected ? 'Agente ${agente.nome} alocado! Status: A Caminho.' : 'Agente removido.'),
+                                            backgroundColor: AppColors.statusResolved,
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+
                                         if (selected) {
                                           final comentario = Comentario(
                                             texto: 'Agente ${agente.nome} associado à ocorrência',

@@ -82,23 +82,59 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           // Filtros
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _construirBotaoFiltro('todas', 'Todas', Icons.list_rounded),
-                  const SizedBox(width: 8),
-                  _construirBotaoFiltro(
-                      'ativas', 'Ativas', Icons.error_rounded),
-                  const SizedBox(width: 8),
-                  _construirBotaoFiltro(
-                      'resolvidas', 'Resolvidas', Icons.check_circle_rounded),
-                  const SizedBox(width: 8),
-                  if (context.watch<UsuarioProvider>().estaLogado)
-                    _construirBotaoFiltro(
-                        'minhas', 'Minhas', Icons.person_rounded),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _construirBotaoFiltro('todas', 'Todas', Icons.list_rounded),
+                      const SizedBox(width: 8),
+                      _construirBotaoFiltro(
+                          'ativas', 'Ativas', Icons.error_rounded),
+                      const SizedBox(width: 8),
+                      _construirBotaoFiltro(
+                          'em_andamento', 'A Caminho', Icons.directions_run_rounded),
+                      const SizedBox(width: 8),
+                      _construirBotaoFiltro(
+                          'resolvidas', 'Resolvidas', Icons.check_circle_rounded),
+                      const SizedBox(width: 8),
+                      if (context.watch<UsuarioProvider>().estaLogado)
+                        _construirBotaoFiltro(
+                            'minhas', 'Minhas', Icons.person_rounded),
+                    ],
+                  ),
+                ),
+                if (context.watch<UsuarioProvider>().isAdmin) ...[
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        const Text('Por Agente: ', style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                        ...context.watch<UsuarioProvider>().todosAgentes.map((agente) {
+                          final selected = _filtroAgenteNome == agente.nome;
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: ChoiceChip(
+                              label: Text(agente.nome, style: TextStyle(fontSize: 12, color: selected ? Colors.white : AppColors.textSecondary)),
+                              selected: selected,
+                              onSelected: (val) {
+                                setState(() {
+                                  _filtroAgenteNome = val ? agente.nome : null;
+                                });
+                              },
+                              selectedColor: AppColors.primaryTeal,
+                              backgroundColor: AppColors.surfaceCard,
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
 
@@ -365,6 +401,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       case 'ativas':
         ocorrencias = provider.ocorrenciasAtivas;
         break;
+      case 'em_andamento':
+        ocorrencias = provider.ocorrencias.where((o) => !o.resolvida && o.agentes != null && o.agentes!.isNotEmpty).toList();
+        break;
       case 'resolvidas':
         ocorrencias = provider.ocorrenciasResolvidas;
         break;
@@ -388,7 +427,8 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   }
 
   void _mostrarDetalhesOcorrencia(
-      BuildContext context, Ocorrencia ocorrencia) {
+      BuildContext context, Ocorrencia pOcorrencia) {
+    Ocorrencia ocorrencia = pOcorrencia;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -623,7 +663,8 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         child: StatefulBuilder(
                           builder: (context, setSheetState) {
                             final agentesGerais = context.watch<UsuarioProvider>().todosAgentes;
-                            final agentesAtuais = ocorrencia.agentes?.split(', ').where((s) => s.isNotEmpty).toList() ?? [];
+                            final o = context.watch<OcorrenciaProvider>().ocorrencias.firstWhere((x) => x.id == ocorrencia.id, orElse: () => ocorrencia);
+                            final agentesAtuais = o.agentes?.split(', ').where((s) => s.isNotEmpty).toList() ?? [];
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -645,9 +686,16 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                           agentesAtuais.remove(agente.nome);
                                         }
                                         final novoTexto = agentesAtuais.join(', ');
-                                        final atualizada = ocorrencia.copyWith(agentes: novoTexto);
-                                        context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
-                                        setSheetState(() {});
+                                        ocorrencia = ocorrencia.copyWith(agentes: novoTexto, resolvida: false);
+                                        context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia);
+                                        
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(selected ? 'Agente ${agente.nome} alocado! Status: A Caminho.' : 'Agente removido.'),
+                                            backgroundColor: AppColors.statusResolved,
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
                                       },
                                       selectedColor: AppColors.primaryTeal.withOpacity(0.2),
                                       checkmarkColor: AppColors.primaryTeal,

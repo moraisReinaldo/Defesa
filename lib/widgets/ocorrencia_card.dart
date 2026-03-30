@@ -124,11 +124,15 @@ class OcorrenciaCard extends StatelessWidget {
                         Icon(Icons.access_time_rounded,
                             size: 13, color: AppColors.textLight),
                         const SizedBox(width: 4),
-                        Text(
-                          _formatarData(ocorrencia.dataHora),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textLight,
+                        Expanded(
+                          child: Text(
+                            _formatarData(ocorrencia.dataHora),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textLight,
+                            ),
                           ),
                         ),
                       ],
