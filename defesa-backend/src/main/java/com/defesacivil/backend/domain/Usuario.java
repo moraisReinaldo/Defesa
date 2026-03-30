@@ -2,6 +2,7 @@ package com.defesacivil.backend.domain;
 
 import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.domain.enums.Status;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 public class Usuario {
@@ -15,6 +16,7 @@ public class Usuario {
     private String especialidade;
     private Role role;
     private Status status;
+    @JsonIgnore
     private LocalDateTime dataCriacao;
     private String fcmToken; // Token para Push (FCM)
 
