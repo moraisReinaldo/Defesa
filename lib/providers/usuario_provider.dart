@@ -164,12 +164,19 @@ class UsuarioProvider extends ChangeNotifier {
   }
 
   Future<void> carregarAgentes() async {
-    if (_usuarioLogado?.cidade == null && !_isAdmin) return;
-    
-    // Se for Admin master sem cidade, tenta carregar geral ou de uma cidade padrão
-    final agentes = await _apiService.listarAgentes(cidade: _usuarioLogado?.cidade);
-    _todosAgentes = agentes;
-    notifyListeners();
+    try {
+      final cidade = _usuarioLogado?.cidade;
+      if (kDebugMode) print('Buscando agentes para cidade: $cidade (isAdmin=$_isAdmin)');
+      
+      final agentes = await _apiService.listarAgentes(cidade: cidade);
+      _todosAgentes = agentes;
+      if (kDebugMode) print('Agentes carregados: ${agentes.length}');
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print('Erro ao carregar agentes: $e');
+      _todosAgentes = [];
+      notifyListeners();
+    }
   }
 
   void _setLoading(bool val) {

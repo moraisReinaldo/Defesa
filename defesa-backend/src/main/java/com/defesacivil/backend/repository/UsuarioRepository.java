@@ -62,12 +62,14 @@ public class UsuarioRepository {
         if (firestore == null) return new ArrayList<>();
         List<Usuario> usuariosEncontrados = new ArrayList<>();
         try {
-            ApiFuture<QuerySnapshot> query = firestore.collection(COLLECTION_NAME)
-                    .whereEqualTo("cidade", cidade)
-                    .whereEqualTo("role", role)
-                    .get();
+            Query query = firestore.collection(COLLECTION_NAME).whereEqualTo("role", role);
+            
+            if (cidade != null && !cidade.isBlank()) {
+                query = query.whereEqualTo("cidade", cidade);
+            }
 
-            List<QueryDocumentSnapshot> documents = query.get().getDocuments();
+            ApiFuture<QuerySnapshot> apiFuture = query.get();
+            List<QueryDocumentSnapshot> documents = apiFuture.get().getDocuments();
             for (DocumentSnapshot doc : documents) {
                 usuariosEncontrados.add(doc.toObject(Usuario.class));
             }

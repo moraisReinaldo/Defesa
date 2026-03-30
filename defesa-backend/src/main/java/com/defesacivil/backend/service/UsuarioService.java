@@ -79,7 +79,10 @@ public class UsuarioService {
         usuario.setTelefone(request.getTelefone());
         // Hash da senha com BCrypt — nunca armazenar em texto puro
         usuario.setSenha(passwordEncoder.encode(request.getSenha()));
-        usuario.setCidade(request.getCidade());
+        
+        String cidadeNormalizada = request.getCidade() != null ? request.getCidade().trim().toUpperCase() : null;
+        usuario.setCidade(cidadeNormalizada);
+        
         usuario.setRole(roleReq.name());
         usuario.setStatus(statusInicial.name());
 
@@ -112,12 +115,7 @@ public class UsuarioService {
     }
 
     public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
-        if (cidade == null || cidade.isBlank()) {
-            // Em caso de Admin root sem cidade definida, retornamos todos ou limitamos (Firestore precisa de índice)
-            // Para simplificar, assumimos que cidade é necessária ou retornamos do repositório padrão
-            // TODO: no repositório Firestore, filtrar apenas por role se cidade for null
-            return repository.findByCidadeAndRole(null, role); 
-        }
-        return repository.findByCidadeAndRole(cidade, role);
+        String cidadeBusca = (cidade != null && !cidade.isBlank()) ? cidade.trim().toUpperCase() : null;
+        return repository.findByCidadeAndRole(cidadeBusca, role);
     }
 }
