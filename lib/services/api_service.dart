@@ -18,10 +18,12 @@ class ApiService {
   static const Duration _timeoutLimit = Duration(seconds: 90);
 
   String _extractMessageFromBody(String body) {
+    if (body.isEmpty) return 'Erro desconhecido';
     try {
       final decoded = jsonDecode(body);
-      if (decoded is Map && decoded['message'] != null) {
-        return decoded['message'].toString();
+      if (decoded is Map) {
+        if (decoded['message'] != null) return decoded['message'].toString();
+        if (decoded['error'] != null) return decoded['error'].toString();
       }
     } catch (_) {
       // ignore

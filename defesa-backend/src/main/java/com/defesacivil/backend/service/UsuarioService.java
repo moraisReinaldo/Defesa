@@ -61,7 +61,7 @@ public class UsuarioService {
                     Arrays.asList(Status.ATIVO.name(), Status.PENDENTE.name())
             );
 
-            // Filtro manual para case insensitive, já que o Firebase whereEqualTo é case sensitive
+            // Filtro manual para case insensitive
             boolean jaExisteAdmin = adminsNaCidade.stream()
                 .anyMatch(u -> u.getCidade().equalsIgnoreCase(cidadeReq));
 

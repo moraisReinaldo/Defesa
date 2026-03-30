@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
@@ -30,6 +31,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
 
   File? _fotoSelecionada;
   Position? _posicaoAtual;
+  String? _cidadeDetectada;
   bool _carregando = false;
 
   @override
@@ -45,6 +47,22 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         setState(() {
           _posicaoAtual = posicao;
         });
+        
+        // Tentar obter a cidade (Reverse Geocoding)
+        try {
+          List<Placemark> placemarks = await placemarkFromCoordinates(
+            posicao.latitude, 
+            posicao.longitude
+          );
+          if (placemarks.isNotEmpty) {
+            Placemark place = placemarks[0];
+            setState(() {
+              _cidadeDetectada = place.subAdministrativeArea ?? place.locality;
+            });
+          }
+        } catch (e) {
+          debugPrint("Erro ao obter cidade: $e");
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -205,7 +223,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         longitude: _posicaoAtual!.longitude,
         cidade: (usuarioLogado?.cidade != null && usuarioLogado!.cidade!.trim().isNotEmpty)
             ? usuarioLogado.cidade!.trim()
-            : null,
+            : _cidadeDetectada,
         caminhoFoto: _fotoSelecionada?.path,
         usuarioId: usuarioLogado?.id,
       );
@@ -630,6 +648,14 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
               'Precisão',
               '${_posicaoAtual!.accuracy.toStringAsFixed(2)} m',
             ),
+            if (_cidadeDetectada != null) ...[
+              const SizedBox(height: 8),
+              _buildLocationRow(
+                Icons.location_city_rounded,
+                'Cidade',
+                _cidadeDetectada!,
+              ),
+            ],
           ] else ...[
             const Row(
               children: [

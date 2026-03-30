@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/ocorrencias")
@@ -17,14 +19,18 @@ public class OcorrenciaController {
     private OcorrenciaService ocorrenciaService;
 
     @PostMapping
-    public ResponseEntity<Ocorrencia> criar(@RequestBody OcorrenciaRequest request) {
+    public ResponseEntity<?> criar(@RequestBody OcorrenciaRequest request) {
         try {
             Ocorrencia salva = ocorrenciaService.registrarOcorrencia(request);
             return ResponseEntity.ok(salva);
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Erro ao processar requisição");
+            return ResponseEntity.badRequest().body(response);
         }
     }
 
@@ -36,7 +42,9 @@ public class OcorrenciaController {
             Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id, userId);
             return aprovada != null ? ResponseEntity.ok(aprovada) : ResponseEntity.notFound().build();
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(response);
         }
     }
 
@@ -48,7 +56,9 @@ public class OcorrenciaController {
             Ocorrencia atualizada = ocorrenciaService.registrarChegadaAgente(id, userId);
             return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
         } catch (SecurityException e) {
-            return ResponseEntity.status(403).body(e.getMessage());
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(response);
         }
     }
 
