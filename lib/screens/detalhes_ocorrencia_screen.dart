@@ -195,13 +195,17 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     });
 
     try {
-      final usuarioLogado = context.read<UsuarioProvider>().usuarioLogado;
+      final usuarioProvider = context.read<UsuarioProvider>();
+      final usuarioLogado = usuarioProvider.usuarioLogado;
 
       final ocorrencia = Ocorrencia(
         tipo: widget.tipoOcorrencia,
         descricao: _descricaoController.text,
         latitude: _posicaoAtual!.latitude,
         longitude: _posicaoAtual!.longitude,
+        cidade: (usuarioLogado?.cidade != null && usuarioLogado!.cidade!.trim().isNotEmpty)
+            ? usuarioLogado.cidade!.trim()
+            : null,
         caminhoFoto: _fotoSelecionada?.path,
         usuarioId: usuarioLogado?.id,
       );

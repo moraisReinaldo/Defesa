@@ -17,6 +17,24 @@ class ApiService {
 
   static const Duration _timeoutLimit = Duration(seconds: 90);
 
+  String _extractMessageFromBody(String body) {
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map && decoded['message'] != null) {
+        return decoded['message'].toString();
+      }
+    } catch (_) {
+      // ignore
+    }
+    return body;
+  }
+
+  Exception _httpException(http.Response response) {
+    final msg = _extractMessageFromBody(response.body);
+    final safe = msg.trim().isEmpty ? 'Erro ${response.statusCode}' : msg.trim();
+    return Exception(safe);
+  }
+
   // ========== METODOS BASE COM RESILIÊNCIA ==========
 
   Future<http.Response> _post(String path, dynamic body, {bool secure = true}) async {
@@ -78,9 +96,8 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    
-    // Para depuração: lançar exceção com detalhes do erro
-    throw Exception('Erro ${response.statusCode}: ${response.body}');
+
+    throw _httpException(response);
   }
 
   Future<Map<String, dynamic>?> cadastrarUsuario(UsuarioRequest req) async {

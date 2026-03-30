@@ -14,6 +14,7 @@ class Ocorrencia {
   final String descricao;
   final double latitude;
   final double longitude;
+  final String? cidade;
   final String? caminhoFoto;
   final DateTime dataHora;
   final String? usuarioId;
@@ -32,6 +33,7 @@ class Ocorrencia {
     required this.descricao,
     required this.latitude,
     required this.longitude,
+    this.cidade,
     this.caminhoFoto,
     DateTime? dataHora,
     this.usuarioId,
@@ -54,6 +56,7 @@ class Ocorrencia {
       'descricao': descricao,
       'latitude': latitude,
       'longitude': longitude,
+      'cidade': cidade,
       'caminhoFoto': caminhoFoto,
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
@@ -75,6 +78,7 @@ class Ocorrencia {
       descricao: json['descricao'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
       longitude: (json['longitude'] ?? 0.0).toDouble(),
+      cidade: json['cidade'],
       caminhoFoto: json['caminhoFoto'],
       dataHora: _parseSafe(json['dataHora']) ?? DateTime.now(),
       usuarioId: json['usuarioId'],
@@ -116,6 +120,7 @@ class Ocorrencia {
     String? descricao,
     double? latitude,
     double? longitude,
+    String? cidade,
     String? caminhoFoto,
     DateTime? dataHora,
     String? usuarioId,
@@ -134,6 +139,7 @@ class Ocorrencia {
       descricao: descricao ?? this.descricao,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      cidade: cidade ?? this.cidade,
       caminhoFoto: caminhoFoto ?? this.caminhoFoto,
       dataHora: dataHora ?? this.dataHora,
       usuarioId: usuarioId ?? this.usuarioId,
