@@ -244,16 +244,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (!_modoRegistro) TextButton.icon(icon: const Icon(Icons.admin_panel_settings_rounded, size: 18), label: const Text('Entrar como Administrador'), onPressed: () async {
-                      final senha = await showDialog<String>(context: context, builder: (_) => const _SenhaAdminDialog());
-                      if (senha != null) {
-                        final auth = await context.read<UsuarioProvider>().autenticarAdmin(senha);
-                        if (auth && mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Admin! 🔑'), backgroundColor: AppColors.statusResolved)); Navigator.pop(context, true); }
-                        else if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha incorreta'), backgroundColor: AppColors.statusActive)); }
-                      }
-                    }),
-                    const SizedBox(height: 8),
-                    TextButton(onPressed: () { setState(() { _modoRegistro = !_modoRegistro; _formKey.currentState?.reset(); _emailController.clear(); _senhaController.clear(); _nomeController.clear(); _telefoneController.clear(); }); },
+                    TextButton(onPressed: () { setState(() { _modoRegistro = !_modoRegistro; _formKey.currentState?.reset(); _emailController.clear(); _senhaController.clear(); _nomeController.clear(); _telefoneController.clear(); _cidadeController.clear(); }); },
                       child: RichText(text: TextSpan(style: const TextStyle(fontSize: 14), children: [
                         TextSpan(text: _modoRegistro ? 'Já tem conta? ' : 'Não tem conta? ', style: const TextStyle(color: AppColors.textSecondary)),
                         TextSpan(text: _modoRegistro ? 'Entrar' : 'Criar conta', style: const TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.w700)),
@@ -286,39 +277,4 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() { _emailController.dispose(); _senhaController.dispose(); _nomeController.dispose(); _telefoneController.dispose(); _cidadeController.dispose(); super.dispose(); }
-}
-
-class _SenhaAdminDialog extends StatefulWidget {
-  const _SenhaAdminDialog();
-  @override
-  State<_SenhaAdminDialog> createState() => _SenhaAdminDialogState();
-}
-
-class _SenhaAdminDialogState extends State<_SenhaAdminDialog> {
-  final _controller = TextEditingController();
-  bool _vis = false;
-
-  @override
-  void dispose() { _controller.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      title: Row(children: [
-        Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.primaryTeal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.primaryTeal, size: 22)),
-        const SizedBox(width: 12),
-        const Text('Administrador', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-      ]),
-      content: TextField(controller: _controller, obscureText: !_vis,
-        decoration: InputDecoration(hintText: 'Senha de administrador', prefixIcon: const Icon(Icons.lock_rounded, color: AppColors.primaryTeal, size: 20),
-          suffixIcon: IconButton(icon: Icon(_vis ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: AppColors.textLight), onPressed: () => setState(() => _vis = !_vis))),
-        onSubmitted: (_) => Navigator.of(context).pop(_controller.text)),
-      actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
-        ElevatedButton(onPressed: () => Navigator.of(context).pop(_controller.text), child: const Text('Entrar')),
-      ],
-    );
-  }
 }
