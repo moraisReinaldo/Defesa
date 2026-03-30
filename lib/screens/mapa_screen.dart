@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
@@ -187,17 +188,7 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: Image.file(
-                            File(ocorrencia.caminhoFoto!),
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              height: 200,
-                              color: AppColors.shimmer,
-                              child: const Center(child: Icon(Icons.image_not_supported_rounded, color: AppColors.textLight, size: 40)),
-                            ),
-                          ),
+                          child: _buildOcorrenciaImage(ocorrencia.caminhoFoto!),
                         ),
                       ),
 
@@ -437,7 +428,12 @@ class _MapaScreenState extends State<MapaScreen> {
   Future<void> _editarFoto(Ocorrencia ocorrencia) async {
     final escolha = await showModalBottomSheet<ImageSource?>(context: context, builder: (context) => Column(mainAxisSize: MainAxisSize.min, children: [ListTile(leading: const Icon(Icons.camera), title: const Text('Câmera'), onTap: () => Navigator.pop(context, ImageSource.camera)), ListTile(leading: const Icon(Icons.image), title: const Text('Galeria'), onTap: () => Navigator.pop(context, ImageSource.gallery))]));
     if (escolha == null) return;
-    final foto = await _imagePicker.pickImage(source: escolha);
+    final foto = await _imagePicker.pickImage(
+      source: escolha,
+      imageQuality: 50,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    );
     if (foto != null && mounted) {
       await context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia.copyWith(caminhoFoto: foto.path));
       if (mounted) Navigator.pop(context);
@@ -530,7 +526,10 @@ class _MapaScreenState extends State<MapaScreen> {
             onLongPress: (_, latlng) { if (userProv.isAdmin) _confirmarNovoPontoInteresse(latlng); },
           ),
           children: [
-            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.defesacivil.app',
+            ),
             MarkerLayer(markers: markers),
             if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), builder: (_) => const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
           ],
@@ -545,6 +544,48 @@ class _MapaScreenState extends State<MapaScreen> {
         ),
         if (_showSearchResults && searchResults.isNotEmpty) Positioned(top: 180, left: 16, right: 16, bottom: 100, child: Container(color: Colors.white, child: ListView.builder(itemCount: searchResults.length, itemBuilder: (_, i) => OcorrenciaCard(ocorrencia: searchResults[i], onTap: () { setState(() { _showSearchResults = false; _searchController.clear(); _searchQuery = ''; }); _mapController.move(LatLng(searchResults[i].latitude, searchResults[i].longitude), 16); _mostrarDetalhesOcorrencia(searchResults[i]); })))),
       ],
+    );
+  }
+
+  Widget _buildOcorrenciaImage(String caminho) {
+    if (caminho.startsWith('data:image')) {
+      try {
+        final base64Content = caminho.split(',').last;
+        final bytes = base64Decode(base64Content);
+        return Image.memory(
+          bytes, 
+          height: 200, 
+          width: double.infinity, 
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, st) => _buildErrorImage(),
+        );
+      } catch (e) {
+        return _buildErrorImage();
+      }
+    } else if (caminho.startsWith('http')) {
+      return Image.network(
+        caminho,
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, st) => _buildErrorImage(),
+      );
+    } else {
+      return Image.file(
+        File(caminho),
+        height: 200,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, st) => _buildErrorImage(),
+      );
+    }
+  }
+
+  Widget _buildErrorImage() {
+    return Container(
+      height: 200,
+      color: AppColors.shimmer,
+      child: const Center(child: Icon(Icons.image_not_supported_rounded, color: AppColors.textLight, size: 40)),
     );
   }
 

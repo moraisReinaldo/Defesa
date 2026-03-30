@@ -82,8 +82,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       try {
         final foto = await _imagePicker.pickImage(
           source: ImageSource.camera,
-          imageQuality: 80,
-          maxWidth: 1280,
+          imageQuality: 50,
+          maxWidth: 1024,
+          maxHeight: 1024,
         );
         if (foto != null) {
           setState(() {
@@ -179,8 +180,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     try {
       final foto = await _imagePicker.pickImage(
         source: escolha,
-        imageQuality: 80,
-        maxWidth: 1280,
+        imageQuality: 50,
+        maxWidth: 1024,
+        maxHeight: 1024,
       );
 
       if (foto != null) {

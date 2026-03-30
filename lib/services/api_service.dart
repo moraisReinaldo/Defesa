@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../models/ocorrencia.dart';
 import '../models/ponto_interesse.dart';
@@ -150,9 +151,21 @@ class ApiService {
   }
 
   Future<Ocorrencia?> criarOcorrencia(Ocorrencia ocorrencia) async {
-    final response = await _post('/ocorrencias', ocorrencia.toJson());
+    Map<String, dynamic> body = ocorrencia.toJson();
+    
+    // Se houver uma foto local, converter para Base64 (simplificado como solicitado pelo backend)
+    if (ocorrencia.caminhoFoto != null && ocorrencia.caminhoFoto!.isNotEmpty) {
+      final file = File(ocorrencia.caminhoFoto!);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        final base64String = base64Encode(bytes);
+        body['caminhoFoto'] = 'data:image/jpeg;base64,$base64String';
+      }
+    }
 
-    if (response.statusCode == 200) {
+    final response = await _post('/ocorrencias', body);
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
     }
     return null;
