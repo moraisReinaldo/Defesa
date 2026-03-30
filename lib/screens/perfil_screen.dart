@@ -103,23 +103,23 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceCard,
                     borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: AppColors.shadowColor,
                         blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(Icons.person_rounded,
+                          Icon(Icons.person_rounded,
                               color: AppColors.primaryTeal, size: 20),
-                          const SizedBox(width: 8),
-                          const Text('Informações Pessoais',
+                          SizedBox(width: 8),
+                          Text('Informações Pessoais',
                               style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,

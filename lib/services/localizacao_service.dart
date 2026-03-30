@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -37,7 +38,7 @@ class LocalizacaoService {
 
       return position;
     } catch (e) {
-      print('Erro ao obter localização: $e');
+      if (kDebugMode) print('Erro ao obter localização: $e');
       return null;
     }
   }

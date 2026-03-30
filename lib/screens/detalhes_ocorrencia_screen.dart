@@ -300,11 +300,11 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceCard,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: AppColors.shadowColor,
                       blurRadius: 6,
-                      offset: const Offset(0, 2),
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
@@ -369,12 +369,12 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
 
               if (!usuarioOuAdminLogado) ...[
                 const SizedBox(height: 6),
-                Row(
+                const Row(
                   children: [
                     Icon(Icons.info_outline_rounded,
                         size: 14, color: AppColors.accentAmber),
-                    const SizedBox(width: 6),
-                    const Expanded(
+                    SizedBox(width: 6),
+                    Expanded(
                       child: Text(
                         'Faça login para acessar a galeria de fotos',
                         style: TextStyle(
@@ -499,11 +499,11 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: AppColors.shadowColor,
                   blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
@@ -597,11 +597,11 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: AppColors.shadowColor,
             blurRadius: 6,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -627,7 +627,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
               '${_posicaoAtual!.accuracy.toStringAsFixed(2)} m',
             ),
           ] else ...[
-            Row(
+            const Row(
               children: [
                 SizedBox(
                   width: 18,
@@ -637,8 +637,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                     color: AppColors.primaryTeal,
                   ),
                 ),
-                const SizedBox(width: 10),
-                const Text(
+                SizedBox(width: 10),
+                Text(
                   'Obtendo localização...',
                   style: TextStyle(
                     color: AppColors.textSecondary,

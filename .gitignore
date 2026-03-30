@@ -107,3 +107,19 @@ temp/
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+
+# Firebase / Google Cloud credentials
+**/serviceAccountKey.json
+**/firebase-adminsdk*.json
+**/google-services.json
+**/GoogleService-Info.plist
+
+# Android signing keys
+*.keystore
+*.jks
+**/key.properties
+android/local.properties
+
+# Backend sensitive configs (use env vars in production)
+**/application-prod.properties
+**/application-secret.properties

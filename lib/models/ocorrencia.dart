@@ -1,6 +1,13 @@
 import 'package:uuid/uuid.dart';
 import 'comentario.dart';
 
+enum OcorrenciaStatus {
+  PENDENTE_APROVACAO,
+  APROVADA,
+  RECUSADA,
+  RESOLVIDA
+}
+
 class Ocorrencia {
   final String id;
   final String tipo;
@@ -10,10 +17,14 @@ class Ocorrencia {
   final String? caminhoFoto;
   final DateTime dataHora;
   final String? usuarioId;
+  final OcorrenciaStatus status;
   final bool resolvida;
   final DateTime? dataResolucao;
-  final String? agentes; // Nome dos agentes a caminho
-  final List<Comentario> comentarios; // Lista de comentários
+  final String? agentes; 
+  final List<Comentario> comentarios;
+  final bool criadoPorAgente;
+  final bool agenteNoLocal;
+  final DateTime? dataChegadaAgente;
 
   Ocorrencia({
     String? id,
@@ -24,15 +35,18 @@ class Ocorrencia {
     this.caminhoFoto,
     DateTime? dataHora,
     this.usuarioId,
+    this.status = OcorrenciaStatus.PENDENTE_APROVACAO,
     this.resolvida = false,
     this.dataResolucao,
     this.agentes,
     List<Comentario>? comentarios,
+    this.criadoPorAgente = false,
+    this.agenteNoLocal = false,
+    this.dataChegadaAgente,
   })  : id = id ?? const Uuid().v4(),
         dataHora = dataHora ?? DateTime.now(),
         comentarios = comentarios ?? [];
 
-  // Converter para JSON para armazenamento local
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -43,14 +57,17 @@ class Ocorrencia {
       'caminhoFoto': caminhoFoto,
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
+      'status': status.name,
       'resolvida': resolvida,
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
       'comentarios': comentarios.map((c) => c.toJson()).toList(),
+      'criadoPorAgente': criadoPorAgente,
+      'agenteNoLocal': agenteNoLocal,
+      'dataChegadaAgente': dataChegadaAgente?.toIso8601String(),
     };
   }
 
-  // Criar Ocorrencia a partir de JSON
   factory Ocorrencia.fromJson(Map<String, dynamic> json) {
     return Ocorrencia(
       id: json['id'],
@@ -61,6 +78,10 @@ class Ocorrencia {
       caminhoFoto: json['caminhoFoto'],
       dataHora: DateTime.parse(json['dataHora']),
       usuarioId: json['usuarioId'],
+      status: OcorrenciaStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => OcorrenciaStatus.PENDENTE_APROVACAO,
+      ),
       resolvida: json['resolvida'] ?? false,
       dataResolucao: json['dataResolucao'] != null
           ? DateTime.parse(json['dataResolucao'])
@@ -69,10 +90,14 @@ class Ocorrencia {
       comentarios: json['comentarios'] != null
           ? (json['comentarios'] as List).map((c) => Comentario.fromJson(c)).toList()
           : [],
+      criadoPorAgente: json['criadoPorAgente'] ?? false,
+      agenteNoLocal: json['agenteNoLocal'] ?? false,
+      dataChegadaAgente: json['dataChegadaAgente'] != null
+          ? DateTime.parse(json['dataChegadaAgente'])
+          : null,
     );
   }
 
-  // Copiar com alterações
   Ocorrencia copyWith({
     String? id,
     String? tipo,
@@ -82,10 +107,14 @@ class Ocorrencia {
     String? caminhoFoto,
     DateTime? dataHora,
     String? usuarioId,
+    OcorrenciaStatus? status,
     bool? resolvida,
     DateTime? dataResolucao,
     String? agentes,
     List<Comentario>? comentarios,
+    bool? criadoPorAgente,
+    bool? agenteNoLocal,
+    DateTime? dataChegadaAgente,
   }) {
     return Ocorrencia(
       id: id ?? this.id,
@@ -96,10 +125,14 @@ class Ocorrencia {
       caminhoFoto: caminhoFoto ?? this.caminhoFoto,
       dataHora: dataHora ?? this.dataHora,
       usuarioId: usuarioId ?? this.usuarioId,
+      status: status ?? this.status,
       resolvida: resolvida ?? this.resolvida,
       dataResolucao: dataResolucao ?? this.dataResolucao,
       agentes: agentes ?? this.agentes,
       comentarios: comentarios ?? this.comentarios,
+      criadoPorAgente: criadoPorAgente ?? this.criadoPorAgente,
+      agenteNoLocal: agenteNoLocal ?? this.agenteNoLocal,
+      dataChegadaAgente: dataChegadaAgente ?? this.dataChegadaAgente,
     );
   }
 }

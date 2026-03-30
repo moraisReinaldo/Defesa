@@ -1,0 +1,100 @@
+package com.defesacivil.backend.controller;
+
+import com.defesacivil.backend.domain.Usuario;
+import com.defesacivil.backend.domain.enums.Status;
+import com.defesacivil.backend.dto.UsuarioRequest;
+import com.defesacivil.backend.security.JwtService;
+import com.defesacivil.backend.service.UsuarioService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+@RestController
+@RequestMapping("/api")
+public class AuthController {
+
+    @Autowired
+    private UsuarioService usuarioService;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @PostMapping("/auth/cadastro")
+    public ResponseEntity<?> cadastrar(@RequestBody UsuarioRequest request) {
+        try {
+            Usuario usuarioSalvo = usuarioService.cadastrarUsuario(request);
+            
+            Map<String, Object> response = new HashMap<>();
+            String mensagem = "Cadastro realizado! ";
+            
+            if (usuarioSalvo.getStatus() == Status.PENDENTE) {
+                mensagem += "Seu acesso como Administrador ficará PENDENTE de aprovação. Um e-mail de confirmação foi enviado à equipe para moderação.";
+                response.put("pendente", true);
+            } else {
+                mensagem += "Você já pode acessar o sistema.";
+                response.put("pendente", false);
+            }
+
+            response.put("message", mensagem);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/usuarios/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
+        String email = credentials.get("email");
+        String senha = credentials.get("senha");
+
+        if (email == null || senha == null) {
+            return ResponseEntity.badRequest().body("Email e senha são obrigatórios");
+        }
+
+        Optional<Usuario> usuarioOpt = usuarioService.login(email, senha);
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            
+            if (usuario.getStatus() == Status.PENDENTE) {
+                return ResponseEntity.status(403).body("Seu cadastro ainda está pendente de aprovação por e-mail.");
+            }
+
+            // Gerar Token JWT com a Role do usuário
+            String token = jwtService.generateToken(usuario.getEmail(), usuario.getRole().name());
+            
+            // Retornar usuário e token (removendo senha por segurança)
+            usuario.setSenha(null);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("usuario", usuario);
+            response.put("token", token);
+            
+            return ResponseEntity.ok(response);
+        }
+
+        return ResponseEntity.status(401).body("Email ou senha incorretos");
+    }
+
+    @PostMapping("/auth/admin-login")
+    public ResponseEntity<?> loginAdmin(@RequestBody Map<String, String> body) {
+        String senha = body.get("senha");
+        if (senha == null) {
+            return ResponseEntity.badRequest().body("Senha é obrigatória");
+        }
+
+        if (usuarioService.validarSenhaAdmin(senha)) {
+            // Admin "Root" Master Login
+            String token = jwtService.generateToken("admin@defesacivil.gov.br", "ADMINISTRADOR");
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("message", "Autenticação Master realizada com sucesso");
+            return ResponseEntity.ok().body(response);
+        }
+
+        return ResponseEntity.status(401).body("Senha de administrador incorreta");
+    }
+}

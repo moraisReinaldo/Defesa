@@ -77,16 +77,6 @@ class _MapaScreenState extends State<MapaScreen> {
     _markers.clear();
 
     for (final ocorrencia in ocorrencias) {
-      Color cor;
-      if (ocorrencia.resolvida) {
-        cor = AppColors.statusResolved;
-      } else if (ocorrencia.agentes != null &&
-          ocorrencia.agentes!.isNotEmpty) {
-        cor = AppColors.statusEnRoute;
-      } else {
-        cor = AppColors.statusActive;
-      }
-
       final tipoColor = AppColors.getTipoColor(ocorrencia.tipo);
 
       _markers.add(
@@ -238,11 +228,11 @@ class _MapaScreenState extends State<MapaScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
                               color: AppColors.shadowColor,
                               blurRadius: 10,
-                              offset: const Offset(0, 3),
+                              offset: Offset(0, 3),
                             ),
                           ],
                         ),
@@ -321,7 +311,7 @@ class _MapaScreenState extends State<MapaScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (ocorrencia.comentarios.isEmpty)
-                            Text(
+                            const Text(
                               'Nenhum comentário ainda.',
                               style: TextStyle(
                                 color: AppColors.textLight,
@@ -421,7 +411,65 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    // Botões de ação
+                    // === BOTÕES DE AÇÃO (GOVERNANÇA) ===
+                    const SizedBox(height: 12),
+                    
+                    // 1. Aprovação (Somente Admin e se Pendente)
+                    if (context.watch<UsuarioProvider>().isAdmin && 
+                        ocorrencia.status == OcorrenciaStatus.PENDENTE_APROVACAO)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  await context.read<OcorrenciaProvider>().aprovarOcorrencia(ocorrencia.id);
+                                  if (mounted) Navigator.pop(context);
+                                },
+                                icon: const Icon(Icons.check_circle_rounded),
+                                label: const Text('APROVAR'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  // Lógica de recusar (pode ser deletar ou mudar status)
+                                  context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id);
+                                  Navigator.pop(context);
+                                },
+                                icon: const Icon(Icons.cancel_rounded),
+                                label: const Text('RECUSAR'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // 2. Registro de Chegada (Somente Agente e se Aprovada)
+                    if (context.watch<UsuarioProvider>().usuarioLogado?.isAgente == true && 
+                        ocorrencia.status == OcorrenciaStatus.APROVADA &&
+                        !ocorrencia.agenteNoLocal)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id);
+                              if (mounted) Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.location_on_rounded),
+                            label: const Text('ESTOU NO LOCAL'),
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal),
+                          ),
+                        ),
+                      ),
+
+                    // Botões de ação antigos (Resolver/Excluir)
                     if (context.watch<UsuarioProvider>().isAdmin)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
@@ -503,11 +551,11 @@ class _MapaScreenState extends State<MapaScreen> {
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: AppColors.shadowColor,
             blurRadius: 6,
-            offset: const Offset(0, 2),
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -1188,11 +1236,11 @@ class _MapaScreenState extends State<MapaScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.surfaceCard,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: AppColors.shadowColor,
                         blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        offset: Offset(0, 3),
                       ),
                     ],
                   ),

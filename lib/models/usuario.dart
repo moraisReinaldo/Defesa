@@ -1,14 +1,22 @@
 import 'package:uuid/uuid.dart';
 
+enum Role {
+  CIDADAO,
+  AGENTE,
+  ADMINISTRADOR
+}
+
 class Usuario {
   final String id;
   final String nome;
   final String email;
   final String telefone;
-  final String? senha; // Armazenado localmente (hash em produção)
-  final bool isAgente;
+  final String? senha; 
+  final Role role; 
+  final bool concordaLGPD; // Obrigatório pela LGPD
   final String? cidade;
   final String? especialidade;
+  final String? fcmToken;
   final DateTime dataCriacao;
 
   Usuario({
@@ -17,12 +25,17 @@ class Usuario {
     required this.email,
     required this.telefone,
     this.senha,
-    this.isAgente = false,
+    this.role = Role.CIDADAO,
+    this.concordaLGPD = false,
     this.cidade,
     this.especialidade,
+    this.fcmToken,
     DateTime? dataCriacao,
   })  : id = id ?? const Uuid().v4(),
         dataCriacao = dataCriacao ?? DateTime.now();
+
+  bool get isAgente => role == Role.AGENTE || role == Role.ADMINISTRADOR;
+  bool get isAdmin => role == Role.ADMINISTRADOR;
 
   // Converter para JSON
   Map<String, dynamic> toJson() {
@@ -32,9 +45,11 @@ class Usuario {
       'email': email,
       'telefone': telefone,
       'senha': senha,
-      'isAgente': isAgente,
+      'role': role.name,
+      'concordaLGPD': concordaLGPD,
       'cidade': cidade,
       'especialidade': especialidade,
+      'fcmToken': fcmToken,
       'dataCriacao': dataCriacao.toIso8601String(),
     };
   }
@@ -47,35 +62,17 @@ class Usuario {
       email: json['email'],
       telefone: json['telefone'],
       senha: json['senha'],
-      isAgente: json['isAgente'] ?? false,
+      role: Role.values.firstWhere(
+        (e) => e.name == json['role'], 
+        orElse: () => json['isAgente'] == true ? Role.AGENTE : Role.CIDADAO
+      ),
+      concordaLGPD: json['concordaLGPD'] ?? false,
       cidade: json['cidade'],
       especialidade: json['especialidade'],
-      dataCriacao: DateTime.parse(json['dataCriacao']),
-    );
-  }
-
-  // Copiar com alterações
-  Usuario copyWith({
-    String? id,
-    String? nome,
-    String? email,
-    String? telefone,
-    String? senha,
-    bool? isAgente,
-    String? cidade,
-    String? especialidade,
-    DateTime? dataCriacao,
-  }) {
-    return Usuario(
-      id: id ?? this.id,
-      nome: nome ?? this.nome,
-      email: email ?? this.email,
-      telefone: telefone ?? this.telefone,
-      senha: senha ?? this.senha,
-      isAgente: isAgente ?? this.isAgente,
-      cidade: cidade ?? this.cidade,
-      especialidade: especialidade ?? this.especialidade,
-      dataCriacao: dataCriacao ?? this.dataCriacao,
+      fcmToken: json['fcmToken'],
+      dataCriacao: json['dataCriacao'] != null 
+          ? DateTime.parse(json['dataCriacao'])
+          : null,
     );
   }
 }

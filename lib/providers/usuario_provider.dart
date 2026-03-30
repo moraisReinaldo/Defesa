@@ -1,89 +1,41 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/usuario.dart';
 import '../services/storage_service.dart';
+import '../services/api_service.dart';
 
 class UsuarioProvider extends ChangeNotifier {
   final StorageService _storageService;
+  final ApiService _apiService;
   Usuario? _usuarioLogado;
-  bool _carregando = false;
   bool _isAdmin = false;
-  List<Usuario> _todosUsuarios = [];
+  bool _isLoading = false;
 
-  UsuarioProvider(this._storageService);
+  UsuarioProvider(this._storageService, this._apiService);
 
   Usuario? get usuarioLogado => _usuarioLogado;
   bool get estaLogado => _usuarioLogado != null;
-  bool get carregando => _carregando;
   bool get isAdmin => _isAdmin;
-  
-  List<Usuario> get todosUsuarios => _todosUsuarios;
-  List<Usuario> get todosAgentes => _todosUsuarios.where((u) => u.isAgente).toList();
+  bool get isLoading => _isLoading;
 
-  /// Reseta o estado de administrador
-  void logoutAdmin() {
-    _isAdmin = false;
-    notifyListeners();
-  }
-
-  /// Tenta autenticar como administrador usando [senhaAdmin].
-  /// Retorna true se a senha estiver correta.
-  Future<bool> autenticarAdmin(String senhaAdmin) async {
-    // senha fixa para demonstração; em produção isso viria de servidor seguro
-    const adminPassword = 'SenhaDefesa!';
-    if (senhaAdmin == adminPassword) {
-      _isAdmin = true;
-      notifyListeners();
-      return true;
-    }
-    return false;
-  }
-
-  Future<void> verificarUsuarioLogado() async {
-    _carregando = true;
-    notifyListeners();
-    
-    _usuarioLogado = await _storageService.obterUsuarioLogado();
-    
-    _carregando = false;
-    notifyListeners();
-  }
+  // Placeholder para telas que ainda usam listas locais de agentes
+  List<Usuario> get todosAgentes => []; 
 
   Future<void> carregarTudo() async {
-    _todosUsuarios = await _storageService.obterTodosUsuarios();
-    notifyListeners();
+    await verificarUsuarioLogado();
   }
 
-  Future<bool> cadastrar({
+  Future<bool> atualizarPerfil({
     required String nome,
-    required String email,
     required String telefone,
-    required String senha,
+    String? cidade,
   }) async {
-    try {
-      // Verificar se email já existe
-      final usuarioExistente =
-          await _storageService.obterUsuarioPorEmail(email);
-      if (usuarioExistente != null) {
-        return false;
-      }
+    // TODO: Implementar PUT /api/usuarios/{id} no backend
+    return true; 
+  }
 
-      // Criar novo usuário
-      final novoUsuario = Usuario(
-        nome: nome,
-        email: email,
-        telefone: telefone,
-        senha: senha, // Em produção, usar hash
-      );
-
-      await _storageService.salvarUsuario(novoUsuario);
-      await _storageService.salvarUsuarioLogado(novoUsuario);
-      _usuarioLogado = novoUsuario;
-      await carregarTudo();
-      return true;
-    } catch (e) {
-      print('Erro ao cadastrar: $e');
-      return false;
-    }
+  Future<void> deletarUsuario(String id) async {
+    // TODO: Implementar DELETE /api/usuarios/{id} no backend
   }
 
   Future<bool> cadastrarAgente({
@@ -91,89 +43,118 @@ class UsuarioProvider extends ChangeNotifier {
     required String email,
     required String telefone,
     required String senha,
-    required String cidade,
-    required String especialidade,
+    String? cidade,
+    String? especialidade,
   }) async {
+    final res = await cadastrar(UsuarioRequest(
+      nome: nome,
+      email: email,
+      senha: senha,
+      telefone: telefone,
+      role: 'AGENTE',
+      cidade: cidade ?? _usuarioLogado?.cidade ?? '',
+      concordaLGPD: true, // Agentes criados por Admin são considerados concordantes
+    ));
+    return res['sucesso'] == true;
+  }
+
+  // ========== LOGIN & AUTH ==========
+
+  Future<bool> login(String email, String senha) async {
+    _setLoading(true);
     try {
-      final usuarioExistente = await _storageService.obterUsuarioPorEmail(email);
-      if (usuarioExistente != null) return false;
+      final response = await _apiService.login(email, senha);
+      
+      if (response != null) {
+        final usuario = Usuario.fromJson(response['usuario']);
+        final token = response['token'];
 
-      final novoAgente = Usuario(
-        nome: nome,
-        email: email,
-        telefone: telefone,
-        senha: senha,
-        isAgente: true,
-        cidade: cidade,
-        especialidade: especialidade,
-      );
+        // Salvar sessão segura
+        await _storageService.salvarUsuarioLogado(usuario);
+        await _storageService.salvarToken(token);
 
-      await _storageService.salvarUsuario(novoAgente);
-      await carregarTudo();
-      return true;
-    } catch (e) {
-      print('Erro ao cadastrar agente: $e');
+        _usuarioLogado = usuario;
+        _isAdmin = usuario.role == Role.ADMINISTRADOR;
+        
+        notifyListeners();
+        return true;
+      }
       return false;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao fazer login: $e');
+      rethrow; // Repassar para a UI tratar (ex: conta pendente 403)
+    } finally {
+      _setLoading(false);
     }
   }
 
-  Future<void> deletarUsuario(String id) async {
-    await _storageService.deletarUsuario(id);
-    await carregarTudo();
-  }
-
-  Future<bool> login({
-    required String email,
-    required String senha,
-  }) async {
+  Future<Map<String, dynamic>> cadastrar(UsuarioRequest request) async {
+    _setLoading(true);
     try {
-      final usuario = await _storageService.obterUsuarioPorEmail(email);
-      if (usuario == null) {
-        return false;
+      final response = await _apiService.cadastrarUsuario(request);
+      if (response != null) {
+        return {
+          'sucesso': true,
+          'message': response['message'],
+          'pendente': response['pendente'] ?? false,
+        };
       }
-
-      // Verificar senha (em produção, usar hash)
-      if (usuario.senha != senha) {
-        return false;
-      }
-
-      await _storageService.salvarUsuarioLogado(usuario);
-      _usuarioLogado = usuario;
-      notifyListeners();
-      return true;
+      return {'sucesso': false, 'message': 'Erro ao realizar cadastro.'};
     } catch (e) {
-      print('Erro ao fazer login: $e');
-      return false;
+      if (kDebugMode) print('Erro ao cadastrar: $e');
+      return {'sucesso': false, 'message': e.toString()};
+    } finally {
+      _setLoading(false);
     }
   }
 
   Future<void> logout() async {
-    await _storageService.limparUsuarioLogado();
+    await _storageService.limparSessao();
     _usuarioLogado = null;
     _isAdmin = false;
     notifyListeners();
   }
 
-  Future<bool> atualizarPerfil({
-    required String nome,
-    required String telefone,
-  }) async {
-    if (_usuarioLogado == null) return false;
+  // ========== ADMIN ROOT ACCESS ==========
 
+  Future<bool> autenticarAdmin(String senhaAdmin) async {
+    _setLoading(true);
     try {
-      final usuarioAtualizado = _usuarioLogado!.copyWith(
-        nome: nome,
-        telefone: telefone,
-      );
-
-      await _storageService.atualizarUsuario(usuarioAtualizado);
-      await _storageService.salvarUsuarioLogado(usuarioAtualizado);
-      _usuarioLogado = usuarioAtualizado;
-      await carregarTudo();
-      return true;
-    } catch (e) {
-      print('Erro ao atualizar perfil: $e');
+      final token = await _apiService.loginAdmin(senhaAdmin);
+      if (token != null) {
+        // Para acesso Admin "Master", salvamos o token mas não necessariamente um usuário
+        await _storageService.salvarToken(token);
+        _isAdmin = true;
+        notifyListeners();
+        return true;
+      }
       return false;
+    } catch (e) {
+      if (kDebugMode) print('Erro na autenticação admin master: $e');
+      return false;
+    } finally {
+      _setLoading(false);
     }
   }
+
+  // ========== INITIALIZATION ==========
+
+  Future<void> verificarUsuarioLogado() async {
+    final logado = await _storageService.obterUsuarioLogado();
+    final token = await _storageService.obterToken();
+    
+    if (logado != null && token != null) {
+      _usuarioLogado = logado;
+      _isAdmin = logado.role == Role.ADMINISTRADOR;
+      notifyListeners();
+    }
+  }
+
+  void _setLoading(bool val) {
+    _isLoading = val;
+    notifyListeners();
+  }
+
+  // Métodos de mock local 'cadastrarAgente', 'atualizarPerfil' local foram removidos 
+  // para forçar o uso da API e garantir consistência de dados.
 }

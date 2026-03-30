@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ocorrencia.dart';
 import '../models/usuario.dart';
@@ -6,15 +7,30 @@ import '../models/usuario.dart';
 class StorageService {
   static const String _ocorrenciasKey = 'ocorrencias';
   static const String _usuarioLogadoKey = 'usuario_logado';
-  static const String _usuariosKey = 'usuarios';
+  static const String _tokenKey = 'auth_token';
 
   late SharedPreferences _prefs;
+  final _secureStorage = const FlutterSecureStorage();
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
 
-  // ========== OCORRÊNCIAS ==========
+  // ========== TOKEN (SECURE) ==========
+
+  Future<void> salvarToken(String token) async {
+    await _secureStorage.write(key: _tokenKey, value: token);
+  }
+
+  Future<String?> obterToken() async {
+    return await _secureStorage.read(key: _tokenKey);
+  }
+
+  Future<void> limparToken() async {
+    await _secureStorage.delete(key: _tokenKey);
+  }
+
+  // ========== OCORRÊNCIAS (LOCAL CACHE) ==========
 
   Future<void> salvarOcorrencia(Ocorrencia ocorrencia) async {
     final ocorrencias = await obterOcorrencias();
@@ -28,20 +44,6 @@ class StorageService {
     return json
         .map((j) => Ocorrencia.fromJson(jsonDecode(j)))
         .toList();
-  }
-
-  Future<Ocorrencia?> obterOcorrenciaPorId(String id) async {
-    final ocorrencias = await obterOcorrencias();
-    try {
-      return ocorrencias.firstWhere((o) => o.id == id);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<List<Ocorrencia>> obterOcorrenciasDoUsuario(String usuarioId) async {
-    final ocorrencias = await obterOcorrencias();
-    return ocorrencias.where((o) => o.usuarioId == usuarioId).toList();
   }
 
   Future<void> atualizarOcorrencia(Ocorrencia ocorrencia) async {
@@ -61,48 +63,6 @@ class StorageService {
     await _prefs.setStringList(_ocorrenciasKey, json);
   }
 
-  // ========== USUÁRIOS ==========
-
-  Future<void> salvarUsuario(Usuario usuario) async {
-    final usuarios = await obterTodosUsuarios();
-    usuarios.add(usuario);
-    final json = usuarios.map((u) => jsonEncode(u.toJson())).toList();
-    await _prefs.setStringList(_usuariosKey, json);
-  }
-
-  Future<List<Usuario>> obterTodosUsuarios() async {
-    final json = _prefs.getStringList(_usuariosKey) ?? [];
-    return json
-        .map((j) => Usuario.fromJson(jsonDecode(j)))
-        .toList();
-  }
-
-  Future<Usuario?> obterUsuarioPorEmail(String email) async {
-    final usuarios = await obterTodosUsuarios();
-    try {
-      return usuarios.firstWhere((u) => u.email == email);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<void> atualizarUsuario(Usuario usuario) async {
-    final usuarios = await obterTodosUsuarios();
-    final index = usuarios.indexWhere((u) => u.id == usuario.id);
-    if (index != -1) {
-      usuarios[index] = usuario;
-      final json = usuarios.map((u) => jsonEncode(u.toJson())).toList();
-      await _prefs.setStringList(_usuariosKey, json);
-    }
-  }
-
-  Future<void> deletarUsuario(String id) async {
-    final usuarios = await obterTodosUsuarios();
-    usuarios.removeWhere((u) => u.id == id);
-    final json = usuarios.map((u) => jsonEncode(u.toJson())).toList();
-    await _prefs.setStringList(_usuariosKey, json);
-  }
-
   // ========== USUÁRIO LOGADO ==========
 
   Future<void> salvarUsuarioLogado(Usuario usuario) async {
@@ -116,17 +76,20 @@ class StorageService {
     return Usuario.fromJson(jsonDecode(json));
   }
 
-  Future<void> limparUsuarioLogado() async {
+  Future<void> limparSessao() async {
     await _prefs.remove(_usuarioLogadoKey);
+    await limparToken();
   }
 
   Future<bool> temUsuarioLogado() async {
-    return _prefs.containsKey(_usuarioLogadoKey);
+    final token = await obterToken();
+    return token != null && _prefs.containsKey(_usuarioLogadoKey);
   }
 
   // ========== LIMPEZA ==========
 
   Future<void> limparTudo() async {
     await _prefs.clear();
+    await _secureStorage.deleteAll();
   }
 }

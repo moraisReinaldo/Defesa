@@ -43,11 +43,11 @@ class OcorrenciaCard extends StatelessWidget {
           border: selected
               ? Border.all(color: AppColors.primaryTeal, width: 2)
               : Border.all(color: AppColors.borderLight, width: 1),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: AppColors.shadowColor,
               blurRadius: 10,
-              offset: const Offset(0, 3),
+              offset: Offset(0, 3),
             ),
           ],
         ),
@@ -121,7 +121,7 @@ class OcorrenciaCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.access_time_rounded,
+                        const Icon(Icons.access_time_rounded,
                             size: 13, color: AppColors.textLight),
                         const SizedBox(width: 4),
                         Expanded(
