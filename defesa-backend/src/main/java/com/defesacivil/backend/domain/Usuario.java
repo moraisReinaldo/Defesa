@@ -17,11 +17,11 @@ public class Usuario {
     private Role role;
     private Status status;
     @JsonIgnore
-    private LocalDateTime dataCriacao;
+    private String dataCriacao;
     private String fcmToken; // Token para Push (FCM)
 
     public Usuario() {
-        this.dataCriacao = LocalDateTime.now();
+        this.dataCriacao = LocalDateTime.now().toString();
     }
 
     // Getters and Setters
@@ -43,8 +43,8 @@ public class Usuario {
     public void setRole(Role role) { this.role = role; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
-    public LocalDateTime getDataCriacao() { return dataCriacao; }
-    public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
+    public String getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(String dataCriacao) { this.dataCriacao = dataCriacao; }
     public String getFcmToken() { return fcmToken; }
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
 }
