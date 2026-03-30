@@ -1,0 +1,12 @@
+target/
+*.jar
+.mvn/
+mvnw
+mvnw.cmd
+.git/
+.gitignore
+.gitattributes
+Dockerfile
+.dockerignore
+HELP.md
+README.md
