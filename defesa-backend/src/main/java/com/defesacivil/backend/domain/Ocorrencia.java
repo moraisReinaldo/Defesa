@@ -15,7 +15,7 @@ public class Ocorrencia {
     private String caminhoFoto;
     private String dataHora;
     private String usuarioId;
-    private OcorrenciaStatus status; // Novo: status de aprovação
+    private String status; // Novo: status de aprovação (String para Firestore)
     private boolean resolvida;
     private String dataResolucao;
     private String agentes;
@@ -43,8 +43,8 @@ public class Ocorrencia {
     public void setDataHora(String dataHora) { this.dataHora = dataHora; }
     public String getUsuarioId() { return usuarioId; }
     public void setUsuarioId(String usuarioId) { this.usuarioId = usuarioId; }
-    public OcorrenciaStatus getStatus() { return status; }
-    public void setStatus(OcorrenciaStatus status) { this.status = status; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public boolean isResolvida() { return resolvida; }
     public void setResolvida(boolean resolvida) { this.resolvida = resolvida; }
     public String getDataResolucao() { return dataResolucao; }
