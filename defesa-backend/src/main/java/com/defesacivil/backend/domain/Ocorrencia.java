@@ -1,9 +1,5 @@
 package com.defesacivil.backend.domain;
 
-import com.defesacivil.backend.domain.enums.OcorrenciaStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import java.time.LocalDateTime;
-
 public class Ocorrencia {
 
     private String id;

@@ -7,7 +7,7 @@ import 'cadastro_agente_screen.dart';
 import 'gerenciar_poi_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
-  const PerfilScreen({super.key});
+   const PerfilScreen({super.key});
 
   @override
   State<PerfilScreen> createState() => _PerfilScreenState();
@@ -38,7 +38,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
         }
 
         if (prov.usuarioLogado == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return  const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
         final usuario = prov.usuarioLogado!;
@@ -65,9 +65,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primaryTeal.withOpacity(0.3),
+                        color: AppColors.primaryTeal.withValues(alpha: 0.3),
                         blurRadius: 16,
-                        offset: const Offset(0, 6),
+                        offset:  const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -119,7 +119,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Row(
+                       const Row(
                         children: [
                           Icon(Icons.person_rounded,
                               color: AppColors.primaryTeal, size: 20),
@@ -171,14 +171,14 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     margin: const EdgeInsets.only(bottom: 20),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withOpacity(0.05),
+                      color: AppColors.primaryTeal.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.primaryTeal.withOpacity(0.2)),
+                      border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                         const Row(
                           children: [
                             Icon(Icons.admin_panel_settings_rounded,
                                 color: AppColors.primaryTeal, size: 20),
@@ -198,7 +198,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const CadastroAgenteScreen(),
+                                  builder: (_) =>  const CadastroAgenteScreen(),
                                 ),
                               );
                             },
@@ -222,7 +222,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const GerenciarPOIScreen(),
+                                  builder: (_) =>  const GerenciarPOIScreen(),
                                 ),
                               );
                             },
@@ -230,7 +230,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             label: const Text('Gerenciar Pontos de Apoio'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primaryTeal,
-                              side: const BorderSide(color: AppColors.primaryTeal),
+                              side:  const BorderSide(color: AppColors.primaryTeal),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -254,7 +254,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               nome: _nomeController.text,
                               telefone: _telefoneController.text,
                             );
-                            if (ok && mounted) {
+                            if (!mounted) return;
+                            if (ok) {
                               setState(() => _editando = false);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
@@ -306,17 +307,16 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       await prov.logout();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Desconectado')),
-                        );
-                      }
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Desconectado')),
+                      );
                     },
                     icon: const Icon(Icons.logout_rounded, size: 18),
                     label: const Text('Sair'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.statusActive,
-                      side: const BorderSide(color: AppColors.statusActive),
+                      side:  const BorderSide(color: AppColors.statusActive),
                     ),
                   ),
                 ),
@@ -398,7 +398,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTeal.withOpacity(0.1),
+                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.account_circle_rounded,
@@ -424,7 +424,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () async {
                     final r = await Navigator.push<bool>(context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()));
+                        MaterialPageRoute(builder: (_) =>  const LoginScreen()));
                     if (r == true && mounted) setState(() {});
                   },
                   icon: const Icon(Icons.login_rounded, size: 20),
@@ -447,7 +447,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (_) =>
-                                const LoginScreen(modoRegistro: true)));
+                                 const LoginScreen(modoRegistro: true)));
                     if (r == true && mounted) setState(() {});
                   },
                   icon: const Icon(Icons.person_add_rounded, size: 20),
@@ -501,7 +501,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const CadastroAgenteScreen(),
+                        builder: (_) =>  const CadastroAgenteScreen(),
                       ),
                     );
                   },
@@ -525,7 +525,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const GerenciarPOIScreen(),
+                        builder: (_) =>  const GerenciarPOIScreen(),
                       ),
                     );
                   },
@@ -533,7 +533,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   label: const Text('Gerenciar Pontos de Apoio'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryTeal,
-                    side: const BorderSide(color: AppColors.primaryTeal),
+                    side:  const BorderSide(color: AppColors.primaryTeal),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -547,17 +547,16 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     await prov.logout();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Admin deslogado')));
-                    }
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Admin deslogado')));
                   },
                   icon: const Icon(Icons.logout_rounded, size: 18),
                   label: const Text('Sair'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.statusActive,
-                    side: const BorderSide(color: AppColors.statusActive),
+                    side:  const BorderSide(color: AppColors.statusActive),
                   ),
                 ),
               ),

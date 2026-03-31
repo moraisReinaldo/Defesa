@@ -1,7 +1,5 @@
 package com.defesacivil.backend.domain;
 
-import com.defesacivil.backend.domain.enums.Role;
-import com.defesacivil.backend.domain.enums.Status;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 

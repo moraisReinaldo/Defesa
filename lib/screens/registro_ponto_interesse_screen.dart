@@ -10,7 +10,7 @@ import '../services/geocoding_service.dart';
 class RegistroPontoInteresseScreen extends StatefulWidget {
   final LatLng posicao;
 
-  const RegistroPontoInteresseScreen({super.key, required this.posicao});
+   const RegistroPontoInteresseScreen({super.key, required this.posicao});
 
   @override
   State<RegistroPontoInteresseScreen> createState() => _RegistroPontoInteresseScreenState();
@@ -132,10 +132,10 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
               
               // Cidade Detectada
               if (_carregandoCidades)
-                const LinearProgressIndicator()
+                 const LinearProgressIndicator()
               else
                 DropdownButtonFormField<String>(
-                  value: _cidadeSelecionada,
+                  initialValue: _cidadeSelecionada,
                   hint: const Text('Selecione a cidade'),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
@@ -149,9 +149,9 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
                   validator: (v) => v == null ? 'Obrigatório' : null,
                 ),
               if (_buscandoCidade)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Row(children: [const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), const SizedBox(width: 8), Text('GPS: Localizando...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary))]),
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0),
+                  child: Row(children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 8), Text('GPS: Localizando...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary))]),
                 )
               else if (_cidadeDetectada != null && _cidadeSelecionada == null)
                 Padding(

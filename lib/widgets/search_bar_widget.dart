@@ -7,7 +7,7 @@ class SearchBarWidget extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final VoidCallback? onClear;
 
-  const SearchBarWidget({
+   const SearchBarWidget({
     super.key,
     required this.controller,
     this.hintText = 'Pesquisar ocorrências...',
@@ -50,7 +50,7 @@ class SearchBarWidget extends StatelessWidget {
               size: 22,
             ),
           ),
-          prefixIconConstraints: const BoxConstraints(
+          prefixIconConstraints:  const BoxConstraints(
             minWidth: 46,
             minHeight: 46,
           ),

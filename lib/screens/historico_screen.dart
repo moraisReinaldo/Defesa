@@ -12,7 +12,7 @@ import '../widgets/ocorrencia_image.dart';
 import '../widgets/status_badge.dart';
 
 class HistoricoScreen extends StatefulWidget {
-  const HistoricoScreen({super.key});
+   const HistoricoScreen({super.key});
 
   @override
   State<HistoricoScreen> createState() => _HistoricoScreenState();
@@ -44,7 +44,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -167,7 +167,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withOpacity(0.08),
+                            color: AppColors.primaryTeal.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: const Icon(
@@ -223,7 +223,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryTeal.withOpacity(0.1),
+                                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
@@ -291,9 +291,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     color: AppColors.surfaceCard,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 12,
-                        offset: const Offset(0, -4),
+                        offset:  const Offset(0, -4),
                       ),
                     ],
                     borderRadius:
@@ -355,7 +355,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         });
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration:  const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? AppColors.primaryTeal : AppColors.surfaceCard,
@@ -366,9 +366,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppColors.primaryTeal.withOpacity(0.3),
+                    color: AppColors.primaryTeal.withValues(alpha: 0.3),
                     blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    offset:  const Offset(0, 2),
                   ),
                 ]
               : null,
@@ -450,7 +450,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
+        decoration:  const BoxDecoration(
           color: AppColors.backgroundOffWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
@@ -478,7 +478,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.getTipoColor(ocorrencia.tipo),
-                    AppColors.getTipoColor(ocorrencia.tipo).withOpacity(0.8),
+                    AppColors.getTipoColor(ocorrencia.tipo).withValues(alpha: 0.8),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
@@ -489,7 +489,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -515,7 +515,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         Text(
                           OcorrenciaTipos.getTipoDescricao(ocorrencia.tipo),
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 12,
                           ),
                         ),
@@ -618,7 +618,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                                 style: const TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 13)),
-                                            const Spacer(),
+                                             const Spacer(),
                                             Text(
                                                 _formatarData(c.dataHora),
                                                 style: const TextStyle(
@@ -696,11 +696,11 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                           SnackBar(
                                             content: Text(selected ? 'Agente ${agente.nome} alocado! Status: A Caminho.' : 'Agente removido.'),
                                             backgroundColor: AppColors.statusResolved,
-                                            duration: const Duration(seconds: 2),
+                                            duration:  const Duration(seconds: 2),
                                           ),
                                         );
                                       },
-                                      selectedColor: AppColors.primaryTeal.withOpacity(0.2),
+                                      selectedColor: AppColors.primaryTeal.withValues(alpha: 0.2),
                                       checkmarkColor: AppColors.primaryTeal,
                                     );
                                   }).toList(),
@@ -716,7 +716,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     
                     // 1. Aprovação (Somente Admin e se Pendente)
                     if (context.watch<UsuarioProvider>().isAdmin && 
-                        ocorrencia.status == OcorrenciaStatus.PENDENTE_APROVACAO)
+                        ocorrencia.status == OcorrenciaStatus.pendenteAprovacao)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
@@ -751,7 +751,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     // 2. Registro de Chegada (Somente Agente e se Aprovada, NÃO MOSTRAR PARA ADMIN)
                     if (context.watch<UsuarioProvider>().usuarioLogado?.isAgente == true && 
                         !context.watch<UsuarioProvider>().isAdmin &&
-                        ocorrencia.status == OcorrenciaStatus.APROVADA &&
+                        ocorrencia.status == OcorrenciaStatus.aprovada &&
                         !ocorrencia.agenteNoLocal)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),

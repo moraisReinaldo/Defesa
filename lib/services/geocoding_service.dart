@@ -14,7 +14,7 @@ class GeocodingService {
       final response = await http.get(url, headers: {
         'User-Agent': 'DefesaCivilApp/1.0', // Nominatim requer User-Agent
         'Accept-Language': 'pt-BR',
-      }).timeout(const Duration(seconds: 10));
+      }).timeout( const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

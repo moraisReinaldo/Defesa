@@ -1,9 +1,9 @@
 import 'package:uuid/uuid.dart';
 
 enum Role {
-  CIDADAO,
-  AGENTE,
-  ADMINISTRADOR
+  cidadao,
+  agente,
+  administrador
 }
 
 class Usuario {
@@ -25,7 +25,7 @@ class Usuario {
     required this.email,
     required this.telefone,
     this.senha,
-    this.role = Role.CIDADAO,
+    this.role = Role.cidadao,
     this.concordaLGPD = false,
     this.cidade,
     this.especialidade,
@@ -34,8 +34,8 @@ class Usuario {
   })  : id = id ?? const Uuid().v4(),
         dataCriacao = dataCriacao ?? DateTime.now();
 
-  bool get isAgente => role == Role.AGENTE || role == Role.ADMINISTRADOR;
-  bool get isAdmin => role == Role.ADMINISTRADOR;
+  bool get isAgente => role == Role.agente || role == Role.administrador;
+  bool get isAdmin => role == Role.administrador;
 
   // Converter para JSON
   Map<String, dynamic> toJson() {
@@ -45,7 +45,7 @@ class Usuario {
       'email': email,
       'telefone': telefone,
       'senha': senha,
-      'role': role.name,
+      'role': role.name.toUpperCase(),
       'concordaLGPD': concordaLGPD,
       'cidade': cidade,
       'especialidade': especialidade,
@@ -63,8 +63,8 @@ class Usuario {
       telefone: json['telefone'] ?? '',
       senha: json['senha'],
       role: Role.values.firstWhere(
-        (e) => e.name == json['role'], 
-        orElse: () => json['isAgente'] == true ? Role.AGENTE : Role.CIDADAO
+        (e) => e.name.toUpperCase() == (json['role'] as String?)?.toUpperCase(),
+        orElse: () => json['isAgente'] == true ? Role.agente : Role.cidadao
       ),
       concordaLGPD: json['concordaLGPD'] ?? false,
       cidade: json['cidade'],

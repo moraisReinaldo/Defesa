@@ -23,7 +23,7 @@ import 'perfil_screen.dart';
 import 'registro_ponto_interesse_screen.dart';
 
 class MapaScreen extends StatefulWidget {
-  const MapaScreen({super.key});
+   const MapaScreen({super.key});
 
   @override
   State<MapaScreen> createState() => _MapaScreenState();
@@ -99,7 +99,7 @@ class _MapaScreenState extends State<MapaScreen> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.85,
         ),
-        decoration: const BoxDecoration(
+        decoration:  const BoxDecoration(
           color: AppColors.backgroundOffWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
@@ -126,7 +126,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.getTipoColor(ocorrencia.tipo),
-                    AppColors.getTipoColor(ocorrencia.tipo).withOpacity(0.8),
+                    AppColors.getTipoColor(ocorrencia.tipo).withValues(alpha: 0.8),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
@@ -136,7 +136,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   Container(
                     width: 56, height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -290,7 +290,7 @@ class _MapaScreenState extends State<MapaScreen> {
                                       context.read<OcorrenciaProvider>().adicionarComentario(ocorrencia.id, comentario);
                                     }
                                   },
-                                  selectedColor: AppColors.primaryTeal.withOpacity(0.2),
+                                  selectedColor: AppColors.primaryTeal.withValues(alpha: 0.2),
                                   checkmarkColor: AppColors.primaryTeal,
                                 );
                               }).toList(),
@@ -301,7 +301,7 @@ class _MapaScreenState extends State<MapaScreen> {
 
                     const SizedBox(height: 12),
                     
-                    if (usuarioProvider.isAdmin && ocorrencia.status == OcorrenciaStatus.PENDENTE_APROVACAO)
+                    if (usuarioProvider.isAdmin && ocorrencia.status == OcorrenciaStatus.pendenteAprovacao)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
@@ -313,7 +313,7 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    if (usuarioProvider.usuarioLogado?.isAgente == true && !usuarioProvider.isAdmin && ocorrencia.status == OcorrenciaStatus.APROVADA && !ocorrencia.agenteNoLocal)
+                    if (usuarioProvider.usuarioLogado?.isAgente == true && !usuarioProvider.isAdmin && ocorrencia.status == OcorrenciaStatus.aprovada && !ocorrencia.agenteNoLocal)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: SizedBox(
@@ -333,7 +333,7 @@ class _MapaScreenState extends State<MapaScreen> {
                           ],
                         ),
                       )
-                    else if (ocorrencia.status == OcorrenciaStatus.APROVADA && !ocorrencia.resolvida && (usuarioProvider.usuarioLogado?.isAgente == true))
+                    else if (ocorrencia.status == OcorrenciaStatus.aprovada && !ocorrencia.resolvida && (usuarioProvider.usuarioLogado?.isAgente == true))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => _alterarStatusOcorrencia(ocorrencia), icon: const Icon(Icons.check_circle_rounded, size: 18), label: const Text('Marcar como Resolvida'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusResolved))),
@@ -514,7 +514,7 @@ class _MapaScreenState extends State<MapaScreen> {
     return Scaffold(
       body: _indiceAbaAtual == 0
           ? _construirTelaMapa(nomeUsuario, markers, usuarioProvider)
-          : _indiceAbaAtual == 1 ? const HistoricoScreen() : const PerfilScreen(),
+          : _indiceAbaAtual == 1 ?  const HistoricoScreen() :  const PerfilScreen(),
       floatingActionButton: _indiceAbaAtual == 0 
           ? Column(
               mainAxisSize: MainAxisSize.min,
@@ -532,7 +532,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 FloatingActionButton.extended(
                   heroTag: 'fab_ocorrencia',
                   onPressed: () async {
-                    final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen()));
+                    final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) =>  const SelecaoTipoOcorrenciaScreen()));
                     if (res == true && mounted) {
                       _inicializarMapa();
                     }
@@ -567,7 +567,7 @@ class _MapaScreenState extends State<MapaScreen> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            center: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) : const LatLng(-22.9292, -46.2753),
+            center: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
             zoom: 14,
             onTap: (_, __) => setState(() => _showSearchResults = false),
             onLongPress: (_, latlng) { if (userProv.isAdmin) _confirmarNovoPontoInteresse(latlng); },
@@ -585,7 +585,7 @@ class _MapaScreenState extends State<MapaScreen> {
           top: 0, left: 0, right: 0,
           child: Container(
             padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
+            decoration:  const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
             child: SafeArea(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa)]), const SizedBox(height: 16), SearchBarWidget(controller: _searchController, hintText: 'Buscar...', onChanged: (v) => setState(() { _searchQuery = v; _showSearchResults = v.isNotEmpty; }))])),
           ),
         ),

@@ -2,10 +2,10 @@ import 'package:uuid/uuid.dart';
 import 'comentario.dart';
 
 enum OcorrenciaStatus {
-  PENDENTE_APROVACAO,
-  APROVADA,
-  RECUSADA,
-  RESOLVIDA
+  pendenteAprovacao,
+  aprovada,
+  recusada,
+  resolvida
 }
 
 class Ocorrencia {
@@ -37,7 +37,7 @@ class Ocorrencia {
     this.caminhoFoto,
     DateTime? dataHora,
     this.usuarioId,
-    this.status = OcorrenciaStatus.PENDENTE_APROVACAO,
+    this.status = OcorrenciaStatus.pendenteAprovacao,
     this.resolvida = false,
     this.dataResolucao,
     this.agentes,
@@ -60,7 +60,7 @@ class Ocorrencia {
       'caminhoFoto': caminhoFoto,
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
-      'status': status.name,
+      'status': status.name.toUpperCase(),
       'resolvida': resolvida,
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
@@ -83,8 +83,8 @@ class Ocorrencia {
       dataHora: _parseSafe(json['dataHora']) ?? DateTime.now(),
       usuarioId: json['usuarioId'],
       status: OcorrenciaStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () => OcorrenciaStatus.PENDENTE_APROVACAO,
+        (e) => e.name.toUpperCase() == (json['status'] as String?)?.toUpperCase(),
+        orElse: () => OcorrenciaStatus.pendenteAprovacao,
       ),
       resolvida: json['resolvida'] ?? false,
       dataResolucao: _parseSafe(json['dataResolucao']),

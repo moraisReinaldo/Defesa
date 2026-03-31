@@ -6,7 +6,7 @@ class StatusBadge extends StatelessWidget {
   final String? agentes;
   final double fontSize;
 
-  const StatusBadge({
+   const StatusBadge({
     super.key,
     required this.resolvida,
     this.agentes,
@@ -22,17 +22,17 @@ class StatusBadge extends StatelessWidget {
 
     if (resolvida) {
       label = 'Resolvida';
-      bgColor = AppColors.statusResolved.withOpacity(0.15);
+      bgColor = AppColors.statusResolved.withValues(alpha: 0.15);
       textColor = AppColors.statusResolved;
       icon = Icons.check_circle_rounded;
     } else if (agentes != null && agentes!.isNotEmpty) {
       label = 'Em caminho';
-      bgColor = AppColors.statusEnRoute.withOpacity(0.15);
+      bgColor = AppColors.statusEnRoute.withValues(alpha: 0.15);
       textColor = AppColors.statusEnRoute;
       icon = Icons.directions_run_rounded;
     } else {
       label = 'Ativa';
-      bgColor = AppColors.statusActive.withOpacity(0.15);
+      bgColor = AppColors.statusActive.withValues(alpha: 0.15);
       textColor = AppColors.statusActive;
       icon = Icons.error_rounded;
     }

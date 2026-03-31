@@ -15,7 +15,7 @@ class Comentario {
     required this.usuarioNome,
     DateTime? dataHora,
     this.agentes,
-  })  : id = id ?? const Uuid().v4(),
+  })  : id = id ??  const Uuid().v4(),
         dataHora = dataHora ?? DateTime.now();
 
   // Converter para JSON

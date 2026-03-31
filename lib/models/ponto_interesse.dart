@@ -17,7 +17,7 @@ class PontoInteresse {
     required this.longitude,
     this.cidade,
     this.criadoPor,
-  }) : id = id ?? const Uuid().v4();
+  }) : id = id ??  const Uuid().v4();
 
   Map<String, dynamic> toJson() {
     return {

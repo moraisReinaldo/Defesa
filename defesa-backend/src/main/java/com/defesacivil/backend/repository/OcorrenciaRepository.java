@@ -1,6 +1,9 @@
 package com.defesacivil.backend.repository;
 
 import com.defesacivil.backend.domain.Ocorrencia;
+import org.springframework.lang.NonNull;
+import java.util.Optional;
+import java.util.Objects;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,26 +21,29 @@ public class OcorrenciaRepository {
 
     private static final String COLLECTION_NAME = "ocorrencias";
 
+    @NonNull
     public Ocorrencia save(Ocorrencia ocorrencia) {
         if (firestore == null) throw new RuntimeException("Firestore não configurado.");
         if (ocorrencia.getId() == null) {
             ocorrencia.setId(UUID.randomUUID().toString());
         }
-        firestore.collection(COLLECTION_NAME).document(ocorrencia.getId()).set(ocorrencia);
+        firestore.collection(COLLECTION_NAME).document(Objects.requireNonNull(ocorrencia.getId())).set(ocorrencia);
         return ocorrencia;
     }
 
-    public Ocorrencia findById(String id) {
-        if (firestore == null) return null;
+    @NonNull
+    public Optional<Ocorrencia> findById(@NonNull String id) {
+        if (firestore == null) return Optional.empty();
         try {
             DocumentSnapshot doc = firestore.collection(COLLECTION_NAME).document(id).get().get();
             if (doc.exists()) {
-                return doc.toObject(Ocorrencia.class);
+                Ocorrencia o = doc.toObject(Ocorrencia.class);
+                return Optional.ofNullable(o);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return Optional.empty();
     }
 
     public List<Ocorrencia> findAll() {

@@ -6,7 +6,7 @@ import '../widgets/tipo_ocorrencia_card.dart';
 import 'detalhes_ocorrencia_screen.dart'; // Tela do Passo 2 (a ser criada)
 
 class SelecaoTipoOcorrenciaScreen extends StatefulWidget {
-  const SelecaoTipoOcorrenciaScreen({super.key});
+   const SelecaoTipoOcorrenciaScreen({super.key});
 
   @override
   State<SelecaoTipoOcorrenciaScreen> createState() =>
@@ -30,7 +30,7 @@ class _SelecaoTipoOcorrenciaScreenState
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.arrow_back_rounded, size: 20),
@@ -49,14 +49,14 @@ class _SelecaoTipoOcorrenciaScreenState
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryTeal.withOpacity(0.1),
+                    color: AppColors.primaryTeal.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.category_rounded,
                       size: 18, color: AppColors.primaryTeal),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -83,8 +83,8 @@ class _SelecaoTipoOcorrenciaScreenState
             const SizedBox(height: 14),
             GridView.builder(
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              physics:  const NeverScrollableScrollPhysics(),
+              gridDelegate:  const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 childAspectRatio: 1.0,
                 crossAxisSpacing: 12,
@@ -101,7 +101,7 @@ class _SelecaoTipoOcorrenciaScreenState
                       _tipoSelecionado = tipo;
                     });
                     
-                    Future.delayed(const Duration(milliseconds: 150), () async {
+                    Future.delayed( const Duration(milliseconds: 150), () async {
                       // Navigate (Push) to Step 2
                       final result = await Navigator.push<bool>(
                         context,

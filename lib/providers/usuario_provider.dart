@@ -81,7 +81,7 @@ class UsuarioProvider extends ChangeNotifier {
         await _storageService.salvarToken(token);
 
         _usuarioLogado = usuario;
-        _isAdmin = usuario.role == Role.ADMINISTRADOR;
+        _isAdmin = usuario.role == Role.administrador;
         
         notifyListeners();
         return true;
@@ -156,7 +156,7 @@ class UsuarioProvider extends ChangeNotifier {
     
     if (logado != null && token != null) {
       _usuarioLogado = logado;
-      _isAdmin = logado.role == Role.ADMINISTRADOR;
+      _isAdmin = logado.role == Role.administrador;
       if (_isAdmin) {
         carregarAgentes();
       }

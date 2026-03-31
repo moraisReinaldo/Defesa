@@ -7,7 +7,7 @@ class TipoOcorrenciaCard extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const TipoOcorrenciaCard({
+   const TipoOcorrenciaCard({
     super.key,
     required this.tipo,
     required this.selected,
@@ -24,7 +24,7 @@ class TipoOcorrenciaCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration:  const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         decoration: BoxDecoration(
           color: selected ? tipoColorLight : AppColors.surfaceCard,
@@ -36,13 +36,13 @@ class TipoOcorrenciaCard extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: tipoColor.withOpacity(0.25),
+                    color: tipoColor.withValues(alpha: 0.25),
                     blurRadius: 12,
-                    offset: const Offset(0, 4),
+                    offset:  const Offset(0, 4),
                   ),
                 ]
               : [
-                  const BoxShadow(
+                   const BoxShadow(
                     color: AppColors.shadowColor,
                     blurRadius: 6,
                     offset: Offset(0, 2),
@@ -64,7 +64,7 @@ class TipoOcorrenciaCard extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: selected
-                          ? tipoColor.withOpacity(0.15)
+                          ? tipoColor.withValues(alpha: 0.15)
                           : tipoColorLight,
                       borderRadius: BorderRadius.circular(16),
                     ),

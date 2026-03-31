@@ -139,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ? 'Cadastro realizado! Aguardando aprovação por e-mail. 📧' 
                 : 'Cadastro realizado! Você já pode entrar. ✅'),
               backgroundColor: AppColors.statusResolved));
-          Navigator.pop(context, true);
+          if (mounted) Navigator.pop(context, true);
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(result['message'] ?? 'Erro ao cadastrar'),
@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Login realizado! ✅'),
               backgroundColor: AppColors.statusResolved));
-          Navigator.pop(context, true);
+          if (mounted) Navigator.pop(context, true);
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Email ou senha incorretos'),
@@ -205,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Container(
                           width: 40, height: 40,
                           decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12)),
                           child: const Icon(Icons.arrow_back_rounded,
                               color: Colors.white, size: 20),
@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 90, height: 90,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 8))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 8))],
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
@@ -230,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
                   const SizedBox(height: 6),
                   Text(_modoRegistro ? 'Cadastre-se para acompanhar ocorrências' : 'Entre com sua conta',
-                      style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7))),
+                      style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.7))),
                 ],
               ),
             ),
@@ -247,11 +247,25 @@ class _LoginScreenState extends State<LoginScreen> {
                       _field('Nome completo', _nomeController, Icons.person_rounded, 'Seu nome', validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
                       
                       const SizedBox(height: 8),
-                      const Align(alignment: Alignment.centerLeft, child: Text('Tipo de Perfil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                      Row(children: [
-                        Flexible(child: RadioListTile<String>(title: const Text('Cidadão', style: TextStyle(fontSize: 13)), value: 'CIDADAO', groupValue: _roleSelecionada, onChanged: (v) => setState(() => _roleSelecionada = v!), contentPadding: EdgeInsets.zero)),
-                        Flexible(child: RadioListTile<String>(title: const Text('Admin', style: TextStyle(fontSize: 13)), value: 'ADMINISTRADOR', groupValue: _roleSelecionada, onChanged: (v) => setState(() => _roleSelecionada = v!), contentPadding: EdgeInsets.zero)),
-                      ]),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(value: 'CIDADAO', label: Text('Cidadão'), icon: Icon(Icons.person_outline_rounded)),
+                            ButtonSegment(value: 'ADMINISTRADOR', label: Text('Admin'), icon: Icon(Icons.admin_panel_settings_outlined)),
+                          ],
+                          selected: {_roleSelecionada},
+                          onSelectionChanged: (Set<String> selection) {
+                            setState(() => _roleSelecionada = selection.first);
+                          },
+                          style: SegmentedButton.styleFrom(
+                            selectedBackgroundColor: AppColors.primaryTeal,
+                            selectedForegroundColor: Colors.white,
+                            side: BorderSide(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
+                          ),
+                        ),
+                      ),
                     ],
                     _field('Email', _emailController, Icons.email_rounded, 'seu@email.com', keyboardType: TextInputType.emailAddress, validator: (v) { if (v == null || v.isEmpty) return 'Obrigatório'; if (!v.contains('@')) return 'Email inválido'; return null; }),
                     if (_modoRegistro && _roleSelecionada == 'ADMINISTRADOR') ...[
@@ -261,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         _carregandoCidades 
                           ? const LinearProgressIndicator()
                           : DropdownButtonFormField<String>(
-                              value: _cidadeSelecionada,
+                              initialValue: _cidadeSelecionada,
                               isExpanded: true,
                               decoration: InputDecoration(
                                 prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
@@ -283,9 +297,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withOpacity(0.05),
+                            color: AppColors.primaryTeal.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.primaryTeal.withOpacity(0.2)),
+                            border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
                           ),
                           child: Column(
                             children: [
@@ -377,7 +391,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity, height: 56,
                       child: ElevatedButton(
                         onPressed: (_carregando || (_modoRegistro && _roleSelecionada == 'ADMINISTRADOR')) ? null : _enviar,
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentAmber, foregroundColor: AppColors.textOnAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 4, shadowColor: AppColors.accentAmber.withOpacity(0.4)),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentAmber, foregroundColor: AppColors.textOnAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 4, shadowColor: AppColors.accentAmber.withValues(alpha: 0.4)),
                         child: _carregando ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) : Text(_modoRegistro ? 'Criar Conta' : 'Entrar', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       ),
                     ),

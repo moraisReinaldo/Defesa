@@ -59,9 +59,12 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
   }
 
   Future<void> _obterLocalizacao() async {
+    setState(() => _carregando = true);
     try {
       final posicao = await _localizacaoService.obterPosicaoAtual();
-      if (posicao != null && mounted) {
+      if (!mounted) return;
+      
+      if (posicao != null) {
         setState(() {
           _posicaoAtual = posicao;
         });
@@ -72,7 +75,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
             posicao.latitude, 
             posicao.longitude
           );
-          if (mounted && cidade != null) {
+          if (!mounted) return;
+          
+          if (cidade != null) {
             setState(() {
               _cidadeDetectada = cidade;
               
@@ -97,6 +102,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           SnackBar(content: Text("Erro ao obter localização: $e")),
         );
       }
+    } finally {
+      if (mounted) setState(() => _carregando = false);
     }
   }
 
@@ -113,15 +120,18 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           maxWidth: 1024,
           maxHeight: 1024,
         );
+        if (!mounted) return;
         if (foto != null) {
           setState(() {
             _fotoSelecionada = File(foto.path);
           });
         }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao tirar foto: $e")),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Erro ao tirar foto: $e")),
+          );
+        }
       }
       return;
     }
@@ -165,7 +175,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withOpacity(0.1),
+                      color: AppColors.primaryTeal.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.camera_alt_rounded,
@@ -182,7 +192,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.accentAmber.withOpacity(0.1),
+                      color: AppColors.accentAmber.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.photo_library_rounded,
@@ -212,15 +222,18 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         maxHeight: 1024,
       );
 
+      if (!mounted) return;
       if (foto != null) {
         setState(() {
           _fotoSelecionada = File(foto.path);
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erro ao obter foto: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao obter foto: $e")),
+        );
+      }
     }
   }
 
@@ -245,18 +258,21 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     if (_codigoCidadeDetectada == null) {
       // Tenta buscar novamente se falhou antes
       await _obterLocalizacao();
+      if (!mounted) return;
     }
     
     if (_codigoCidadeDetectada == null) {
       setState(() => _carregando = false);
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Localização Não Atendida'),
-          content: Text('A cidade detectada "${_cidadeDetectada ?? 'Desconhecida'}" não faz parte das áreas atendidas pela Defesa Civil neste aplicativo.'),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
-        )
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Localização Não Atendida'),
+            content: Text('A cidade detectada "${_cidadeDetectada ?? 'Desconhecida'}" não faz parte das áreas atendidas pela Defesa Civil neste aplicativo.'),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          )
+        );
+      }
       return;
     }
 
@@ -272,14 +288,16 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         } catch (_) {}
 
         setState(() => _carregando = false);
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Fora de Jurisdição'),
-            content: Text('Você é administrador de "$nomeCidadeUsuario" e não pode registrar ocorrências em "${_cidadeDetectada}".'),
-            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
-          )
-        );
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Fora de Jurisdição'),
+              content: Text('Você é administrador de "$nomeCidadeUsuario" e não pode registrar ocorrências em "$_cidadeDetectada".'),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+            )
+          );
+        }
         return;
       }
     }
@@ -299,16 +317,15 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       );
 
       await context.read<OcorrenciaProvider>().adicionarOcorrencia(ocorrencia);
+      if (!mounted) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Ocorrência registrada com sucesso! ✅"),
-            backgroundColor: AppColors.statusResolved,
-          ),
-        );
-        Navigator.pop(context, true); // Retorna true para a tela 1
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Ocorrência registrada com sucesso! ✅"),
+          backgroundColor: AppColors.statusResolved,
+        ),
+      );
+      Navigator.pop(context, true); // Retorna true para a tela 1
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -339,7 +356,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.arrow_back_rounded, size: 20),
@@ -358,9 +375,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTeal.withOpacity(0.1),
+                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -506,7 +523,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                       borderRadius: BorderRadius.circular(18),
                     ),
                     elevation: 4,
-                    shadowColor: AppColors.accentAmber.withOpacity(0.4),
+                    shadowColor: AppColors.accentAmber.withValues(alpha: 0.4),
                   ),
                   child: _carregando
                       ? const SizedBox(
@@ -552,7 +569,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.primaryTeal.withOpacity(0.1),
+            color: AppColors.primaryTeal.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, size: 18, color: AppColors.primaryTeal),
@@ -626,7 +643,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 6,
                     ),
                   ],
@@ -659,7 +676,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primaryTeal.withOpacity(0.08),
+                color: AppColors.primaryTeal.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(

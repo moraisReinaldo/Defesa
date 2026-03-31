@@ -96,7 +96,7 @@ public class OcorrenciaService {
         // Verificação de role: apenas ADMINISTRADOR pode aprovar
         verificarRole(adminUserId, Role.ADMINISTRADOR, "Apenas administradores podem aprovar ocorrências");
 
-        Ocorrencia oc = ocorrenciaRepository.findById(id);
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc != null) {
             oc.setStatus(OcorrenciaStatus.APROVADA.name());
             Ocorrencia salva = ocorrenciaRepository.save(oc);
@@ -122,7 +122,7 @@ public class OcorrenciaService {
             List.of(Role.AGENTE, Role.ADMINISTRADOR), 
             "Apenas agentes podem registrar chegada no local");
 
-        Ocorrencia oc = ocorrenciaRepository.findById(id);
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc != null) {
             oc.setAgenteNoLocal(true);
             oc.setDataChegadaAgente(LocalDateTime.now().toString());

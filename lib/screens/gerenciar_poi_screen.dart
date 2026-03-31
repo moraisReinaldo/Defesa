@@ -5,7 +5,7 @@ import '../providers/ponto_interesse_provider.dart';
 import '../providers/usuario_provider.dart';
 
 class GerenciarPOIScreen extends StatefulWidget {
-  const GerenciarPOIScreen({super.key});
+   const GerenciarPOIScreen({super.key});
 
   @override
   State<GerenciarPOIScreen> createState() => _GerenciarPOIScreenState();
@@ -31,7 +31,7 @@ class _GerenciarPOIScreenState extends State<GerenciarPOIScreen> {
         title: const Text('Gerenciar Pontos de Apoio'),
       ),
       body: poiProvider.pontos.isEmpty
-          ? const Center(
+          ?  const Center(
               child: Text('Nenhum ponto encontrado para sua cidade.'),
             )
           : ListView.builder(
@@ -45,7 +45,7 @@ class _GerenciarPOIScreenState extends State<GerenciarPOIScreen> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: CircleAvatar(
-                      backgroundColor: _getPOIPriorityColor(poi.tipo).withOpacity(0.1),
+                      backgroundColor: _getPOIPriorityColor(poi.tipo).withValues(alpha: 0.1),
                       child: Icon(_getPOIIcon(poi.tipo), color: _getPOIPriorityColor(poi.tipo)),
                     ),
                     title: Text(

@@ -194,7 +194,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.arrow_back_rounded, size: 20),
@@ -319,7 +319,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
-                          value: ['Defesa Civil (Agente)', 'Coordenador', 'Bombeiro', 'Engenheiro Civil', 'Assistente Social', 'Voluntário', 'Outros'].contains(_especialidadeController.text) 
+                          initialValue: ['Defesa Civil (Agente)', 'Coordenador', 'Bombeiro', 'Engenheiro Civil', 'Assistente Social', 'Voluntário', 'Outros'].contains(_especialidadeController.text) 
                               ? _especialidadeController.text 
                               : null,
                           hint: const Text('Selecione o cargo'),
@@ -367,7 +367,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                               child: _carregandoCidades
                                   ? const Center(child: LinearProgressIndicator())
                                   : DropdownButtonFormField<String>(
-                                      value: _cidadeSelecionada,
+                                      initialValue: _cidadeSelecionada,
                                       hint: const Text('Selecione a cidade'),
                                       decoration: InputDecoration(
                                         prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
@@ -388,7 +388,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                             Container(
                               height: 58,
                               decoration: BoxDecoration(
-                                color: AppColors.primaryTeal.withOpacity(0.1),
+                                color: AppColors.primaryTeal.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: IconButton(
@@ -518,7 +518,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withOpacity(0.1),
+                            color: AppColors.primaryTeal.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.person_rounded,

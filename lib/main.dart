@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
   final ApiService apiService;
   final NotificationService notificationService;
 
-  const MyApp({
+   const MyApp({
     super.key,
     required this.storageService,
     required this.apiService,
@@ -81,17 +81,17 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF003366), // Azul Defesa Civil
-            primary: const Color(0xFF003366),
-            secondary: const Color(0xFFFF6600), // Laranja Defesa Civil
+            seedColor:  const Color(0xFF003366), // Azul Defesa Civil
+            primary:  const Color(0xFF003366),
+            secondary:  const Color(0xFFFF6600), // Laranja Defesa Civil
           ),
-          appBarTheme: const AppBarTheme(
+          appBarTheme:  const AppBarTheme(
             backgroundColor: Color(0xFF003366),
             foregroundColor: Colors.white,
             elevation: 0,
           ),
         ),
-        home: const MapaScreen(),
+        home:  const MapaScreen(),
       ),
     );
   }

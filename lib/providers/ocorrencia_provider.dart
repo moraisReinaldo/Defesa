@@ -15,11 +15,11 @@ class OcorrenciaProvider extends ChangeNotifier {
 
   List<Ocorrencia> get ocorrenciasAtivas =>
       _ocorrencias.where((o) => 
-        o.status == OcorrenciaStatus.APROVADA && !o.resolvida
+        o.status == OcorrenciaStatus.aprovada && !o.resolvida
       ).toList();
 
   List<Ocorrencia> get ocorrenciasPendentes =>
-      _ocorrencias.where((o) => o.status == OcorrenciaStatus.PENDENTE_APROVACAO).toList();
+      _ocorrencias.where((o) => o.status == OcorrenciaStatus.pendenteAprovacao).toList();
 
   List<Ocorrencia> get ocorrenciasResolvidas =>
       _ocorrencias.where((o) => o.resolvida).toList();
@@ -111,7 +111,7 @@ class OcorrenciaProvider extends ChangeNotifier {
     final ocorrencia = _ocorrencias.firstWhere((o) => o.id == id);
     final atualizada = ocorrencia.copyWith(
       resolvida: true,
-      status: OcorrenciaStatus.RESOLVIDA,
+      status: OcorrenciaStatus.resolvida,
       dataResolucao: DateTime.now(),
     );
     

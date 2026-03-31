@@ -12,7 +12,7 @@ class OcorrenciaCard extends StatelessWidget {
   final bool selected;
   final VoidCallback? onSelectToggle;
 
-  const OcorrenciaCard({
+   const OcorrenciaCard({
     super.key,
     required this.ocorrencia,
     this.onTap,
@@ -33,11 +33,11 @@ class OcorrenciaCard extends StatelessWidget {
     return GestureDetector(
       onTap: selectable ? onSelectToggle : onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration:  const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primaryTeal.withOpacity(0.08)
+              ? AppColors.primaryTeal.withValues(alpha: 0.08)
               : AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(20),
           border: selected

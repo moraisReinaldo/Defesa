@@ -9,7 +9,7 @@ class OcorrenciaImage extends StatelessWidget {
   final double width;
   final BoxFit fit;
 
-  const OcorrenciaImage({
+   const OcorrenciaImage({
     super.key,
     required this.caminho,
     this.height = 200,
@@ -67,7 +67,7 @@ class OcorrenciaImage extends StatelessWidget {
       height: height,
       width: width,
       color: AppColors.shimmer,
-      child: const Center(
+      child:  const Center(
         child: SizedBox(
           width: 24,
           height: 24,
@@ -82,12 +82,12 @@ class OcorrenciaImage extends StatelessWidget {
       height: height,
       width: width,
       color: AppColors.borderLight,
-      child: Column(
+      child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.broken_image_rounded, color: AppColors.textLight, size: 32),
-          const SizedBox(height: 8),
-          const Text('Erro ao carregar imagem', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
+          Icon(Icons.broken_image_rounded, color: AppColors.textLight, size: 32),
+          SizedBox(height: 8),
+          Text('Erro ao carregar imagem', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
         ],
       ),
     );

@@ -1,8 +1,7 @@
 package com.defesacivil.backend.repository;
 
 import com.defesacivil.backend.domain.Usuario;
-import com.defesacivil.backend.domain.enums.Role;
-import com.defesacivil.backend.domain.enums.Status;
+import org.springframework.lang.NonNull;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +20,7 @@ public class UsuarioRepository {
 
     private static final String COLLECTION_NAME = "usuarios";
 
+    @NonNull
     public Usuario save(Usuario usuario) {
         if (firestore == null) throw new RuntimeException("Firestore não configurado.");
         if (usuario.getId() == null) {
@@ -30,12 +30,13 @@ public class UsuarioRepository {
         return usuario;
     }
 
-    public Optional<Usuario> findById(String id) {
+    @NonNull
+    public Optional<Usuario> findById(@NonNull String id) {
         if (firestore == null) return Optional.empty();
         try {
             DocumentSnapshot document = firestore.collection(COLLECTION_NAME).document(id).get().get();
             if (document.exists()) {
-                return Optional.of(document.toObject(Usuario.class));
+                return Optional.ofNullable(document.toObject(Usuario.class));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -43,14 +44,16 @@ public class UsuarioRepository {
         return Optional.empty();
     }
 
-    public Optional<Usuario> findByEmail(String email) {
+    @NonNull
+    public Optional<Usuario> findByEmail(@NonNull String email) {
         if (firestore == null) return Optional.empty();
         try {
             ApiFuture<QuerySnapshot> query = firestore.collection(COLLECTION_NAME)
                     .whereEqualTo("email", email).get();
             List<QueryDocumentSnapshot> documents = query.get().getDocuments();
             if (!documents.isEmpty()) {
-                return Optional.of(documents.get(0).toObject(Usuario.class));
+                Usuario u = documents.get(0).toObject(Usuario.class);
+                return Optional.ofNullable(u);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -86,7 +89,7 @@ public class UsuarioRepository {
             ApiFuture<QuerySnapshot> query = firestore.collection(COLLECTION_NAME)
                     .whereEqualTo("cidade", cidade)
                     .whereEqualTo("role", role)
-                    .whereIn("status", statuses)
+                    .whereIn("status", new ArrayList<>(statuses))
                     .get();
 
             List<QueryDocumentSnapshot> documents = query.get().getDocuments();
