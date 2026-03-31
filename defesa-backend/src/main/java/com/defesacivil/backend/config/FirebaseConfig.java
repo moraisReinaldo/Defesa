@@ -67,6 +67,11 @@ public class FirebaseConfig {
     @Bean
     public Bucket storageBucket() {
         if (FirebaseApp.getApps().isEmpty()) return null;
-        return StorageClient.getInstance().bucket();
+        try {
+            return StorageClient.getInstance().bucket();
+        } catch (Exception e) {
+            System.err.println("ALERTA: Não foi possível inicializar o Bucket do Firebase Storage. Upload de fotos desativado. Erro: " + e.getMessage());
+            return null;
+        }
     }
 }

@@ -23,6 +23,9 @@ class ApiService {
     return baseUrl.replaceAll('/api', '');
   }
 
+  // Backup para desenvolvimento local (Android Emulator -> 10.0.2.2)
+  static const String _localFallbackUrl = 'http://10.0.2.2:8080/api';
+
   static const Duration _timeoutLimit = Duration(seconds: 90);
 
   String _extractMessageFromBody(String body) {
@@ -60,19 +63,27 @@ class ApiService {
     } on TimeoutException {
       throw Exception('O servidor está acordando (Render Cloud). Por favor, aguarde alguns segundos e tente novamente.');
     } catch (e) {
-      throw Exception('Erro de conexão ($e): Verifique sua internet ou tente mais tarde.');
+      if (kDebugMode) print('🚨 Erro de conexão em POST $path: $e. Tentando detectar ambiente...');
+      throw Exception('Erro ao conectar com o servidor em $baseUrl$path. Verifique se o backend está rodando localmente ou sua conexão com a internet.');
     }
   }
 
   Future<http.Response> _get(String path) async {
     final headers = await _getHeaders();
+    final url = Uri.parse('$baseUrl$path');
+    
     try {
       return await http
-          .get(Uri.parse('$baseUrl$path'), headers: headers)
+          .get(url, headers: headers)
           .timeout(_timeoutLimit);
+    } on SocketException catch (e) {
+      if (kDebugMode) print('🚨 Erro de Socket em $url: $e');
+      // Se falhar no Render em debug, talvez devêssemos sugerir o local?
+      throw Exception('Erro de conexão: Não foi possível alcançar o servidor em $url.');
     } on TimeoutException {
       throw Exception('O servidor demorou para responder. Tente novamente em instantes.');
     } catch (e) {
+      if (kDebugMode) print('🚨 Erro ao conectar em $url: $e');
       throw Exception('Erro ao conectar com o servidor.');
     }
   }

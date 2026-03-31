@@ -41,8 +41,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Endpoints públicos e Health Checks
                 .requestMatchers("/", "/api/health", "/actuator/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/usuarios/login").permitAll()
+                .requestMatchers("/api/auth/**", "/api/usuarios/login").permitAll()
+                .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
                 .requestMatchers("/api/ocorrencias").permitAll()
                 // Apenas Administradores podem aprovar ocorrências
                 .requestMatchers("/api/ocorrencias/*/aprovar").hasRole("ADMINISTRADOR")
