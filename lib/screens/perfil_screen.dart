@@ -153,13 +153,14 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       const SizedBox(height: 14),
 
                       // Telefone
-                      _buildInfoField(
-                        label: 'Telefone',
-                        icon: Icons.phone_rounded,
-                        editing: _editando,
-                        controller: _telefoneController,
-                        value: usuario.telefone,
-                      ),
+                      if (!prov.isAdmin)
+                        _buildInfoField(
+                          label: 'Telefone',
+                          icon: Icons.phone_rounded,
+                          editing: _editando,
+                          controller: _telefoneController,
+                          value: usuario.telefone,
+                        ),
                     ],
                   ),
                 ),

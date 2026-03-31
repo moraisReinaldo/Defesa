@@ -4,6 +4,7 @@ import 'comentario.dart';
 enum OcorrenciaStatus {
   pendenteAprovacao,
   aprovada,
+  trabalhandoAtualmente,
   recusada,
   resolvida
 }

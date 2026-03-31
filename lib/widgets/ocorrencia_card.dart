@@ -166,7 +166,7 @@ class OcorrenciaCard extends StatelessWidget {
                       ),
                     ),
                   StatusBadge(
-                    resolvida: ocorrencia.resolvida,
+                    status: ocorrencia.status,
                     agentes: ocorrencia.agentes,
                   ),
                 ],

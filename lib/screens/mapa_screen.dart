@@ -160,7 +160,7 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                         const SizedBox(height: 4),
                         StatusBadge(
-                          resolvida: ocorrencia.resolvida,
+                          status: ocorrencia.status,
                           agentes: ocorrencia.agentes,
                         ),
                       ],
@@ -333,7 +333,7 @@ class _MapaScreenState extends State<MapaScreen> {
                           ],
                         ),
                       )
-                    else if (ocorrencia.status == OcorrenciaStatus.aprovada && !ocorrencia.resolvida && (usuarioProvider.usuarioLogado?.isAgente == true))
+                    else if ((ocorrencia.status == OcorrenciaStatus.aprovada || ocorrencia.status == OcorrenciaStatus.trabalhandoAtualmente) && !ocorrencia.resolvida && (usuarioProvider.usuarioLogado?.isAgente == true))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => _alterarStatusOcorrencia(ocorrencia), icon: const Icon(Icons.check_circle_rounded, size: 18), label: const Text('Marcar como Resolvida'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusResolved))),

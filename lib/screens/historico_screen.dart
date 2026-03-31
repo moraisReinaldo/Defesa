@@ -576,7 +576,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textSecondary)),
                                 StatusBadge(
-                                  resolvida: ocorrencia.resolvida,
+                                  status: ocorrencia.status,
                                   agentes: ocorrencia.agentes,
                                 ),
                               ],

@@ -15,7 +15,7 @@ class OcorrenciaProvider extends ChangeNotifier {
 
   List<Ocorrencia> get ocorrenciasAtivas =>
       _ocorrencias.where((o) => 
-        o.status == OcorrenciaStatus.aprovada && !o.resolvida
+        (o.status == OcorrenciaStatus.aprovada || o.status == OcorrenciaStatus.trabalhandoAtualmente) && !o.resolvida
       ).toList();
 
   List<Ocorrencia> get ocorrenciasPendentes =>
@@ -78,11 +78,22 @@ class OcorrenciaProvider extends ChangeNotifier {
 
   Future<void> registrarChegadaAgente(String id) async {
     try {
-      final atualizada = await _apiService.registrarChegadaAgente(id);
-      if (atualizada != null) {
+      final vindoDaApi = await _apiService.registrarChegadaAgente(id);
+      if (vindoDaApi != null) {
         final index = _ocorrencias.indexWhere((o) => o.id == id);
         if (index != -1) {
-          _ocorrencias[index] = atualizada;
+          _ocorrencias[index] = vindoDaApi;
+          notifyListeners();
+        }
+      } else {
+        // Fallback local
+        final index = _ocorrencias.indexWhere((o) => o.id == id);
+        if (index != -1) {
+          _ocorrencias[index] = _ocorrencias[index].copyWith(
+            agenteNoLocal: true,
+            dataChegadaAgente: DateTime.now(),
+            status: OcorrenciaStatus.trabalhandoAtualmente,
+          );
           notifyListeners();
         }
       }
