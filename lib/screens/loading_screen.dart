@@ -92,7 +92,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const Spacer(flex: 2),
             // Créditos solicitados
             Padding(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: const EdgeInsets.only(bottom: 64),
               child: Column(
                 children: [
                   Text(
@@ -104,7 +104,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Reinaldo Henrique Morais e PEdro Guedes de Azevedo',
+                    'Reinaldo Henrique Morais e Pedro Guedes de Azevedo',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,

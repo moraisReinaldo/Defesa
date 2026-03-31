@@ -211,30 +211,39 @@ class UsuarioProvider extends ChangeNotifier {
 
   Future<void> carregarAgentes() async {
     try {
-      String? cidade = _usuarioLogado?.cidade;
+      String? originalCidade = _usuarioLogado?.cidade;
+      String? cidadeBusca = originalCidade;
       
-      // Se a cidade for um NOME (como "Joanópolis"), precisamos do CÓDIGO
-      // para filtrar corretamente no backend.
-      if (cidade != null && cidade.isNotEmpty) {
+      // Mapeamento de Nome para Código (Garante que enviamos o código pro backend)
+      if (cidadeBusca != null && cidadeBusca.isNotEmpty) {
+        final searchCidade = cidadeBusca; // Captura para estabilizar o null-safety
         final cidades = await _apiService.listarCidades();
         final correspondente = cidades.firstWhere(
-          (c) => c['nome']?.toLowerCase() == cidade!.toLowerCase() || 
-                 c['codigo'] == cidade,
+          (c) => c['nome']?.toLowerCase() == searchCidade.toLowerCase() || 
+                 c['codigo']?.toLowerCase() == searchCidade.toLowerCase(),
           orElse: () => {},
         );
         if (correspondente.isNotEmpty) {
-          cidade = correspondente['codigo'];
+          cidadeBusca = correspondente['codigo'];
         }
       }
 
-      if (kDebugMode) print('Buscando agentes para cidade (código): $cidade');
+      if (kDebugMode) print('🔍 Buscando agentes. Original: $originalCidade -> Busca: $cidadeBusca');
       
-      final agentes = await _apiService.listarAgentes(cidade: cidade);
+      var agentes = await _apiService.listarAgentes(cidade: cidadeBusca);
+      
+      // FALLBACK: Se o admin não encontrar agentes na sua cidade, 
+      // busca globalmente para evitar que erros de cadastro de cidade bloqueiem a visão.
+      if (agentes.isEmpty && cidadeBusca != null && _isAdmin) {
+        if (kDebugMode) print('⚠️ Nenhum agente na cidade $cidadeBusca. Tentando busca global...');
+        agentes = await _apiService.listarAgentes(cidade: null);
+      }
+
       _todosAgentes = agentes;
-      if (kDebugMode) print('Agentes carregados: ${agentes.length}');
+      if (kDebugMode) print('✅ Agentes carregados: ${agentes.length}');
       notifyListeners();
     } catch (e) {
-      if (kDebugMode) print('Erro ao carregar agentes: $e');
+      if (kDebugMode) print('❌ Erro ao carregar agentes: $e');
       _todosAgentes = [];
       notifyListeners();
     }

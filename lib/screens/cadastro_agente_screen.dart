@@ -383,17 +383,26 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: AppColors.borderLight),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Column(
                         children: [
-                          Icon(Icons.group_off_rounded,
+                          const Icon(Icons.group_off_rounded,
                               size: 40, color: AppColors.textLight),
-                          SizedBox(height: 12),
-                          Text(
+                          const SizedBox(height: 12),
+                          const Text(
                             'Nenhum agente cadastrado.',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextButton.icon(
+                            onPressed: () => context.read<UsuarioProvider>().sincronizarGlobal(force: true),
+                            icon: const Icon(Icons.sync_rounded),
+                            label: const Text('Sincronizar Lista'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primaryTeal,
                             ),
                           ),
                         ],
