@@ -109,11 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
             senha: _senhaController.text,
             cidade: _cidadeSelecionada ?? '', 
             role: _roleSelecionada,
-            situacao: _roleSelecionada == 'ADMINISTRADOR' ? 'PENDENTE' : 'ATIVO',
+            status: _roleSelecionada == 'ADMINISTRADOR' ? 'PENDENTE' : 'ATIVO',
             concordaLGPD: _concordaLGPD,
           ),
         );
-        
         bool ok = result['sucesso'] ?? false;
         bool pendente = result['pendente'] ?? false;
 

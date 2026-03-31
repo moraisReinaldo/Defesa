@@ -126,14 +126,19 @@ class ApiService {
   Future<Map<String, dynamic>?> cadastrarUsuario(UsuarioRequest req) async {
     try {
       final response = await _post('/auth/cadastro', req.toJson(), secure: false);
-      final data = jsonDecode(response.body);
+      final dynamic data = jsonDecode(response.body);
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        return data; 
+        if (data is Map) {
+          final Map<String, dynamic> result = Map<String, dynamic>.from(data);
+          result['sucesso'] = true;
+          return result;
+        }
+        return {'sucesso': true};
       } else {
         return {
           'sucesso': false,
-          'message': data is Map ? data['message'] : response.body,
+          'message': (data is Map ? data['message'] : response.body) ?? 'Erro no cadastro',
         };
       }
     } catch (e) {
@@ -292,7 +297,7 @@ class UsuarioRequest {
   final String telefone;
   final String cidade;
   final String role;
-  final String situacao;
+  final String status;
   final bool concordaLGPD;
 
   UsuarioRequest({
@@ -302,7 +307,7 @@ class UsuarioRequest {
     required this.telefone,
     required this.cidade,
     required this.role,
-    this.situacao = 'ATIVO',
+    this.status = 'ATIVO',
     required this.concordaLGPD,
   });
 
@@ -314,7 +319,7 @@ class UsuarioRequest {
       'telefone': telefone,
       'cidade': cidade,
       'role': role,
-      'situacao': situacao,
+      'status': status,
       'concordaLGPD': concordaLGPD,
     };
   }

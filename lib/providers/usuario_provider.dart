@@ -115,7 +115,7 @@ class UsuarioProvider extends ChangeNotifier {
       if (response != null) {
         final usuario = Usuario.fromJson(response['usuario']);
         
-        if (usuario.situacao.toUpperCase() == 'PENDENTE') {
+        if (usuario.status.toUpperCase() == 'PENDENTE') {
           throw Exception('Conta de administrador aguardando ativação manual. Solicite via e-mail.');
         }
 
@@ -147,8 +147,8 @@ class UsuarioProvider extends ChangeNotifier {
       if (response != null && response['sucesso'] != false) {
         return {
           'sucesso': true,
-          'message': response['message'],
-          'pendente': request.situacao == 'PENDENTE',
+          'message': response['message'] ?? response['msg'] ?? 'Sucesso!',
+          'pendente': response['pendente'] == true || request.status == 'PENDENTE',
         };
       } else {
         return {

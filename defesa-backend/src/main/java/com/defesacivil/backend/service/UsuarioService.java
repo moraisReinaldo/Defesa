@@ -46,11 +46,7 @@ public class UsuarioService {
             roleReq = Role.CIDADAO; // fallback
         }
         
-        Status statusInicial = Status.ATIVO;
-
-        if (roleReq == Role.ADMINISTRADOR) {
-            throw new RuntimeException("Contas de administrador exigem autorização manual. Solicite via e-mail para reinaldoinfra07@gmail.com");
-        }
+        Status statusInicial = (roleReq == Role.ADMINISTRADOR) ? Status.PENDENTE : Status.ATIVO;
 
         Usuario usuario = new Usuario();
         usuario.setNome(request.getNome());
