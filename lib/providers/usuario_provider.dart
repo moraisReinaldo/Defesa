@@ -166,8 +166,23 @@ class UsuarioProvider extends ChangeNotifier {
 
   Future<void> carregarAgentes() async {
     try {
-      final cidade = _usuarioLogado?.cidade;
-      if (kDebugMode) print('Buscando agentes para cidade: $cidade (isAdmin=$_isAdmin)');
+      String? cidade = _usuarioLogado?.cidade;
+      
+      // Se a cidade for um NOME (como "Joanópolis"), precisamos do CÓDIGO
+      // para filtrar corretamente no backend.
+      if (cidade != null && cidade.isNotEmpty) {
+        final cidades = await _apiService.listarCidades();
+        final correspondente = cidades.firstWhere(
+          (c) => c['nome']?.toLowerCase() == cidade!.toLowerCase() || 
+                 c['codigo'] == cidade,
+          orElse: () => {},
+        );
+        if (correspondente.isNotEmpty) {
+          cidade = correspondente['codigo'];
+        }
+      }
+
+      if (kDebugMode) print('Buscando agentes para cidade (código): $cidade');
       
       final agentes = await _apiService.listarAgentes(cidade: cidade);
       _todosAgentes = agentes;

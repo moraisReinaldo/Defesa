@@ -1,11 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'package:geocoding/geocoding.dart';
+// import 'package:geocoding/geocoding.dart';
 
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
-import '../services/localizacao_service.dart';
+// import '../services/localizacao_service.dart';
 
 class CadastroAgenteScreen extends StatefulWidget {
   const CadastroAgenteScreen({super.key});
@@ -20,15 +21,10 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
   final _telefoneController = TextEditingController();
-  final _cidadeController = TextEditingController();
   final _especialidadeController = TextEditingController();
   
   List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeSelecionada; // Armazena o CÓDIGO da cidade
-  bool _carregandoCidades = true;
-
-  final LocalizacaoService _localizacaoService = LocalizacaoService();
-  bool _obtendoLocalizacao = false;
   bool _salvando = false;
   bool _senhaVisivel = false;
 
@@ -41,12 +37,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
       _cidadeSelecionada = adminCidade;
     }
     
-    _carregarCidades().then((_) {
-       // Só buscar GPS se ainda não tiver cidade (ex: se o admin não tiver cidade vinculada)
-       if (_cidadeSelecionada == null) {
-         _obterCidadePorLocalizacao();
-       }
-    });
+    _carregarCidades();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UsuarioProvider>().carregarTudo();
@@ -59,73 +50,28 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
       final list = await api.listarCidades();
       setState(() {
         _cidadesSuportadas = list;
-        _carregandoCidades = false;
-      });
-    } catch (e) {
-      setState(() => _carregandoCidades = false);
-    }
-  }
 
-  Future<void> _obterCidadePorLocalizacao() async {
-    setState(() => _obtendoLocalizacao = true);
-    try {
-      final posicao = await _localizacaoService.obterPosicaoAtual();
-      if (posicao != null) {
-        final placemarks = await placemarkFromCoordinates(
-          posicao.latitude,
-          posicao.longitude,
-        );
-
-        if (placemarks.isNotEmpty) {
-          final placemark = placemarks.first;
-          final cidadeDetectada = placemark.subAdministrativeArea ??
-              placemark.locality ??
-              placemark.administrativeArea ??
-              'Desconhecida';
-
-          // Tentar encontrar a melhor correspondência na nossa lista controlada
-          String? codigoCorrespondente;
-          for (var c in _cidadesSuportadas) {
-            String nome = c['nome'] ?? '';
-            if (cidadeDetectada.toLowerCase().contains(nome.toLowerCase()) || 
-                nome.toLowerCase().contains(cidadeDetectada.toLowerCase())) {
-              codigoCorrespondente = c['codigo'];
-              break;
-            }
-          }
-
-          setState(() {
-            _cidadeSelecionada = codigoCorrespondente;
-            if (codigoCorrespondente == null) {
-               _cidadeController.text = cidadeDetectada;
-            } else {
-               _cidadeController.text = _cidadesSuportadas.firstWhere((c) => c['codigo'] == codigoCorrespondente)['nome']!;
-            }
-          });
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(codigoCorrespondente != null 
-                  ? 'Cidade detectada e vinculada: ${_cidadesSuportadas.firstWhere((c) => c['codigo'] == codigoCorrespondente)['nome']}' 
-                  : 'Cidade detectada: $cidadeDetectada (Selecione na lista)'),
-                backgroundColor: AppColors.statusResolved,
-              ),
+        // Se já temos uma cidade selecionada (ex: do admin), 
+        // garantir que é o CÓDIGO e que existe na lista.
+        if (_cidadeSelecionada != null) {
+          final existeComoCodigo = list.any((c) => c['codigo'] == _cidadeSelecionada);
+          if (!existeComoCodigo) {
+            // Tentar encontrar o código pelo nome
+            final correspondente = list.firstWhere(
+              (c) => c['nome']?.toLowerCase() == _cidadeSelecionada!.toLowerCase(),
+              orElse: () => {},
             );
+            if (correspondente.isNotEmpty) {
+              _cidadeSelecionada = correspondente['codigo'];
+            } else {
+              // Se não achou de jeito nenhum, limpa para não travar o Dropdown
+              _cidadeSelecionada = null;
+            }
           }
         }
-      }
+      });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao obter localização: $e'),
-            backgroundColor: AppColors.statusActive,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _obtendoLocalizacao = false);
+      if (kDebugMode) print('Erro ao carregar cidades: $e');
     }
   }
 
@@ -139,7 +85,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
             email: _emailController.text.trim(),
             telefone: _telefoneController.text.trim(),
             senha: _senhaController.text,
-            cidade: _cidadeSelecionada ?? _cidadeController.text.trim(),
+            cidade: _cidadeSelecionada ?? '',
             especialidade: _especialidadeController.text.trim(),
           );
 
@@ -156,7 +102,6 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
           _emailController.clear();
           _senhaController.clear();
           _telefoneController.clear();
-          _cidadeController.clear();
           _cidadeSelecionada = null;
           _especialidadeController.clear();
           FocusScope.of(context).unfocus();
@@ -348,7 +293,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Campo de Cidade com Botão de GPS
+                    // Cidade de Atuação (Fixa na jurisdição do administrador)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -361,55 +306,41 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _carregandoCidades
-                                  ? const Center(child: LinearProgressIndicator())
-                                  : DropdownButtonFormField<String>(
-                                      initialValue: _cidadeSelecionada,
-                                      hint: const Text('Selecione a cidade'),
-                                      decoration: InputDecoration(
-                                        prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
-                                        filled: true,
-                                        fillColor: AppColors.backgroundOffWhite,
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(16),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                                      ),
-                                      items: _cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!, style: const TextStyle(fontSize: 14)))).toList(),
-                                      onChanged: (val) => setState(() => _cidadeSelecionada = val),
-                                      validator: (val) => val == null ? 'Obrigatório' : null,
-                                    ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              height: 58,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryTeal.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: AppColors.backgroundOffWhite,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.borderLight.withValues(alpha: 0.5)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_city_rounded, color: AppColors.textLight, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  // Busca o nome da cidade baseada no código selecionado/carregado
+                                  _cidadesSuportadas.firstWhere(
+                                    (c) => c['codigo'] == _cidadeSelecionada,
+                                    orElse: () => {'nome': _cidadeSelecionada ?? 'Sua Jurisdição'},
+                                  )['nome']!,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
                               ),
-                              child: IconButton(
-                                onPressed: _obtendoLocalizacao
-                                    ? null
-                                    : _obterCidadePorLocalizacao,
-                                icon: _obtendoLocalizacao
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: AppColors.primaryTeal,
-                                        ),
-                                      )
-                                    : const Icon(Icons.my_location_rounded,
-                                        color: AppColors.primaryTeal),
-                                tooltip: 'Obter cidade pelo GPS',
-                              ),
-                            ),
-                          ],
+                              const Icon(Icons.lock_outline_rounded, color: AppColors.textLight, size: 18),
+                            ],
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8, left: 4),
+                          child: Text(
+                            'Agentes só podem ser cadastrados na sua jurisdição.',
+                            style: TextStyle(fontSize: 11, color: AppColors.textLight, fontStyle: FontStyle.italic),
+                          ),
                         ),
                       ],
                     ),
@@ -621,7 +552,6 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
     _emailController.dispose();
     _senhaController.dispose();
     _telefoneController.dispose();
-    _cidadeController.dispose();
     _especialidadeController.dispose();
     super.dispose();
   }

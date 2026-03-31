@@ -276,29 +276,34 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       return;
     }
 
-    // Regra específica para Admin: deve ser da sua própria cidade
+    // Verificação de Jurisdição para Admins
     final userProvider = context.read<UsuarioProvider>();
     final user = userProvider.usuarioLogado;
     if (userProvider.isAdmin) {
-      final cidadeUsuario = user?.cidade; // Código
-      if (cidadeUsuario != _codigoCidadeDetectada) {
-        String nomeCidadeUsuario = cidadeUsuario ?? 'Sua Cidade';
-        try {
-          nomeCidadeUsuario = _cidadesSuportadas.firstWhere((c) => c['codigo'] == cidadeUsuario)['nome']!;
-        } catch (_) {}
+      String? cidadeUsuario = user?.cidade; // Pode ser CÓDIGO ou NOME
+      
+      // Mapear nome para código se necessário
+      final correspondente = _cidadesSuportadas.firstWhere(
+        (c) => c['nome']?.toLowerCase() == cidadeUsuario?.toLowerCase() || 
+               c['codigo'] == cidadeUsuario,
+        orElse: () => {},
+      );
+      final codigoAdmin = correspondente.isNotEmpty ? correspondente['codigo'] : cidadeUsuario;
 
-        setState(() => _carregando = false);
+      if (codigoAdmin != _codigoCidadeDetectada) {
+        String nomeCidadeAdmin = correspondente.isNotEmpty ? correspondente['nome']! : (cidadeUsuario ?? 'Sua Cidade');
+        
+        // Em vez de bloquear, apenas avisamos que ele está registrando como munícipe (não-administrativo)
         if (mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Fora de Jurisdição'),
-              content: Text('Você é administrador de "$nomeCidadeUsuario" e não pode registrar ocorrências em "$_cidadeDetectada".'),
-              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
-            )
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Saindo de "$nomeCidadeAdmin": Ocorrência registrada como munícipe local.'),
+              backgroundColor: AppColors.primaryTeal,
+              duration: const Duration(seconds: 4),
+            ),
           );
         }
-        return;
+        // NÃO damos 'return;', permitindo o fluxo seguir como solicitado: "fora da minha area sou só um municipe"
       }
     }
 

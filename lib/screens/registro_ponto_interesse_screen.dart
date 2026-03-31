@@ -209,27 +209,32 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
       return;
     }
 
-    // Regra específica para Admin
+    // Verificação de Jurisdição para Admins
     if (userProvider.isAdmin) {
-      final cidadeUsuario = user?.cidade; // Código
-      if (cidadeUsuario != _cidadeSelecionada) {
-        String nomeCidadeUsuario = cidadeUsuario ?? 'Sua Cidade';
+      String? cidadeUsuario = user?.cidade; // Pode ser CÓDIGO ou NOME
+      
+      // Mapear nome para código se necessário
+      final correspondente = _cidadesSuportadas.firstWhere(
+        (c) => c['nome']?.toLowerCase() == cidadeUsuario?.toLowerCase() || 
+               c['codigo'] == cidadeUsuario,
+        orElse: () => {},
+      );
+      final codigoAdmin = correspondente.isNotEmpty ? correspondente['codigo'] : cidadeUsuario;
+
+      if (codigoAdmin != _cidadeSelecionada) {
+        String nomeCidadeAdmin = correspondente.isNotEmpty ? correspondente['nome']! : (cidadeUsuario ?? 'Sua Cidade');
         String nomeCidadeDestino = _cidadeDetectada ?? 'Local Selecionado';
-        
-        try {
-          nomeCidadeUsuario = _cidadesSuportadas.firstWhere((c) => c['codigo'] == cidadeUsuario)['nome']!;
-          nomeCidadeDestino = _cidadesSuportadas.firstWhere((c) => c['codigo'] == _cidadeSelecionada)['nome']!;
-        } catch (_) {}
-        
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Fora de Jurisdição'),
-            content: Text('Você é administrador de "$nomeCidadeUsuario" e não pode cadastrar pontos em "$nomeCidadeDestino".'),
-            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
-          )
-        );
-        return;
+
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('Saindo de "$nomeCidadeAdmin": Ponto de apoio registrado como munícipe em "$nomeCidadeDestino".'),
+               backgroundColor: AppColors.accentAmber,
+               duration: const Duration(seconds: 4),
+             ),
+           );
+        }
+        // NÃO damos 'return;', permitindo o fluxo seguir como solicitado: "fora da minha area sou só um municipe"
       }
     }
     
