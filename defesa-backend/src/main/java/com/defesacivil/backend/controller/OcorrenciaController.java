@@ -94,6 +94,14 @@ public class OcorrenciaController {
         }
     }
 
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> atualizar(
+            @PathVariable String id,
+            @RequestBody OcorrenciaRequest request) {
+        Ocorrencia atualizada = ocorrenciaService.atualizarOcorrencia(id, request);
+        return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
+    }
+
     @GetMapping
     public ResponseEntity<List<Ocorrencia>> listarHistorico(@RequestParam(required = false) String cidade) {
         return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade));

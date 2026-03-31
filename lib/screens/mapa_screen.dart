@@ -103,9 +103,15 @@ class _MapaScreenState extends State<MapaScreen> {
           color: AppColors.backgroundOffWhite,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: Builder(
+          builder: (context) {
+            final usuarioLogado = usuarioProvider.usuarioLogado;
+            final isDesignado = ocorrencia.agentes?.split(', ').map((s) => s.trim()).contains(usuarioLogado?.nome) ?? false;
+            final podeAgir = usuarioProvider.isAdmin || isDesignado;
+            
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             // Drag handle
             Container(
               margin: const EdgeInsets.only(top: 12),
@@ -274,7 +280,10 @@ class _MapaScreenState extends State<MapaScreen> {
                                 return FilterChip(
                                   label: Text(agente.nome, style: TextStyle(fontSize: 12, color: isSelected ? AppColors.primaryTeal : AppColors.textPrimary)),
                                   selected: isSelected,
-                                  onSelected: (selected) {
+                                  onSelected: (selected) async {
+                                    final agentesAtuais = o.agentes?.isEmpty == false 
+                                        ? o.agentes!.split(', ').toList() 
+                                        : <String>[];
                                     if (selected) {
                                       agentesAtuais.add(agente.nome);
                                     } else {
@@ -282,12 +291,20 @@ class _MapaScreenState extends State<MapaScreen> {
                                     }
                                     
                                     final novoTexto = agentesAtuais.join(', ');
-                                    ocorrencia = ocorrencia.copyWith(agentes: novoTexto, status: OcorrenciaStatus.aprovada);
-                                    context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia);
+                                    final ocorrenciaAtualizada = o.copyWith(agentes: novoTexto, status: OcorrenciaStatus.aprovada);
                                     
-                                    if (selected) {
-                                      final comentario = Comentario(texto: 'Agente ${agente.nome} associado', usuarioNome: 'Sistema');
-                                      context.read<OcorrenciaProvider>().adicionarComentario(ocorrencia.id, comentario);
+                                    try {
+                                      await context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrenciaAtualizada);
+                                      if (selected) {
+                                        final comentario = Comentario(texto: 'Agente ${agente.nome} associado', usuarioNome: 'Sistema');
+                                        context.read<OcorrenciaProvider>().adicionarComentario(o.id, comentario);
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Erro ao salvar atribuição: ${e.toString()}'), backgroundColor: Colors.red),
+                                        );
+                                      }
                                     }
                                   },
                                   selectedColor: AppColors.primaryTeal.withValues(alpha: 0.2),
@@ -313,8 +330,8 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    // Campo de Parecer/Descrição da Situação (Apenas para Agentes)
-                    if (usuarioProvider.usuarioLogado?.isAgente == true && 
+                    // Campo de Parecer/Descrição da Situação (Apenas para Agentes Designados ou Admins)
+                    if (podeAgir && 
                         ocorrencia.status != OcorrenciaStatus.resolvida &&
                         ocorrencia.status != OcorrenciaStatus.pendenteAprovacao)
                       _buildSectionCard(
@@ -332,8 +349,8 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    // Botão de Chegada no Local
-                    if (usuarioProvider.usuarioLogado?.isAgente == true && 
+                    // Botão de Chegada no Local (Apenas para Agentes Designados ou Admins)
+                    if (podeAgir && 
                         ocorrencia.status == OcorrenciaStatus.aprovada && 
                         !ocorrencia.agenteNoLocal)
                       Padding(
@@ -341,12 +358,20 @@ class _MapaScreenState extends State<MapaScreen> {
                         child: SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () async { 
+                          onPressed: () async { 
+                            try {
                               final parecer = _comentarioController.text.trim();
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
                               _comentarioController.clear();
                               if (context.mounted) Navigator.pop(context); 
-                            }, 
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+                                );
+                              }
+                            }
+                          }, 
                             icon: const Icon(Icons.location_on_rounded), 
                             label: const Text('ESTOU NO LOCAL'), 
                             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal),
@@ -373,20 +398,28 @@ class _MapaScreenState extends State<MapaScreen> {
                           ],
                         ),
                       )
-                    // Botão de Resolver para Agentes
+                    // Botão de Resolver para Agentes Designados
                     else if ((ocorrencia.status == OcorrenciaStatus.aprovada || ocorrencia.status == OcorrenciaStatus.trabalhandoAtualmente) && 
                              ocorrencia.status != OcorrenciaStatus.resolvida && 
-                             (usuarioProvider.usuarioLogado?.isAgente == true))
+                             podeAgir)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: SizedBox(
                           width: double.infinity, 
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              final parecer = _comentarioController.text.trim();
-                              context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null);
-                              _comentarioController.clear();
-                              Navigator.pop(context);
+                            onPressed: () async {
+                              try {
+                                final parecer = _comentarioController.text.trim();
+                                await context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null);
+                                _comentarioController.clear();
+                                if (context.mounted) Navigator.pop(context);
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+                                  );
+                                }
+                              }
                             }, 
                             icon: const Icon(Icons.check_circle_rounded, size: 18), 
                             label: const Text('Marcar como Resolvida'), 
@@ -398,7 +431,9 @@ class _MapaScreenState extends State<MapaScreen> {
                 ),
               ),
             ),
-          ],
+            ],
+            );
+          }
         ),
       ),
     );

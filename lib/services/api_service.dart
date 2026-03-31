@@ -60,11 +60,26 @@ class ApiService {
             body: jsonEncode(body),
           )
           .timeout(_timeoutLimit);
+    } on SocketException catch (e) {
+      if (kDebugMode) {
+        print('🚨 Erro de Socket em POST $path: $e');
+        if (baseUrl.contains('onrender.com')) {
+          print('🔄 Tentando fallback para backend local: $_localFallbackUrl$path');
+          try {
+            return await http
+                .post(Uri.parse('$_localFallbackUrl$path'), headers: headers, body: jsonEncode(body))
+                .timeout(const Duration(seconds: 10));
+          } catch (e2) {
+            print('⚠️ Fallback local também falhou em POST: $e2');
+          }
+        }
+      }
+      throw Exception('Erro de conexão: Não foi possível alcançar o servidor em $baseUrl$path. Verifique se o backend está rodando localmente ou se a URL $baseUrl é válida.');
     } on TimeoutException {
-      throw Exception('O servidor está acordando (Render Cloud). Por favor, aguarde alguns segundos e tente novamente.');
+      throw Exception('O servidor demorou para responder em POST. Tente novamente em instantes.');
     } catch (e) {
-      if (kDebugMode) print('🚨 Erro de conexão em POST $path: $e. Tentando detectar ambiente...');
-      throw Exception('Erro ao conectar com o servidor em $baseUrl$path. Verifique se o backend está rodando localmente ou sua conexão com a internet.');
+      if (kDebugMode) print('🚨 Erro de conexão em POST $path: $e');
+      throw Exception('Erro ao conectar com o servidor.');
     }
   }
 
@@ -100,12 +115,59 @@ class ApiService {
     }
   }
 
-  Future<http.Response> _delete(String path) async {
+  Future<http.Response> _patch(String path, dynamic body, {bool secure = true}) async {
+    final headers = secure ? await _getHeaders() : {'Content-Type': 'application/json'};
+    try {
+      return await http
+          .patch(
+            Uri.parse('$baseUrl$path'),
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(_timeoutLimit);
+    } on SocketException catch (e) {
+      if (kDebugMode) {
+        print('🚨 Erro de Socket em PATCH $path: $e');
+        if (baseUrl.contains('onrender.com')) {
+          print('🔄 Tentando fallback para backend local: $_localFallbackUrl$path');
+          try {
+            return await http
+                .patch(Uri.parse('$_localFallbackUrl$path'), headers: headers, body: jsonEncode(body))
+                .timeout(const Duration(seconds: 10));
+          } catch (e2) {
+             print('⚠️ Fallback local também falhou em PATCH: $e2');
+          }
+        }
+      }
+      throw Exception('Erro de conexão ao atualizar: Servidor inacessível.');
+    } on TimeoutException {
+      throw Exception('Tempo esgotado ao tentar atualizar.');
+    } catch (e) {
+      throw Exception('Erro ao conectar com o servidor para atualização.');
+    }
+  }
+
+  Future<http.Response> _delete(String path, {bool secure = true}) async {
     final headers = await _getHeaders();
     try {
       return await http
           .delete(Uri.parse('$baseUrl$path'), headers: headers)
           .timeout(_timeoutLimit);
+    } on SocketException catch (e) {
+      if (kDebugMode) {
+        print('🚨 Erro de Socket em DELETE $path: $e');
+        if (baseUrl.contains('onrender.com')) {
+          print('🔄 Tentando fallback para backend local: $_localFallbackUrl$path');
+          try {
+            return await http
+                .delete(Uri.parse('$_localFallbackUrl$path'), headers: headers)
+                .timeout(const Duration(seconds: 5));
+          } catch (e2) {
+             print('⚠️ Fallback local também falhou em DELETE: $e2');
+          }
+        }
+      }
+      throw Exception('Erro de conexão ao deletar: Servidor inacessível.');
     } on TimeoutException {
       throw Exception('Tempo esgotado ao tentar deletar.');
     } catch (e) {
@@ -208,40 +270,44 @@ class ApiService {
 
   Future<Ocorrencia?> aprovarOcorrencia(String id) async {
     final response = await _post('/ocorrencias/$id/aprovar', {});
-    
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
     }
-    return null;
+    throw _httpException(response);
   }
 
   Future<Ocorrencia?> registrarChegadaAgente(String id, {String? parecer}) async {
     final body = parecer != null ? {'parecer': parecer} : {};
     final response = await _post('/ocorrencias/$id/chegada', body);
-    
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
     }
-    return null;
+    throw _httpException(response);
   }
 
   Future<Ocorrencia?> resolverOcorrencia(String id, {String? parecer}) async {
     final body = parecer != null ? {'parecer': parecer} : {};
     final response = await _post('/ocorrencias/$id/resolver', body);
-    
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
     }
-    return null;
+    throw _httpException(response);
   }
 
   Future<Ocorrencia?> reativarOcorrencia(String id) async {
     final response = await _post('/ocorrencias/$id/reativar', {});
-
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
     }
-    return null;
+    throw _httpException(response);
+  }
+
+  Future<Ocorrencia?> atualizarOcorrencia(Ocorrencia ocorrencia) async {
+    final response = await _patch('/ocorrencias/${ocorrencia.id}', ocorrencia.toJson());
+    if (response.statusCode == 200) {
+      return Ocorrencia.fromJson(jsonDecode(response.body));
+    }
+    throw _httpException(response);
   }
 
   // ========== ADMIN (ROOT) ==========

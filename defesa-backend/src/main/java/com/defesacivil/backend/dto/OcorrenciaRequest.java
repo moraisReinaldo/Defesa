@@ -10,7 +10,9 @@ public class OcorrenciaRequest {
     private String caminhoFoto; // pode ser uma URL ou Base64 (simplificado)
     private String usuarioId;
     private String dataHora;
-    private boolean criadoPorAgente; // Novo campo
+    private boolean criadoPorAgente;
+    private String agentes;
+    private String status;
 
     public String getTipo() { return tipo; }
     public void setTipo(String tipo) { this.tipo = tipo; }
@@ -30,4 +32,8 @@ public class OcorrenciaRequest {
     public void setDataHora(String dataHora) { this.dataHora = dataHora; }
     public boolean isCriadoPorAgente() { return criadoPorAgente; }
     public void setCriadoPorAgente(boolean criadoPorAgente) { this.criadoPorAgente = criadoPorAgente; }
+    public String getAgentes() { return agentes; }
+    public void setAgentes(String agentes) { this.agentes = agentes; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

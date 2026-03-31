@@ -77,39 +77,37 @@ class OcorrenciaProvider extends ChangeNotifier {
   }
 
   Future<void> registrarChegadaAgente(String id, {String? parecer}) async {
-    try {
-      final vindoDaApi = await _apiService.registrarChegadaAgente(id, parecer: parecer);
-      if (vindoDaApi != null) {
-        final index = _ocorrencias.indexWhere((o) => o.id == id);
-        if (index != -1) {
-          _ocorrencias[index] = vindoDaApi;
-          notifyListeners();
-        }
-      } else {
-        // Fallback local
-        final index = _ocorrencias.indexWhere((o) => o.id == id);
-        if (index != -1) {
-          _ocorrencias[index] = _ocorrencias[index].copyWith(
-            agenteNoLocal: true,
-            dataChegadaAgente: DateTime.now(),
-            status: OcorrenciaStatus.trabalhandoAtualmente,
-            descricaoSituacao: parecer,
-          );
-          notifyListeners();
-        }
+    final vindoDaApi = await _apiService.registrarChegadaAgente(id, parecer: parecer);
+    if (vindoDaApi != null) {
+      final index = _ocorrencias.indexWhere((o) => o.id == id);
+      if (index != -1) {
+        _ocorrencias[index] = vindoDaApi;
+        notifyListeners();
       }
-    } catch (e) {
-      if (kDebugMode) print("Erro ao registrar chegada: $e");
     }
   }
 
   Future<void> atualizarOcorrencia(Ocorrencia ocorrencia) async {
-    // Para simplificar, usamos o storage local e se possível a API (precisaria de endpoint de PUT)
-    await _storageService.atualizarOcorrencia(ocorrencia);
-    final index = _ocorrencias.indexWhere((o) => o.id == ocorrencia.id);
-    if (index != -1) {
-      _ocorrencias[index] = ocorrencia;
-      notifyListeners();
+    try {
+      final vindoDaApi = await _apiService.atualizarOcorrencia(ocorrencia);
+      if (vindoDaApi != null) {
+        final index = _ocorrencias.indexWhere((o) => o.id == vindoDaApi.id);
+        if (index != -1) {
+          _ocorrencias[index] = vindoDaApi;
+          await _storageService.atualizarOcorrencia(vindoDaApi);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      // Fallback local se a API falhar (mantém viva a experiência off-line, mas avisa no log)
+      if (kDebugMode) print("Erro ao atualizar ocorrência na API: $e");
+      await _storageService.atualizarOcorrencia(ocorrencia);
+      final index = _ocorrencias.indexWhere((o) => o.id == ocorrencia.id);
+      if (index != -1) {
+        _ocorrencias[index] = ocorrencia;
+        notifyListeners();
+      }
+      rethrow;
     }
   }
 
@@ -120,59 +118,26 @@ class OcorrenciaProvider extends ChangeNotifier {
   }
 
   Future<void> resolverOcorrencia(String id, {String? parecer}) async {
-    try {
-      final vindoDaApi = await _apiService.resolverOcorrencia(id, parecer: parecer);
-      if (vindoDaApi != null) {
-        final index = _ocorrencias.indexWhere((o) => o.id == id);
-        if (index != -1) {
-          _ocorrencias[index] = vindoDaApi;
-          await _storageService.atualizarOcorrencia(vindoDaApi);
-          notifyListeners();
-        }
-      } else {
-        // Fallback local
-        final index = _ocorrencias.indexWhere((o) => o.id == id);
-        if (index != -1) {
-          final atualizada = _ocorrencias[index].copyWith(
-            status: OcorrenciaStatus.resolvida,
-            dataResolucao: DateTime.now(),
-            descricaoSituacao: parecer,
-          );
-          _ocorrencias[index] = atualizada;
-          await _storageService.atualizarOcorrencia(atualizada);
-          notifyListeners();
-        }
+    final vindoDaApi = await _apiService.resolverOcorrencia(id, parecer: parecer);
+    if (vindoDaApi != null) {
+      final index = _ocorrencias.indexWhere((o) => o.id == id);
+      if (index != -1) {
+        _ocorrencias[index] = vindoDaApi;
+        await _storageService.atualizarOcorrencia(vindoDaApi);
+        notifyListeners();
       }
-    } catch (e) {
-      if (kDebugMode) print("Erro ao resolver ocorrência: $e");
     }
   }
 
   Future<void> reativarOcorrencia(String id) async {
-    try {
-      final vindoDaApi = await _apiService.reativarOcorrencia(id);
-      if (vindoDaApi != null) {
-        final index = _ocorrencias.indexWhere((o) => o.id == id);
-        if (index != -1) {
-          _ocorrencias[index] = vindoDaApi;
-          await _storageService.atualizarOcorrencia(vindoDaApi);
-          notifyListeners();
-        }
-      } else {
-        // Fallback local
-        final index = _ocorrencias.indexWhere((o) => o.id == id);
-        if (index != -1) {
-          final atualizada = _ocorrencias[index].copyWith(
-            status: OcorrenciaStatus.aprovada,
-            dataResolucao: null,
-          );
-          _ocorrencias[index] = atualizada;
-          await _storageService.atualizarOcorrencia(atualizada);
-          notifyListeners();
-        }
+    final vindoDaApi = await _apiService.reativarOcorrencia(id);
+    if (vindoDaApi != null) {
+      final index = _ocorrencias.indexWhere((o) => o.id == id);
+      if (index != -1) {
+        _ocorrencias[index] = vindoDaApi;
+        await _storageService.atualizarOcorrencia(vindoDaApi);
+        notifyListeners();
       }
-    } catch (e) {
-      if (kDebugMode) print("Erro ao reativar ocorrência: $e");
     }
   }
 

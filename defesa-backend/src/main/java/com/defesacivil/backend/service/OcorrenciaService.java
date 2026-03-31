@@ -182,6 +182,22 @@ public class OcorrenciaService {
         return null;
     }
 
+    public Ocorrencia atualizarOcorrencia(String id, OcorrenciaRequest request) {
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
+        if (oc != null) {
+            if (request.getTipo() != null) oc.setTipo(sanitizeInput(request.getTipo()));
+            if (request.getDescricao() != null) oc.setDescricao(sanitizeInput(request.getDescricao()));
+            if (request.getLatitude() != 0) oc.setLatitude(request.getLatitude());
+            if (request.getLongitude() != 0) oc.setLongitude(request.getLongitude());
+            if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
+            if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
+            if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
+            
+            return ocorrenciaRepository.save(oc);
+        }
+        return null;
+    }
+
     public List<Ocorrencia> buscarPorCidade(String cidade) {
         if (cidade == null || cidade.trim().isEmpty()) {
             return ocorrenciaRepository.findAll();
