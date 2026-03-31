@@ -106,7 +106,9 @@ class _MapaScreenState extends State<MapaScreen> {
         child: Builder(
           builder: (context) {
             final usuarioLogado = usuarioProvider.usuarioLogado;
-            final isDesignado = ocorrencia.agentes?.split(', ').map((s) => s.trim()).contains(usuarioLogado?.nome) ?? false;
+            final meuNome = usuarioLogado?.nome.trim().toLowerCase() ?? '';
+            final listaAgentes = ocorrencia.agentes?.split(',').map((s) => s.trim().toLowerCase()).toList() ?? [];
+            final isDesignado = meuNome.isNotEmpty && listaAgentes.contains(meuNome);
             final podeAgir = usuarioProvider.isAdmin || isDesignado;
             
             return Column(

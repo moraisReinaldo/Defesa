@@ -61,7 +61,7 @@ class Ocorrencia {
       'caminhoFoto': caminhoFoto,
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
-      'status': status.name.toUpperCase(),
+      'status': status.name.replaceAll(RegExp(r'([A-Z])'), r'_\1').toUpperCase(),
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
       'comentarios': comentarios.map((c) => c.toJson()).toList(),
@@ -84,7 +84,11 @@ class Ocorrencia {
       dataHora: _parseSafe(json['dataHora']) ?? DateTime.now(),
       usuarioId: json['usuarioId'],
       status: OcorrenciaStatus.values.firstWhere(
-        (e) => e.name.toUpperCase() == (json['status'] as String?)?.toUpperCase(),
+        (e) {
+          final jsonStatus = (json['status'] as String?)?.toUpperCase().replaceAll('_', '') ?? '';
+          final enumStatus = e.name.toUpperCase();
+          return enumStatus == jsonStatus;
+        },
         orElse: () => OcorrenciaStatus.pendenteAprovacao,
       ),
       dataResolucao: _parseSafe(json['dataResolucao']),

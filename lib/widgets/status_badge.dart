@@ -30,7 +30,7 @@ class StatusBadge extends StatelessWidget {
     } 
     // Novo status solicitado: Trabalhando no local (Lime color)
     else if (status == OcorrenciaStatus.trabalhandoAtualmente) {
-      label = 'Trabalhando no Local';
+      label = 'Em ação';
       const limeColor = Color(0xFF8BC34A); 
       bgColor = limeColor.withValues(alpha: 0.15);
       textColor = limeColor;
