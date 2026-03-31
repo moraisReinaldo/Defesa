@@ -102,6 +102,7 @@ class _SelecaoTipoOcorrenciaScreenState
                     });
                     
                     Future.delayed( const Duration(milliseconds: 150), () async {
+                      if (!context.mounted) return;
                       // Navigate (Push) to Step 2
                       final result = await Navigator.push<bool>(
                         context,
@@ -112,7 +113,7 @@ class _SelecaoTipoOcorrenciaScreenState
                         ),
                       );
 
-                      if (result == true && mounted) {
+                      if (result == true && context.mounted) {
                         Navigator.pop(context, true); // Pop out to map
                       }
                     });

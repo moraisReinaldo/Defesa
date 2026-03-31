@@ -725,7 +725,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                               child: ElevatedButton.icon(
                                 onPressed: () async {
                                   await context.read<OcorrenciaProvider>().aprovarOcorrencia(ocorrencia.id);
-                                  if (mounted) Navigator.pop(context);
+                                  if (context.mounted) Navigator.pop(context);
                                 },
                                 icon: const Icon(Icons.check_circle_rounded),
                                 label: const Text('APROVAR'),
@@ -760,7 +760,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id);
-                              if (mounted) Navigator.pop(context);
+                              if (context.mounted) Navigator.pop(context);
                             },
                             icon: const Icon(Icons.location_on_rounded),
                             label: const Text('ESTOU NO LOCAL'),

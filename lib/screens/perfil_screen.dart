@@ -254,7 +254,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               nome: _nomeController.text,
                               telefone: _telefoneController.text,
                             );
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             if (ok) {
                               setState(() => _editando = false);
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -307,7 +307,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       await prov.logout();
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Desconectado')),
                       );
@@ -547,7 +547,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () async {
                     await prov.logout();
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text('Admin deslogado')));
