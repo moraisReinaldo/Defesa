@@ -167,6 +167,21 @@ public class OcorrenciaService {
         return null;
     }
 
+    public Ocorrencia reativarOcorrencia(String id, String userId) {
+        // Verificação de role: apenas AGENTE ou ADMINISTRADOR pode reativar
+        verificarRoleMultiple(userId,
+            List.of(Role.AGENTE, Role.ADMINISTRADOR),
+            "Apenas agentes ou administradores podem reativar ocorrências");
+
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
+        if (oc != null) {
+            oc.setStatus(OcorrenciaStatus.APROVADA.name());
+            oc.setDataResolucao(null);
+            return ocorrenciaRepository.save(oc);
+        }
+        return null;
+    }
+
     public List<Ocorrencia> buscarPorCidade(String cidade) {
         if (cidade == null || cidade.trim().isEmpty()) {
             return ocorrenciaRepository.findAll();

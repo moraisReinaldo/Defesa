@@ -235,6 +235,15 @@ class ApiService {
     return null;
   }
 
+  Future<Ocorrencia?> reativarOcorrencia(String id) async {
+    final response = await _post('/ocorrencias/$id/reativar', {});
+
+    if (response.statusCode == 200) {
+      return Ocorrencia.fromJson(jsonDecode(response.body));
+    }
+    return null;
+  }
+
   // ========== ADMIN (ROOT) ==========
 
   Future<String?> loginAdmin(String senha) async {

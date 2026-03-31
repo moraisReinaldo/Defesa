@@ -126,22 +126,53 @@ class OcorrenciaProvider extends ChangeNotifier {
         final index = _ocorrencias.indexWhere((o) => o.id == id);
         if (index != -1) {
           _ocorrencias[index] = vindoDaApi;
+          await _storageService.atualizarOcorrencia(vindoDaApi);
           notifyListeners();
         }
       } else {
         // Fallback local
         final index = _ocorrencias.indexWhere((o) => o.id == id);
         if (index != -1) {
-          _ocorrencias[index] = _ocorrencias[index].copyWith(
+          final atualizada = _ocorrencias[index].copyWith(
             status: OcorrenciaStatus.resolvida,
             dataResolucao: DateTime.now(),
             descricaoSituacao: parecer,
           );
+          _ocorrencias[index] = atualizada;
+          await _storageService.atualizarOcorrencia(atualizada);
           notifyListeners();
         }
       }
     } catch (e) {
       if (kDebugMode) print("Erro ao resolver ocorrência: $e");
+    }
+  }
+
+  Future<void> reativarOcorrencia(String id) async {
+    try {
+      final vindoDaApi = await _apiService.reativarOcorrencia(id);
+      if (vindoDaApi != null) {
+        final index = _ocorrencias.indexWhere((o) => o.id == id);
+        if (index != -1) {
+          _ocorrencias[index] = vindoDaApi;
+          await _storageService.atualizarOcorrencia(vindoDaApi);
+          notifyListeners();
+        }
+      } else {
+        // Fallback local
+        final index = _ocorrencias.indexWhere((o) => o.id == id);
+        if (index != -1) {
+          final atualizada = _ocorrencias[index].copyWith(
+            status: OcorrenciaStatus.aprovada,
+            dataResolucao: null,
+          );
+          _ocorrencias[index] = atualizada;
+          await _storageService.atualizarOcorrencia(atualizada);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print("Erro ao reativar ocorrência: $e");
     }
   }
 

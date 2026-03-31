@@ -48,6 +48,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/ocorrencias/*/aprovar").hasRole("ADMINISTRADOR")
                 // Agentes e Admins podem registrar chegada
                 .requestMatchers("/api/ocorrencias/*/chegada").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                // Agentes e Admins podem resolver/reativar
+                .requestMatchers("/api/ocorrencias/*/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers("/api/ocorrencias/*/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
                 // Qualquer usuário autenticado pode ver ocorrências e criar
                 .anyRequest().authenticated()
             )

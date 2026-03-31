@@ -888,13 +888,14 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   }
 
   void _alterarStatusOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
-    if (ocorrencia.status == OcorrenciaStatus.resolvida) {
-      context.read<OcorrenciaProvider>().atualizarOcorrencia(
-          ocorrencia.copyWith(status: OcorrenciaStatus.aprovada, dataResolucao: null));
-    } else {
-      context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id);
-    }
-    Navigator.pop(context);
+    () async {
+      if (ocorrencia.status == OcorrenciaStatus.resolvida) {
+        await context.read<OcorrenciaProvider>().reativarOcorrencia(ocorrencia.id);
+      } else {
+        await context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id);
+      }
+      if (context.mounted) Navigator.pop(context);
+    }();
   }
 
   void _deletarOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
@@ -946,12 +947,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       if (resolvidas) {
         await provider.resolverOcorrencia(id);
       } else {
-        final o = provider.obterOcorrenciaPorId(id);
-        if (o != null) {
-          await provider.atualizarOcorrencia(
-            o.copyWith(status: OcorrenciaStatus.aprovada, dataResolucao: null),
-          );
-        }
+        await provider.reativarOcorrencia(id);
       }
     }
     setState(() {

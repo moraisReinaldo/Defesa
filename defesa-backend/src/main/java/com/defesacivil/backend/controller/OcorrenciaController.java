@@ -80,6 +80,20 @@ public class OcorrenciaController {
         }
     }
 
+    @PostMapping("/{id}/reativar")
+    public ResponseEntity<?> reativar(
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        try {
+            Ocorrencia atualizada = ocorrenciaService.reativarOcorrencia(id, userId);
+            return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(response);
+        }
+    }
+
     @GetMapping
     public ResponseEntity<List<Ocorrencia>> listarHistorico(@RequestParam(required = false) String cidade) {
         return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade));
