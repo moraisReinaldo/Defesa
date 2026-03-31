@@ -15,14 +15,14 @@ class OcorrenciaProvider extends ChangeNotifier {
 
   List<Ocorrencia> get ocorrenciasAtivas =>
       _ocorrencias.where((o) => 
-        (o.status == OcorrenciaStatus.aprovada || o.status == OcorrenciaStatus.trabalhandoAtualmente) && !o.resolvida
+        (o.status == OcorrenciaStatus.aprovada || o.status == OcorrenciaStatus.trabalhandoAtualmente) && o.status != OcorrenciaStatus.resolvida
       ).toList();
 
   List<Ocorrencia> get ocorrenciasPendentes =>
       _ocorrencias.where((o) => o.status == OcorrenciaStatus.pendenteAprovacao).toList();
 
   List<Ocorrencia> get ocorrenciasResolvidas =>
-      _ocorrencias.where((o) => o.resolvida).toList();
+      _ocorrencias.where((o) => o.status == OcorrenciaStatus.resolvida).toList();
 
   Future<void> carregarOcorrencias({String? cidade}) async {
     try {
@@ -76,9 +76,9 @@ class OcorrenciaProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> registrarChegadaAgente(String id) async {
+  Future<void> registrarChegadaAgente(String id, {String? parecer}) async {
     try {
-      final vindoDaApi = await _apiService.registrarChegadaAgente(id);
+      final vindoDaApi = await _apiService.registrarChegadaAgente(id, parecer: parecer);
       if (vindoDaApi != null) {
         final index = _ocorrencias.indexWhere((o) => o.id == id);
         if (index != -1) {
@@ -93,6 +93,7 @@ class OcorrenciaProvider extends ChangeNotifier {
             agenteNoLocal: true,
             dataChegadaAgente: DateTime.now(),
             status: OcorrenciaStatus.trabalhandoAtualmente,
+            descricaoSituacao: parecer,
           );
           notifyListeners();
         }
@@ -118,20 +119,29 @@ class OcorrenciaProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> resolverOcorrencia(String id) async {
-    final ocorrencia = _ocorrencias.firstWhere((o) => o.id == id);
-    final atualizada = ocorrencia.copyWith(
-      resolvida: true,
-      status: OcorrenciaStatus.resolvida,
-      dataResolucao: DateTime.now(),
-    );
-    
-    // Idealmente chamar API aqui também
-    await _storageService.atualizarOcorrencia(atualizada);
-    final index = _ocorrencias.indexWhere((o) => o.id == id);
-    if (index != -1) {
-      _ocorrencias[index] = atualizada;
-      notifyListeners();
+  Future<void> resolverOcorrencia(String id, {String? parecer}) async {
+    try {
+      final vindoDaApi = await _apiService.resolverOcorrencia(id, parecer: parecer);
+      if (vindoDaApi != null) {
+        final index = _ocorrencias.indexWhere((o) => o.id == id);
+        if (index != -1) {
+          _ocorrencias[index] = vindoDaApi;
+          notifyListeners();
+        }
+      } else {
+        // Fallback local
+        final index = _ocorrencias.indexWhere((o) => o.id == id);
+        if (index != -1) {
+          _ocorrencias[index] = _ocorrencias[index].copyWith(
+            status: OcorrenciaStatus.resolvida,
+            dataResolucao: DateTime.now(),
+            descricaoSituacao: parecer,
+          );
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print("Erro ao resolver ocorrência: $e");
     }
   }
 

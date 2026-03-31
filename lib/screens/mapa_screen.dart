@@ -215,7 +215,7 @@ class _MapaScreenState extends State<MapaScreen> {
                       ),
                     ),
 
-                    if (usuarioProvider.isAdmin && !ocorrencia.resolvida)
+                    if (usuarioProvider.isAdmin && ocorrencia.status != OcorrenciaStatus.resolvida)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
@@ -282,7 +282,7 @@ class _MapaScreenState extends State<MapaScreen> {
                                     }
                                     
                                     final novoTexto = agentesAtuais.join(', ');
-                                    ocorrencia = ocorrencia.copyWith(agentes: novoTexto, resolvida: false);
+                                    ocorrencia = ocorrencia.copyWith(agentes: novoTexto, status: OcorrenciaStatus.aprovada);
                                     context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia);
                                     
                                     if (selected) {
@@ -313,7 +313,26 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    // Botão de Chegada no Local (Apenas se já aprovada e não chegou ainda)
+                    // Campo de Parecer/Descrição da Situação (Apenas para Agentes)
+                    if (usuarioProvider.usuarioLogado?.isAgente == true && 
+                        ocorrencia.status != OcorrenciaStatus.resolvida &&
+                        ocorrencia.status != OcorrenciaStatus.pendenteAprovacao)
+                      _buildSectionCard(
+                        icon: Icons.assignment_rounded,
+                        title: 'Relatório da Situação',
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Descreva a situação atual...',
+                            filled: true,
+                            fillColor: AppColors.backgroundOffWhite,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                          ),
+                          maxLines: 3,
+                          onChanged: (val) => _comentarioController.text = val, // Reaproveitando controller para simplicidade ou use um novo
+                        ),
+                      ),
+
+                    // Botão de Chegada no Local
                     if (usuarioProvider.usuarioLogado?.isAgente == true && 
                         ocorrencia.status == OcorrenciaStatus.aprovada && 
                         !ocorrencia.agenteNoLocal)
@@ -323,7 +342,9 @@ class _MapaScreenState extends State<MapaScreen> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             onPressed: () async { 
-                              await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id); 
+                              final parecer = _comentarioController.text.trim();
+                              await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
+                              _comentarioController.clear();
                               if (context.mounted) Navigator.pop(context); 
                             }, 
                             icon: const Icon(Icons.location_on_rounded), 
@@ -333,7 +354,7 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    // Botões de Administrador (Resolver/Excluir/Aprovar/Recusar)
+                    // Botões de Administrador
                     if (usuarioProvider.isAdmin)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
@@ -342,9 +363,9 @@ class _MapaScreenState extends State<MapaScreen> {
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: () => _alterarStatusOcorrencia(ocorrencia), 
-                                icon: Icon(ocorrencia.resolvida ? Icons.refresh_rounded : Icons.check_circle_rounded, size: 18), 
-                                label: Text(ocorrencia.resolvida ? 'Reativar' : 'Resolver'), 
-                                style: ElevatedButton.styleFrom(backgroundColor: ocorrencia.resolvida ? AppColors.statusEnRoute : AppColors.statusResolved),
+                                icon: Icon(ocorrencia.status == OcorrenciaStatus.resolvida ? Icons.refresh_rounded : Icons.check_circle_rounded, size: 18), 
+                                label: Text(ocorrencia.status == OcorrenciaStatus.resolvida ? 'Reativar' : 'Resolver'), 
+                                style: ElevatedButton.styleFrom(backgroundColor: ocorrencia.status == OcorrenciaStatus.resolvida ? AppColors.statusEnRoute : AppColors.statusResolved),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -352,16 +373,21 @@ class _MapaScreenState extends State<MapaScreen> {
                           ],
                         ),
                       )
-                    // Botão de Resolver para Agentes (Apenas se estiver no local ou já trabalhando)
+                    // Botão de Resolver para Agentes
                     else if ((ocorrencia.status == OcorrenciaStatus.aprovada || ocorrencia.status == OcorrenciaStatus.trabalhandoAtualmente) && 
-                             !ocorrencia.resolvida && 
+                             ocorrencia.status != OcorrenciaStatus.resolvida && 
                              (usuarioProvider.usuarioLogado?.isAgente == true))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: SizedBox(
                           width: double.infinity, 
                           child: ElevatedButton.icon(
-                            onPressed: () => _alterarStatusOcorrencia(ocorrencia), 
+                            onPressed: () {
+                              final parecer = _comentarioController.text.trim();
+                              context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null);
+                              _comentarioController.clear();
+                              Navigator.pop(context);
+                            }, 
                             icon: const Icon(Icons.check_circle_rounded, size: 18), 
                             label: const Text('Marcar como Resolvida'), 
                             style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusResolved),
@@ -441,8 +467,8 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   void _alterarStatusOcorrencia(Ocorrencia ocorrencia) {
-    if (ocorrencia.resolvida) {
-      context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia.copyWith(resolvida: false, dataResolucao: null));
+    if (ocorrencia.status == OcorrenciaStatus.resolvida) {
+      context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia.copyWith(status: OcorrenciaStatus.aprovada, dataResolucao: null));
     } else {
       context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id);
     }

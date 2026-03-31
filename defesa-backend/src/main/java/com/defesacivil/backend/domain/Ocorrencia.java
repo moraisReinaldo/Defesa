@@ -12,12 +12,12 @@ public class Ocorrencia {
     private String dataHora;
     private String usuarioId;
     private String status; // status de aprovação (armazenado como String)
-    private boolean resolvida;
     private String dataResolucao;
     private String agentes;
     private boolean criadoPorAgente; // Novo: define se precisa de aprovação
     private boolean agenteNoLocal; // Novo: marcação de chegada
     private String dataChegadaAgente; // Novo: data da chegada
+    private String descricaoSituacao; // Novo: Parecer técnico/situação atual
 
     public Ocorrencia() {}
 
@@ -41,8 +41,6 @@ public class Ocorrencia {
     public void setUsuarioId(String usuarioId) { this.usuarioId = usuarioId; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-    public boolean isResolvida() { return resolvida; }
-    public void setResolvida(boolean resolvida) { this.resolvida = resolvida; }
     public String getDataResolucao() { return dataResolucao; }
     public void setDataResolucao(String dataResolucao) { this.dataResolucao = dataResolucao; }
     public String getAgentes() { return agentes; }
@@ -53,4 +51,6 @@ public class Ocorrencia {
     public void setAgenteNoLocal(boolean agenteNoLocal) { this.agenteNoLocal = agenteNoLocal; }
     public String getDataChegadaAgente() { return dataChegadaAgente; }
     public void setDataChegadaAgente(String dataChegadaAgente) { this.dataChegadaAgente = dataChegadaAgente; }
+    public String getDescricaoSituacao() { return descricaoSituacao; }
+    public void setDescricaoSituacao(String descricaoSituacao) { this.descricaoSituacao = descricaoSituacao; }
 }

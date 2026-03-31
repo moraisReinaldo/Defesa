@@ -116,18 +116,53 @@ public class OcorrenciaService {
         return null;
     }
 
-    public Ocorrencia registrarChegadaAgente(String id, String agenteUserId) {
+    public Ocorrencia registrarChegadaAgente(String id, String agenteUserId, String parecer) {
         // Verificação de role: apenas AGENTE ou ADMINISTRADOR pode registrar chegada
         verificarRoleMultiple(agenteUserId, 
             List.of(Role.AGENTE, Role.ADMINISTRADOR), 
-            "Apenas agentes podem registrar chegada no local");
+            "Apenas agentes ou administradores podem registrar chegada no local");
 
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc != null) {
             oc.setAgenteNoLocal(true);
             oc.setDataChegadaAgente(LocalDateTime.now().toString());
             oc.setStatus(OcorrenciaStatus.TRABALHANDO_ATUALMENTE.name());
+            if (parecer != null && !parecer.isBlank()) {
+                oc.setDescricaoSituacao(sanitizeInput(parecer));
+            }
             return ocorrenciaRepository.save(oc);
+        }
+        return null;
+    }
+
+    public Ocorrencia resolverOcorrencia(String id, String userId, String parecer) {
+        // Verificação de role: apenas AGENTE ou ADMINISTRADOR pode resolver
+        verificarRoleMultiple(userId, 
+            List.of(Role.AGENTE, Role.ADMINISTRADOR), 
+            "Apenas agentes ou administradores podem resolver ocorrências");
+
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
+        if (oc != null) {
+            oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
+            oc.setDataResolucao(LocalDateTime.now().toString());
+            if (parecer != null && !parecer.isBlank()) {
+                oc.setDescricaoSituacao(sanitizeInput(parecer));
+            }
+            
+            Ocorrencia salva = ocorrenciaRepository.save(oc);
+            
+            // Notificar o munícipe
+            if (oc.getUsuarioId() != null) {
+                usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user -> {
+                    notificationService.sendPushNotification(
+                        user.getFcmToken(),
+                        "Caso Resolvido!",
+                        "A ocorrência em " + oc.getCidade() + " foi marcada como resolvida."
+                    );
+                });
+            }
+            
+            return salva;
         }
         return null;
     }

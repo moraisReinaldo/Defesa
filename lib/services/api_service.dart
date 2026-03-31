@@ -215,8 +215,19 @@ class ApiService {
     return null;
   }
 
-  Future<Ocorrencia?> registrarChegadaAgente(String id) async {
-    final response = await _post('/ocorrencias/$id/chegada', {});
+  Future<Ocorrencia?> registrarChegadaAgente(String id, {String? parecer}) async {
+    final body = parecer != null ? {'parecer': parecer} : {};
+    final response = await _post('/ocorrencias/$id/chegada', body);
+    
+    if (response.statusCode == 200) {
+      return Ocorrencia.fromJson(jsonDecode(response.body));
+    }
+    return null;
+  }
+
+  Future<Ocorrencia?> resolverOcorrencia(String id, {String? parecer}) async {
+    final body = parecer != null ? {'parecer': parecer} : {};
+    final response = await _post('/ocorrencias/$id/resolver', body);
     
     if (response.statusCode == 200) {
       return Ocorrencia.fromJson(jsonDecode(response.body));

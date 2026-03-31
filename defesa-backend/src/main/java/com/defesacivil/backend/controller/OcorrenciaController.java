@@ -51,9 +51,27 @@ public class OcorrenciaController {
     @PostMapping("/{id}/chegada")
     public ResponseEntity<?> registrarChegada(
             @PathVariable String id,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestBody(required = false) Map<String, String> body) {
         try {
-            Ocorrencia atualizada = ocorrenciaService.registrarChegadaAgente(id, userId);
+            String parecer = (body != null) ? body.get("parecer") : null;
+            Ocorrencia atualizada = ocorrenciaService.registrarChegadaAgente(id, userId, parecer);
+            return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(response);
+        }
+    }
+
+    @PostMapping("/{id}/resolver")
+    public ResponseEntity<?> resolver(
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestBody(required = false) Map<String, String> body) {
+        try {
+            String parecer = (body != null) ? body.get("parecer") : null;
+            Ocorrencia atualizada = ocorrenciaService.resolverOcorrencia(id, userId, parecer);
             return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
         } catch (SecurityException e) {
             Map<String, String> response = new HashMap<>();

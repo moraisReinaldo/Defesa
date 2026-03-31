@@ -20,13 +20,13 @@ class Ocorrencia {
   final DateTime dataHora;
   final String? usuarioId;
   final OcorrenciaStatus status;
-  final bool resolvida;
   final DateTime? dataResolucao;
   final String? agentes; 
   final List<Comentario> comentarios;
   final bool criadoPorAgente;
   final bool agenteNoLocal;
   final DateTime? dataChegadaAgente;
+  final String? descricaoSituacao;
 
   Ocorrencia({
     String? id,
@@ -39,13 +39,13 @@ class Ocorrencia {
     DateTime? dataHora,
     this.usuarioId,
     this.status = OcorrenciaStatus.pendenteAprovacao,
-    this.resolvida = false,
     this.dataResolucao,
     this.agentes,
     List<Comentario>? comentarios,
     this.criadoPorAgente = false,
     this.agenteNoLocal = false,
     this.dataChegadaAgente,
+    this.descricaoSituacao,
   })  : id = id ?? const Uuid().v4(),
         dataHora = dataHora ?? DateTime.now(),
         comentarios = comentarios ?? [];
@@ -62,13 +62,13 @@ class Ocorrencia {
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
       'status': status.name.toUpperCase(),
-      'resolvida': resolvida,
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
       'comentarios': comentarios.map((c) => c.toJson()).toList(),
       'criadoPorAgente': criadoPorAgente,
       'agenteNoLocal': agenteNoLocal,
       'dataChegadaAgente': dataChegadaAgente?.toIso8601String(),
+      'descricaoSituacao': descricaoSituacao,
     };
   }
 
@@ -87,7 +87,6 @@ class Ocorrencia {
         (e) => e.name.toUpperCase() == (json['status'] as String?)?.toUpperCase(),
         orElse: () => OcorrenciaStatus.pendenteAprovacao,
       ),
-      resolvida: json['resolvida'] ?? false,
       dataResolucao: _parseSafe(json['dataResolucao']),
       agentes: json['agentes'],
       comentarios: json['comentarios'] != null
@@ -96,6 +95,7 @@ class Ocorrencia {
       criadoPorAgente: json['criadoPorAgente'] ?? false,
       agenteNoLocal: json['agenteNoLocal'] ?? false,
       dataChegadaAgente: _parseSafe(json['dataChegadaAgente']),
+      descricaoSituacao: json['descricaoSituacao'],
     );
   }
 
@@ -126,13 +126,13 @@ class Ocorrencia {
     DateTime? dataHora,
     String? usuarioId,
     OcorrenciaStatus? status,
-    bool? resolvida,
     DateTime? dataResolucao,
     String? agentes,
     List<Comentario>? comentarios,
     bool? criadoPorAgente,
     bool? agenteNoLocal,
     DateTime? dataChegadaAgente,
+    String? descricaoSituacao,
   }) {
     return Ocorrencia(
       id: id ?? this.id,
@@ -145,13 +145,13 @@ class Ocorrencia {
       dataHora: dataHora ?? this.dataHora,
       usuarioId: usuarioId ?? this.usuarioId,
       status: status ?? this.status,
-      resolvida: resolvida ?? this.resolvida,
       dataResolucao: dataResolucao ?? this.dataResolucao,
       agentes: agentes ?? this.agentes,
       comentarios: comentarios ?? this.comentarios,
       criadoPorAgente: criadoPorAgente ?? this.criadoPorAgente,
       agenteNoLocal: agenteNoLocal ?? this.agenteNoLocal,
       dataChegadaAgente: dataChegadaAgente ?? this.dataChegadaAgente,
+      descricaoSituacao: descricaoSituacao ?? this.descricaoSituacao,
     );
   }
 }

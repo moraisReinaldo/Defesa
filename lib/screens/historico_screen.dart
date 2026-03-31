@@ -407,7 +407,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         ocorrencias = provider.ocorrenciasAtivas;
         break;
       case 'em_andamento':
-        ocorrencias = provider.ocorrencias.where((o) => !o.resolvida && o.agentes != null && o.agentes!.isNotEmpty).toList();
+        ocorrencias = provider.ocorrencias.where((o) => o.status != OcorrenciaStatus.resolvida && o.agentes != null && o.agentes!.isNotEmpty).toList();
         break;
       case 'resolvidas':
         ocorrencias = provider.ocorrenciasResolvidas;
@@ -689,7 +689,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                           agentesAtuais.remove(agente.nome);
                                         }
                                         final novoTexto = agentesAtuais.join(', ');
-                                        ocorrencia = ocorrencia.copyWith(agentes: novoTexto, resolvida: false);
+                                        ocorrencia = ocorrencia.copyWith(agentes: novoTexto, status: OcorrenciaStatus.aprovada);
                                         context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrencia);
                                         
                                         ScaffoldMessenger.of(context).showSnackBar(
@@ -780,15 +780,15 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                 onPressed: () => _alterarStatusOcorrencia(
                                     context, ocorrencia),
                                 icon: Icon(
-                                    ocorrencia.resolvida
+                                    ocorrencia.status == OcorrenciaStatus.resolvida
                                         ? Icons.refresh_rounded
                                         : Icons.check_circle_rounded,
                                     size: 18),
-                                label: Text(ocorrencia.resolvida
+                                label: Text(ocorrencia.status == OcorrenciaStatus.resolvida
                                     ? 'Reativar'
                                     : 'Resolver'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: ocorrencia.resolvida
+                                  backgroundColor: ocorrencia.status == OcorrenciaStatus.resolvida
                                       ? AppColors.statusEnRoute
                                       : AppColors.statusResolved,
                                 ),
@@ -888,12 +888,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   }
 
   void _alterarStatusOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
-    if (ocorrencia.resolvida) {
-      final atualizada = ocorrencia.copyWith(
-        resolvida: false,
-        dataResolucao: null,
-      );
-      context.read<OcorrenciaProvider>().atualizarOcorrencia(atualizada);
+    if (ocorrencia.status == OcorrenciaStatus.resolvida) {
+      context.read<OcorrenciaProvider>().atualizarOcorrencia(
+          ocorrencia.copyWith(status: OcorrenciaStatus.aprovada, dataResolucao: null));
     } else {
       context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id);
     }
@@ -946,13 +943,15 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   Future<void> _marcarSelecionadasResolvidas(bool resolvidas) async {
     final provider = context.read<OcorrenciaProvider>();
     for (var id in _selecionadas.toList()) {
-      final o = provider.obterOcorrenciaPorId(id);
-      if (o != null) {
-        final atualizada = o.copyWith(
-          resolvida: resolvidas,
-          dataResolucao: resolvidas ? DateTime.now() : null,
-        );
-        await provider.atualizarOcorrencia(atualizada);
+      if (resolvidas) {
+        await provider.resolverOcorrencia(id);
+      } else {
+        final o = provider.obterOcorrenciaPorId(id);
+        if (o != null) {
+          await provider.atualizarOcorrencia(
+            o.copyWith(status: OcorrenciaStatus.aprovada, dataResolucao: null),
+          );
+        }
       }
     }
     setState(() {
