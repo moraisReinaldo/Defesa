@@ -20,7 +20,7 @@ class OcorrenciaImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (caminho == null || caminho!.isEmpty) {
-      return _buildErrorImage();
+      return _buildError();
     }
 
     if (caminho!.startsWith('data:image')) {
@@ -32,10 +32,10 @@ class OcorrenciaImage extends StatelessWidget {
           height: height,
           width: width,
           fit: fit,
-          errorBuilder: (ctx, err, st) => _buildErrorImage(),
+          errorBuilder: (ctx, err, st) => _buildError(),
         );
       } catch (e) {
-        return _buildErrorImage();
+        return _buildError();
       }
     } else if (caminho!.startsWith('http')) {
       return Image.network(
@@ -43,7 +43,11 @@ class OcorrenciaImage extends StatelessWidget {
         height: height,
         width: width,
         fit: fit,
-        errorBuilder: (ctx, err, st) => _buildErrorImage(),
+        loadingBuilder: (ctx, child, progress) {
+          if (progress == null) return child;
+          return _buildLoading();
+        },
+        errorBuilder: (ctx, err, st) => _buildError(),
       );
     } else {
       // Local File
@@ -53,22 +57,38 @@ class OcorrenciaImage extends StatelessWidget {
         height: height,
         width: width,
         fit: fit,
-        errorBuilder: (ctx, err, st) => _buildErrorImage(),
+        errorBuilder: (ctx, err, st) => _buildError(),
       );
     }
   }
 
-  Widget _buildErrorImage() {
+  Widget _buildLoading() {
     return Container(
       height: height,
       width: width,
       color: AppColors.shimmer,
       child: const Center(
-        child: Icon(
-          Icons.image_not_supported_rounded,
-          color: AppColors.textLight,
-          size: 40,
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryTeal),
         ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    return Container(
+      height: height,
+      width: width,
+      color: AppColors.borderLight,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.broken_image_rounded, color: AppColors.textLight, size: 32),
+          const SizedBox(height: 8),
+          const Text('Erro ao carregar imagem', style: TextStyle(fontSize: 11, color: AppColors.textLight)),
+        ],
       ),
     );
   }

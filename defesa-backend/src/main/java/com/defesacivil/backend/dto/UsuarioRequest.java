@@ -13,7 +13,6 @@ public class UsuarioRequest {
     @Email(message = "Formato de e-mail inválido")
     private String email;
 
-    @NotBlank(message = "O telefone é obrigatório")
     private String telefone;
 
     @NotBlank(message = "A senha é obrigatória")

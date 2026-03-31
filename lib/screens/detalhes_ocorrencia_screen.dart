@@ -240,30 +240,33 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     setState(() {
       _carregando = true;
     });
+
+    // Verificação de Cidade para TODOS os usuários
+    if (_codigoCidadeDetectada == null) {
+      // Tenta buscar novamente se falhou antes
+      await _obterLocalizacao();
+    }
     
-    // Verificação de Cidade para Admin
+    if (_codigoCidadeDetectada == null) {
+      setState(() => _carregando = false);
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Localização Não Atendida'),
+          content: Text('A cidade detectada "${_cidadeDetectada ?? 'Desconhecida'}" não faz parte das áreas atendidas pela Defesa Civil neste aplicativo.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+        )
+      );
+      return;
+    }
+
+    // Regra específica para Admin: deve ser da sua própria cidade
     final userProvider = context.read<UsuarioProvider>();
     final user = userProvider.usuarioLogado;
-    
     if (userProvider.isAdmin) {
-      if (_cidadeDetectada == null) {
-        // Tenta buscar novamente se falhou antes
-        await _obterLocalizacao();
-      }
-      
-      if (_cidadeDetectada == null) {
-        setState(() => _carregando = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível identificar a cidade pelo GPS. Tente novamente.')));
-        return;
-      }
-      
-      final cidadeUsuario = user?.cidade; // Agora é um CÓDIGO
-      final cidadeGPS = _codigoCidadeDetectada;
-      
-      if (cidadeUsuario != cidadeGPS) {
-        String nomeCidadeUsuario = cidadeUsuario ?? 'Desconhecida';
-        String nomeCidadeLocal = _cidadeDetectada ?? 'Desconhecida';
-        
+      final cidadeUsuario = user?.cidade; // Código
+      if (cidadeUsuario != _codigoCidadeDetectada) {
+        String nomeCidadeUsuario = cidadeUsuario ?? 'Sua Cidade';
         try {
           nomeCidadeUsuario = _cidadesSuportadas.firstWhere((c) => c['codigo'] == cidadeUsuario)['nome']!;
         } catch (_) {}
@@ -272,8 +275,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Acesso Negado'),
-            content: Text('Você é administrador da cidade "$nomeCidadeUsuario" e não pode registrar ocorrências em "$nomeCidadeLocal".'),
+            title: const Text('Fora de Jurisdição'),
+            content: Text('Você é administrador de "$nomeCidadeUsuario" e não pode registrar ocorrências em "${_cidadeDetectada}".'),
             actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
           )
         );
@@ -290,9 +293,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         descricao: _descricaoController.text,
         latitude: _posicaoAtual!.latitude,
         longitude: _posicaoAtual!.longitude,
-        cidade: (usuarioLogado?.cidade != null && usuarioLogado!.cidade!.trim().isNotEmpty)
-            ? usuarioLogado.cidade!.trim()
-            : _cidadeDetectada,
+        cidade: _codigoCidadeDetectada, // Sempre usa o CÓDIGO
         caminhoFoto: _fotoSelecionada?.path,
         usuarioId: usuarioLogado?.id,
       );

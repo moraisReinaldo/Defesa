@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
@@ -9,6 +8,7 @@ import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/ocorrencia_card.dart';
+import '../widgets/ocorrencia_image.dart';
 import '../widgets/status_badge.dart';
 
 class HistoricoScreen extends StatefulWidget {
@@ -206,71 +206,76 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   agrupado.putIfAbsent(key, () => []).add(o);
                 }
 
-                return ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: agrupado.entries.expand((entry) {
-                    return [
-                      // Data header
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryTeal.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.calendar_today_rounded,
-                                      size: 14, color: AppColors.primaryTeal),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    entry.key,
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.primaryTeal,
+                return RefreshIndicator(
+                  onRefresh: () => provider.carregarOcorrencias(
+                    cidade: context.read<UsuarioProvider>().usuarioLogado?.cidade,
+                  ),
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: agrupado.entries.expand((entry) {
+                      return [
+                        // Data header
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryTeal.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.calendar_today_rounded,
+                                        size: 14, color: AppColors.primaryTeal),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      entry.key,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primaryTeal,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                color: AppColors.borderLight,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  color: AppColors.borderLight,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      // Cards
-                      ...entry.value
-                          .map((ocorrencia) => OcorrenciaCard(
-                                ocorrencia: ocorrencia,
-                                selectable: _selectionMode,
-                                selected:
-                                    _selecionadas.contains(ocorrencia.id),
-                                onSelectToggle: () {
-                                  setState(() {
-                                    if (_selecionadas.contains(ocorrencia.id)) {
-                                      _selecionadas.remove(ocorrencia.id);
-                                    } else {
-                                      _selecionadas.add(ocorrencia.id);
-                                    }
-                                  });
-                                },
-                                onTap: () => _mostrarDetalhesOcorrencia(
-                                    context, ocorrencia),
-                              ))
-                          ,
-                    ];
-                  }).toList(),
+                        // Cards
+                        ...entry.value
+                            .map((ocorrencia) => OcorrenciaCard(
+                                  ocorrencia: ocorrencia,
+                                  selectable: _selectionMode,
+                                  selected:
+                                      _selecionadas.contains(ocorrencia.id),
+                                  onSelectToggle: () {
+                                    setState(() {
+                                      if (_selecionadas.contains(ocorrencia.id)) {
+                                        _selecionadas.remove(ocorrencia.id);
+                                      } else {
+                                        _selecionadas.add(ocorrencia.id);
+                                      }
+                                    });
+                                  },
+                                  onTap: () => _mostrarDetalhesOcorrencia(
+                                      context, ocorrencia),
+                                ))
+                            ,
+                      ];
+                    }).toList(),
+                  ),
                 );
               },
             ),
@@ -415,11 +420,15 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         }
         break;
       default:
-        if (usuarioProvider.isAdmin) {
-          ocorrencias = provider.ocorrencias;
-        } else {
-          ocorrencias = provider.ocorrenciasAtivas;
-        }
+        ocorrencias = provider.ocorrencias;
+    }
+
+    // Filtragem por cidade para Admin e Agentes (Segurança e Foco)
+    if (usuarioProvider.estaLogado && usuarioProvider.usuarioLogado!.isAgente) {
+      final cidadeAdmin = usuarioProvider.usuarioLogado?.cidade;
+      if (cidadeAdmin != null && cidadeAdmin.isNotEmpty) {
+        ocorrencias = ocorrencias.where((o) => o.cidade == cidadeAdmin).toList();
+      }
     }
 
     if (_filtroAgenteNome != null) {
@@ -542,19 +551,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: Image.file(
-                            File(ocorrencia.caminhoFoto!),
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, _, __) => Container(
-                              height: 200,
-                              color: AppColors.shimmer,
-                              child: const Center(
-                                child: Icon(Icons.image_not_supported_rounded,
-                                    color: AppColors.textLight, size: 40),
-                              ),
-                            ),
+                          child: OcorrenciaImage(
+                            caminho: ocorrencia.caminhoFoto!,
+                            height: 220,
                           ),
                         ),
                       ),

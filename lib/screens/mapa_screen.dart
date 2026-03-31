@@ -48,10 +48,12 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   Future<void> _inicializarMapa() async {
+    final usuario = context.read<UsuarioProvider>().usuarioLogado;
+    final cidadeFiltro = usuario?.isAgente == true ? usuario?.cidade : null;
+    
+    await context.read<OcorrenciaProvider>().carregarOcorrencias(cidade: cidadeFiltro);
     if (!mounted) return;
-    await context.read<OcorrenciaProvider>().carregarOcorrencias();
-    if (!mounted) return;
-    await context.read<PontoInteresseProvider>().carregarPontos();
+    await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
     
     // Na inicialização, centralizamos sem animação brusca se possível, 
     // mas garantindo que o mapa mova para o local correto.
@@ -529,7 +531,12 @@ class _MapaScreenState extends State<MapaScreen> {
                 ],
                 FloatingActionButton.extended(
                   heroTag: 'fab_ocorrencia',
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen())),
+                  onPressed: () async {
+                    final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen()));
+                    if (res == true && mounted) {
+                      _inicializarMapa();
+                    }
+                  },
                   icon: const Icon(Icons.add),
                   label: const Text('Nova Ocorrência'),
                 ),

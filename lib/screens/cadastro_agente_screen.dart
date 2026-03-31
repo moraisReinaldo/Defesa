@@ -35,7 +35,19 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
   @override
   void initState() {
     super.initState();
-    _carregarCidades().then((_) => _obterCidadePorLocalizacao());
+    // Prioridade: Cidade do Administrador logado
+    final adminCidade = context.read<UsuarioProvider>().usuarioLogado?.cidade;
+    if (adminCidade != null && adminCidade.isNotEmpty) {
+      _cidadeSelecionada = adminCidade;
+    }
+    
+    _carregarCidades().then((_) {
+       // Só buscar GPS se ainda não tiver cidade (ex: se o admin não tiver cidade vinculada)
+       if (_cidadeSelecionada == null) {
+         _obterCidadePorLocalizacao();
+       }
+    });
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UsuarioProvider>().carregarTudo();
     });
@@ -291,19 +303,49 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _buildField(
-                      'Telefone',
-                      _telefoneController,
-                      Icons.phone_rounded,
-                      'Ex: (11) 99999-9999',
-                      keyboardType: TextInputType.phone,
-                    ),
+                    _buildField('Telefone', _telefoneController, Icons.phone_rounded, 'Ex: (11) 99999-9999', keyboardType: TextInputType.phone, required: false),
                     const SizedBox(height: 16),
-                    _buildField(
-                      'Especialidade / Cargo',
-                      _especialidadeController,
-                      Icons.work_rounded,
-                      'Ex: Bombeiro, Eng. Civil',
+                    // Campo de Cargo (Dropdown fixo)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Cargo / Especialidade',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: ['Defesa Civil (Agente)', 'Coordenador', 'Bombeiro', 'Engenheiro Civil', 'Assistente Social', 'Voluntário', 'Outros'].contains(_especialidadeController.text) 
+                              ? _especialidadeController.text 
+                              : null,
+                          hint: const Text('Selecione o cargo'),
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.work_rounded, color: AppColors.primaryTeal, size: 20),
+                            filled: true,
+                            fillColor: AppColors.backgroundOffWhite,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          items: [
+                            'Defesa Civil (Agente)',
+                            'Coordenador',
+                            'Bombeiro',
+                            'Engenheiro Civil',
+                            'Assistente Social',
+                            'Voluntário',
+                            'Outros'
+                          ].map((cargo) => DropdownMenuItem(value: cargo, child: Text(cargo, style: const TextStyle(fontSize: 14)))).toList(),
+                          onChanged: (val) => setState(() => _especialidadeController.text = val ?? ''),
+                          validator: (val) => (val == null || val.isEmpty) ? 'Obrigatório' : null,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     // Campo de Cidade com Botão de GPS
@@ -538,41 +580,23 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
     );
   }
 
-  Widget _buildField(
-    String label,
-    TextEditingController controller,
-    IconData icon,
-    String hint, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildField(String label, TextEditingController controller, IconData icon, String hint, {TextInputType? keyboardType, bool isPassword = false, bool required = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
         const SizedBox(height: 8),
-        _buildTextFieldOnly(controller, icon, hint, keyboardType: keyboardType),
+        _buildTextFieldOnly(controller, icon, hint, keyboardType: keyboardType, isPassword: isPassword, required: required),
       ],
     );
   }
 
-  Widget _buildTextFieldOnly(
-    TextEditingController controller,
-    IconData icon,
-    String hint, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildTextFieldOnly(TextEditingController controller, IconData icon, String hint, {TextInputType? keyboardType, bool isPassword = false, bool required = true}) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: (value) {
-        if (value == null || value.trim().isEmpty) {
+        if (required && (value == null || value.trim().isEmpty)) {
           return 'Campo obrigatório';
         }
         return null;

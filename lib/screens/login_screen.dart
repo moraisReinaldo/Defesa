@@ -21,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
   final _nomeController = TextEditingController();
-  final _telefoneController = TextEditingController();
   final _cidadeController = TextEditingController();
   bool _carregando = false;
   bool _senhaVisivel = false;
@@ -123,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
           UsuarioRequest(
             nome: _nomeController.text,
             email: _emailController.text,
-            telefone: _telefoneController.text,
+            telefone: '', 
             senha: _senhaController.text,
             cidade: _roleSelecionada == 'ADMINISTRADOR' ? (_cidadeSelecionada ?? '') : '', 
             role: _roleSelecionada,
@@ -336,8 +335,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ] else ...[
-                        _field('Telefone', _telefoneController, Icons.phone_rounded, '(11) 99999-9999', keyboardType: TextInputType.phone, validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
-                        
                         const SizedBox(height: 8),
                       ],
                         const SizedBox(height: 8),
@@ -385,7 +382,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextButton(onPressed: () { setState(() { _modoRegistro = !_modoRegistro; _formKey.currentState?.reset(); _emailController.clear(); _senhaController.clear(); _nomeController.clear(); _telefoneController.clear(); _cidadeController.clear(); }); },
+                    TextButton(onPressed: () { setState(() { _modoRegistro = !_modoRegistro; _formKey.currentState?.reset(); _emailController.clear(); _senhaController.clear(); _nomeController.clear(); _cidadeController.clear(); }); },
                       child: RichText(text: TextSpan(style: const TextStyle(fontSize: 14), children: [
                         TextSpan(text: _modoRegistro ? 'Já tem conta? ' : 'Não tem conta? ', style: const TextStyle(color: AppColors.textSecondary)),
                         TextSpan(text: _modoRegistro ? 'Entrar' : 'Criar conta', style: const TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.w700)),
@@ -417,5 +414,5 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
-  void dispose() { _emailController.dispose(); _senhaController.dispose(); _nomeController.dispose(); _telefoneController.dispose(); _cidadeController.dispose(); super.dispose(); }
+  void dispose() { _emailController.dispose(); _senhaController.dispose(); _nomeController.dispose(); _cidadeController.dispose(); super.dispose(); }
 }

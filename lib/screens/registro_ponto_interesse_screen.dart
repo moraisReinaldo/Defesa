@@ -196,27 +196,36 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
     final userProvider = context.read<UsuarioProvider>();
     final user = userProvider.usuarioLogado;
     
-    // Verificação de Cidade para Admin
+    // Verificação de Cidade
+    if (_cidadeSelecionada == null) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Localização Não Atendida'),
+          content: Text('A cidade detectada "${_cidadeDetectada ?? 'Desconhecida'}" não está na lista de áreas atendidas.'),
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+        )
+      );
+      return;
+    }
+
+    // Regra específica para Admin
     if (userProvider.isAdmin) {
-      if (_cidadeDetectada == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível identificar a cidade pelo GPS. Tente novamente.')));
-        return;
-      }
-      
-      final cidadeUsuario = user?.cidade; // Agora é um CÓDIGO
-      final cidadeSelecionada = _cidadeSelecionada;
-      
-      if (cidadeUsuario != cidadeSelecionada) {
-        String nomeCidade = 'outra cidade';
+      final cidadeUsuario = user?.cidade; // Código
+      if (cidadeUsuario != _cidadeSelecionada) {
+        String nomeCidadeUsuario = cidadeUsuario ?? 'Sua Cidade';
+        String nomeCidadeDestino = _cidadeDetectada ?? 'Local Selecionado';
+        
         try {
-          nomeCidade = _cidadesSuportadas.firstWhere((c) => c['codigo'] == cidadeSelecionada)['nome'] ?? 'outra cidade';
+          nomeCidadeUsuario = _cidadesSuportadas.firstWhere((c) => c['codigo'] == cidadeUsuario)['nome']!;
+          nomeCidadeDestino = _cidadesSuportadas.firstWhere((c) => c['codigo'] == _cidadeSelecionada)['nome']!;
         } catch (_) {}
         
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Acesso Negado'),
-            content: Text('Você é administrador da cidade "$cidadeUsuario" e não pode cadastrar pontos em "$nomeCidade".'),
+            title: const Text('Fora de Jurisdição'),
+            content: Text('Você é administrador de "$nomeCidadeUsuario" e não pode cadastrar pontos em "$nomeCidadeDestino".'),
             actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
           )
         );
