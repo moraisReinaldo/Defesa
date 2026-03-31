@@ -9,23 +9,63 @@ class UsuarioProvider extends ChangeNotifier {
   Usuario? _usuarioLogado;
   bool _isAdmin = false;
   bool _isLoading = false;
+  bool _estaInicializado = false;
+  bool get estaInicializado => _estaInicializado;
   List<Usuario> _todosAgentes = [];
+  List<Map<String, String>> _cidadesSuportadas = [];
 
-  UsuarioProvider(this._storageService, this._apiService);
+  UsuarioProvider(this._storageService, this._apiService) {
+    // A inicialização pesada será feita pela LoadingScreen chamando carregarTudo()
+  }
 
   ApiService get apiService => _apiService;
   Usuario? get usuarioLogado => _usuarioLogado;
   bool get estaLogado => _usuarioLogado != null;
   bool get isAdmin => _isAdmin;
   bool get isLoading => _isLoading;
+  List<Map<String, String>> get cidadesSuportadas => _cidadesSuportadas;
+  List<Usuario> get todosAgentes => _todosAgentes;
 
-  // Lista de agentes da cidade do administrador
-  List<Usuario> get todosAgentes => _todosAgentes; 
+  DateTime? _ultimoSync;
 
   Future<void> carregarTudo() async {
-    await verificarUsuarioLogado();
-    if (_isAdmin) {
-      await carregarAgentes();
+    try {
+      await carregarCidades();
+      await verificarUsuarioLogado();
+      if (_isAdmin) {
+        await carregarAgentes();
+      }
+      _ultimoSync = DateTime.now();
+    } finally {
+      _estaInicializado = true;
+      notifyListeners();
+    }
+  }
+
+  /// Sincronização global disparada por interações do usuário.
+  /// Implementa um 'throttle' de 5 segundos para evitar excesso de requisições.
+  Future<void> sincronizarGlobal({bool force = false}) async {
+    // Se estiver carregando ou se o último sync foi há menos de 5 segundos, ignora
+    if (_isLoading) return;
+    
+    final agora = DateTime.now();
+    if (!force && _ultimoSync != null && agora.difference(_ultimoSync!).inSeconds < 5) {
+      return; 
+    }
+
+    if (kDebugMode) print('🔄 Sincronização Global Ativada...');
+    
+    // Rodar em background sem setar isLoading=true para não travar a UI com spinners centrais
+    await carregarTudo();
+  }
+
+  Future<void> carregarCidades() async {
+    try {
+      final list = await _apiService.listarCidades();
+      _cidadesSuportadas = list;
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print('Erro ao carregar cidades no Provider: $e');
     }
   }
 

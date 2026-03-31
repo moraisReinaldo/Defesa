@@ -10,7 +10,7 @@ import 'providers/ponto_interesse_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
-import 'screens/mapa_screen.dart';
+import 'screens/loading_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +65,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => UsuarioProvider(storageService, apiService)..verificarUsuarioLogado(),
+          create: (_) => UsuarioProvider(storageService, apiService),
         ),
         ChangeNotifierProvider(
           create: (_) => OcorrenciaProvider(storageService, apiService)..carregarOcorrencias(),
@@ -75,24 +75,57 @@ class MyApp extends StatelessWidget {
         ),
         Provider.value(value: notificationService),
       ],
-      child: MaterialApp(
-        title: 'Defesa Civil em Foco',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor:  const Color(0xFF003366), // Azul Defesa Civil
-            primary:  const Color(0xFF003366),
-            secondary:  const Color(0xFFFF6600), // Laranja Defesa Civil
-          ),
-          appBarTheme:  const AppBarTheme(
-            backgroundColor: Color(0xFF003366),
-            foregroundColor: Colors.white,
-            elevation: 0,
-          ),
-        ),
-        home:  const MapaScreen(),
+      child: Builder(
+        builder: (context) {
+          return MaterialApp(
+            title: 'Defesa Civil em Foco',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor:  const Color(0xFF003366),
+                primary:  const Color(0xFF003366),
+                secondary:  const Color(0xFFFF6600),
+              ),
+              appBarTheme:  const AppBarTheme(
+                backgroundColor: Color(0xFF003366),
+                foregroundColor: Colors.white,
+                elevation: 0,
+              ),
+            ),
+            navigatorObservers: [SyncNavigatorObserver(context)],
+            builder: (context, child) {
+              return Listener(
+                onPointerDown: (_) {
+                  // Qualquer toque na tela (independente de onde seja)
+                  // tenta rodar a sincronização global
+                  context.read<UsuarioProvider>().sincronizarGlobal();
+                },
+                child: child!,
+              );
+            },
+            home:  const LoadingScreen(),
+          );
+        }
       ),
     );
+  }
+}
+
+// Observador customizado para capturar mudanças de tela
+class SyncNavigatorObserver extends NavigatorObserver {
+  final BuildContext context;
+  SyncNavigatorObserver(this.context);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    context.read<UsuarioProvider>().sincronizarGlobal();
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    context.read<UsuarioProvider>().sincronizarGlobal();
   }
 }

@@ -25,21 +25,21 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _carregando = false;
   bool _senhaVisivel = false;
   String _roleSelecionada = 'CIDADAO'; 
-  List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeSelecionada;
-  bool _carregandoCidades = true;
-
   @override
   void initState() {
     super.initState();
     _modoRegistro = widget.modoRegistro;
-    _carregarCidades().then((_) {
+    
+    // Inicia detecção se as cidades já estiverem carregadas
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_modoRegistro) _detectarCidadeAtual();
     });
   }
 
   Future<void> _detectarCidadeAtual() async {
     try {
+      final prov = context.read<UsuarioProvider>();
       final locSvc = LocalizacaoService();
       final pos = await locSvc.obterPosicaoAtual();
       if (pos != null) {
@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
         
         if (cidadeNome != null && mounted) {
           String? codigo;
-          for (var c in _cidadesSuportadas) {
+          for (var c in prov.cidadesSuportadas) {
             final nome = c['nome'] ?? '';
             if (cidadeNome.toLowerCase().contains(nome.toLowerCase()) || 
                 nome.toLowerCase().contains(cidadeNome.toLowerCase())) {
@@ -62,21 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (_) {}
-  }
-
-  Future<void> _carregarCidades() async {
-    try {
-      final api = context.read<UsuarioProvider>().apiService;
-      final list = await api.listarCidades();
-      if (mounted) {
-        setState(() {
-          _cidadesSuportadas = list;
-          _carregandoCidades = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _carregandoCidades = false);
-    }
   }
 
   bool _concordaLGPD = false;
@@ -277,25 +262,23 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text('Selecione sua Cidade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))
                       ),
                       const SizedBox(height: 8),
-                      _carregandoCidades 
-                        ? const LinearProgressIndicator()
-                        : DropdownButtonFormField<String>(
-                            value: _cidadeSelecionada,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
-                              filled: true,
-                              fillColor: Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            items: _cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
-                            onChanged: (v) => setState(() => _cidadeSelecionada = v),
-                            validator: (v) => v == null ? 'Selecione uma cidade' : null,
+                      DropdownButtonFormField<String>(
+                        value: _cidadeSelecionada,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
                           ),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        items: context.watch<UsuarioProvider>().cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
+                        onChanged: (v) => setState(() => _cidadeSelecionada = v),
+                        validator: (v) => v == null ? 'Selecione uma cidade' : null,
+                      ),
                       const SizedBox(height: 16),
                       
                       if (_roleSelecionada == 'ADMINISTRADOR')

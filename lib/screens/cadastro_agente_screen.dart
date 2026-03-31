@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,7 +22,6 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
   final _telefoneController = TextEditingController();
   final _especialidadeController = TextEditingController();
   
-  List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeSelecionada; // Armazena o CÓDIGO da cidade
   bool _salvando = false;
   bool _senhaVisivel = false;
@@ -31,47 +29,26 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
   @override
   void initState() {
     super.initState();
+    final prov = context.read<UsuarioProvider>();
+    
     // Prioridade: Cidade do Administrador logado
-    final adminCidade = context.read<UsuarioProvider>().usuarioLogado?.cidade;
+    final adminCidade = prov.usuarioLogado?.cidade;
     if (adminCidade != null && adminCidade.isNotEmpty) {
       _cidadeSelecionada = adminCidade;
-    }
-    
-    _carregarCidades();
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UsuarioProvider>().carregarTudo();
-    });
-  }
-
-  Future<void> _carregarCidades() async {
-    try {
-      final api = context.read<UsuarioProvider>().apiService;
-      final list = await api.listarCidades();
-      setState(() {
-        _cidadesSuportadas = list;
-
-        // Se já temos uma cidade selecionada (ex: do admin), 
-        // garantir que é o CÓDIGO e que existe na lista.
-        if (_cidadeSelecionada != null) {
-          final existeComoCodigo = list.any((c) => c['codigo'] == _cidadeSelecionada);
-          if (!existeComoCodigo) {
-            // Tentar encontrar o código pelo nome
-            final correspondente = list.firstWhere(
-              (c) => c['nome']?.toLowerCase() == _cidadeSelecionada!.toLowerCase(),
-              orElse: () => {},
-            );
-            if (correspondente.isNotEmpty) {
-              _cidadeSelecionada = correspondente['codigo'];
-            } else {
-              // Se não achou de jeito nenhum, limpa para não travar o Dropdown
-              _cidadeSelecionada = null;
-            }
-          }
+      
+      // Garantir que é o CÓDIGO e que existe na lista.
+      final list = prov.cidadesSuportadas;
+      final existeComoCodigo = list.any((c) => c['codigo'] == _cidadeSelecionada);
+      if (!existeComoCodigo) {
+        // Tentar encontrar o código pelo nome
+        final correspondente = list.firstWhere(
+          (c) => c['nome']?.toLowerCase() == _cidadeSelecionada!.toLowerCase(),
+          orElse: () => {},
+        );
+        if (correspondente.isNotEmpty) {
+          _cidadeSelecionada = correspondente['codigo'];
         }
-      });
-    } catch (e) {
-      if (kDebugMode) print('Erro ao carregar cidades: $e');
+      }
     }
   }
 
@@ -320,7 +297,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                               Expanded(
                                 child: Text(
                                   // Busca o nome da cidade baseada no código selecionado/carregado
-                                  _cidadesSuportadas.firstWhere(
+                                  context.read<UsuarioProvider>().cidadesSuportadas.firstWhere(
                                     (c) => c['codigo'] == _cidadeSelecionada,
                                     orElse: () => {'nome': _cidadeSelecionada ?? 'Sua Jurisdição'},
                                   )['nome']!,

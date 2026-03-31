@@ -39,34 +39,20 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   @override
   void initState() {
     super.initState();
-    _carregarCidades().then((_) => _detectarCidade());
-  }
-
-  Future<void> _carregarCidades() async {
-    try {
-      final api = context.read<UsuarioProvider>().apiService;
-      final list = await api.listarCidades();
-      if (mounted) {
-        setState(() {
-          _cidadesSuportadas = list;
-          _carregandoCidades = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _carregandoCidades = false);
-    }
+    _detectarCidade();
   }
 
   Future<void> _detectarCidade() async {
+    final prov = context.read<UsuarioProvider>();
     final cidade = await _geocodingService.obterCidade(
       widget.posicao.latitude,
       widget.posicao.longitude,
     );
     if (mounted) {
-      // Tentar mapear para nosso código
+      // Tentar mapear para nosso código usando a lista do provider
       String? codigoCorrespondente;
       if (cidade != null) {
-        for (var c in _cidadesSuportadas) {
+        for (var c in prov.cidadesSuportadas) {
           String nome = c['nome'] ?? '';
           if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
               nome.toLowerCase().contains(cidade.toLowerCase())) {

@@ -251,20 +251,32 @@ class ApiService {
   }
   // ========== CIDADES ==========
 
+  static const List<Map<String, String>> fallbackCidades = [
+    {'codigo': 'ATI', 'nome': 'Atibaia'},
+    {'codigo': 'BP', 'nome': 'Bragança Paulista'},
+    {'codigo': 'JOA', 'nome': 'Joanópolis'},
+    {'codigo': 'NAZ', 'nome': 'Nazaré Paulista'},
+    {'codigo': 'PIR', 'nome': 'Piracaia'},
+    {'codigo': 'TUI', 'nome': 'Tuiuti'},
+    {'codigo': 'VAR', 'nome': 'Vargem'},
+  ];
+
   Future<List<Map<String, String>>> listarCidades() async {
     try {
       final response = await _get('/cidades');
       if (response.statusCode == 200) {
         final List vindoDaApi = jsonDecode(response.body);
-        return vindoDaApi.map((e) => {
-          'codigo': e['codigo'].toString(),
-          'nome': e['nome'].toString(),
-        }).toList();
+        if (vindoDaApi.isNotEmpty) {
+          return vindoDaApi.map((e) => {
+            'codigo': e['codigo'].toString(),
+            'nome': e['nome'].toString(),
+          }).toList();
+        }
       }
-      return [];
+      return fallbackCidades;
     } catch (e) {
       if (kDebugMode) print('Erro ao listar cidades: $e');
-      return [];
+      return fallbackCidades;
     }
   }
 }

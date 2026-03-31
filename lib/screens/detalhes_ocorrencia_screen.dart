@@ -34,33 +34,19 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
   Position? _posicaoAtual;
   String? _cidadeDetectada;
   bool _carregando = false;
-  List<Map<String, String>> _cidadesSuportadas = [];
   String? _codigoCidadeDetectada;
 
   @override
   void initState() {
     super.initState();
-    _carregarCidades();
     _obterLocalizacao();
   }
 
-  Future<void> _carregarCidades() async {
-    try {
-      final api = context.read<UsuarioProvider>().apiService;
-      final list = await api.listarCidades();
-      if (mounted) {
-        setState(() {
-          _cidadesSuportadas = list;
-        });
-      }
-    } catch (e) {
-      // Falha silenciosa
-    }
-  }
-
   Future<void> _obterLocalizacao() async {
+    if (!mounted) return;
     setState(() => _carregando = true);
     try {
+      final prov = context.read<UsuarioProvider>();
       final posicao = await _localizacaoService.obterPosicaoAtual();
       if (!mounted) return;
       
@@ -81,8 +67,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
             setState(() {
               _cidadeDetectada = cidade;
               
-              // Mapear para código
-              for (var c in _cidadesSuportadas) {
+              // Mapear para código usando a lista do provider
+              for (var c in prov.cidadesSuportadas) {
                 String nome = c['nome'] ?? '';
                 if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
                     nome.toLowerCase().contains(cidade.toLowerCase())) {
@@ -283,7 +269,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       String? cidadeUsuario = user?.cidade; // Pode ser CÓDIGO ou NOME
       
       // Mapear nome para código se necessário
-      final correspondente = _cidadesSuportadas.firstWhere(
+      final correspondente = userProvider.cidadesSuportadas.firstWhere(
         (c) => c['nome']?.toLowerCase() == cidadeUsuario?.toLowerCase() || 
                c['codigo'] == cidadeUsuario,
         orElse: () => {},
