@@ -34,11 +34,28 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
   Position? _posicaoAtual;
   String? _cidadeDetectada;
   bool _carregando = false;
+  List<Map<String, String>> _cidadesSuportadas = [];
+  String? _codigoCidadeDetectada;
 
   @override
   void initState() {
     super.initState();
+    _carregarCidades();
     _obterLocalizacao();
+  }
+
+  Future<void> _carregarCidades() async {
+    try {
+      final api = context.read<UsuarioProvider>().apiService;
+      final list = await api.listarCidades();
+      if (mounted) {
+        setState(() {
+          _cidadesSuportadas = list;
+        });
+      }
+    } catch (e) {
+      // Falha silenciosa
+    }
   }
 
   Future<void> _obterLocalizacao() async {
@@ -58,6 +75,16 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           if (mounted && cidade != null) {
             setState(() {
               _cidadeDetectada = cidade;
+              
+              // Mapear para código
+              for (var c in _cidadesSuportadas) {
+                String nome = c['nome'] ?? '';
+                if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
+                    nome.toLowerCase().contains(cidade.toLowerCase())) {
+                  _codigoCidadeDetectada = c['codigo'];
+                  break;
+                }
+              }
             });
           }
         } catch (e) {
@@ -230,16 +257,23 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         return;
       }
       
-      final cidadeUsuario = user?.cidade?.toLowerCase().trim();
-      final cidadeGPS = _cidadeDetectada?.toLowerCase().trim();
+      final cidadeUsuario = user?.cidade; // Agora é um CÓDIGO
+      final cidadeGPS = _codigoCidadeDetectada;
       
       if (cidadeUsuario != cidadeGPS) {
+        String nomeCidadeUsuario = cidadeUsuario ?? 'Desconhecida';
+        String nomeCidadeLocal = _cidadeDetectada ?? 'Desconhecida';
+        
+        try {
+          nomeCidadeUsuario = _cidadesSuportadas.firstWhere((c) => c['codigo'] == cidadeUsuario)['nome']!;
+        } catch (_) {}
+
         setState(() => _carregando = false);
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Acesso Negado'),
-            content: Text('Você é administrador da cidade "$cidadeUsuario" e não pode registrar ocorrências em "$cidadeGPS".'),
+            content: Text('Você é administrador da cidade "$nomeCidadeUsuario" e não pode registrar ocorrências em "$nomeCidadeLocal".'),
             actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
           )
         );

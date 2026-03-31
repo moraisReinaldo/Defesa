@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,27 +49,7 @@ public class UsuarioService {
         Status statusInicial = Status.ATIVO;
 
         if (roleReq == Role.ADMINISTRADOR) {
-            String cidadeReq = request.getCidade() != null ? request.getCidade().trim() : "";
-            if (cidadeReq.isEmpty()) {
-                throw new RuntimeException("A cidade é obrigatória para administradores.");
-            }
-
-            List<Usuario> adminsNaCidade = repository.findByCidadeIgnoreCaseAndRoleAndStatusIn(
-                    cidadeReq,
-                    Role.ADMINISTRADOR.name(),
-                    Arrays.asList(Status.ATIVO.name(), Status.PENDENTE.name())
-            );
-
-            // Filtro manual para case insensitive
-            boolean jaExisteAdmin = adminsNaCidade.stream()
-                .anyMatch(u -> u.getCidade().equalsIgnoreCase(cidadeReq));
-
-            if (jaExisteAdmin) {
-                throw new RuntimeException("Já existe um administrador cadastrado ou pendente para a cidade de " + request.getCidade());
-            }
-
-            // Mantemos PENDENTE para administradores para passar pela moderação
-            statusInicial = Status.PENDENTE;
+            throw new RuntimeException("Contas de administrador exigem autorização manual. Solicite via e-mail para reinaldoinfra07@gmail.com");
         }
 
         Usuario usuario = new Usuario();

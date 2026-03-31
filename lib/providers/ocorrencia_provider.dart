@@ -24,18 +24,22 @@ class OcorrenciaProvider extends ChangeNotifier {
   List<Ocorrencia> get ocorrenciasResolvidas =>
       _ocorrencias.where((o) => o.resolvida).toList();
 
-  Future<void> carregarOcorrencias() async {
-    // Tenta carregar da API primeiro, se falhar ou estiver Offline, usa o storage local
+  Future<void> carregarOcorrencias({String? cidade}) async {
     try {
-      final vindoDaApi = await _apiService.listarOcorrencias();
+      final vindoDaApi = await _apiService.listarOcorrencias(cidade: cidade);
       if (vindoDaApi.isNotEmpty) {
         _ocorrencias = vindoDaApi;
-        // Opcional: Atualizar storage local com o que veio da API
       } else {
-        _ocorrencias = await _storageService.obterOcorrencias();
+        final local = await _storageService.obterOcorrencias();
+        _ocorrencias = (cidade != null && cidade.isNotEmpty) 
+            ? local.where((o) => o.cidade == cidade).toList()
+            : local;
       }
     } catch (e) {
-      _ocorrencias = await _storageService.obterOcorrencias();
+      final local = await _storageService.obterOcorrencias();
+      _ocorrencias = (cidade != null && cidade.isNotEmpty) 
+          ? local.where((o) => o.cidade == cidade).toList()
+          : local;
     }
     notifyListeners();
   }

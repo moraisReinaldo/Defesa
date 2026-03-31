@@ -139,9 +139,10 @@ class ApiService {
 
   // ========== OCORRÊNCIAS ==========
 
-  Future<List<Ocorrencia>> listarOcorrencias() async {
+  Future<List<Ocorrencia>> listarOcorrencias({String? cidade}) async {
     try {
-      final response = await _get('/ocorrencias');
+      final query = (cidade != null && cidade.isNotEmpty) ? '?cidade=$cidade' : '';
+      final response = await _get('/ocorrencias$query');
       if (response.statusCode == 200) {
         final List vindoDaApi = jsonDecode(response.body);
         return vindoDaApi.map((o) => Ocorrencia.fromJson(o)).toList();
@@ -245,6 +246,24 @@ class ApiService {
       return [];
     } catch (e) {
       if (kDebugMode) print('Erro ao listar agentes: $e');
+      return [];
+    }
+  }
+  // ========== CIDADES ==========
+
+  Future<List<Map<String, String>>> listarCidades() async {
+    try {
+      final response = await _get('/cidades');
+      if (response.statusCode == 200) {
+        final List vindoDaApi = jsonDecode(response.body);
+        return vindoDaApi.map((e) => {
+          'codigo': e['codigo'].toString(),
+          'nome': e['nome'].toString(),
+        }).toList();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) print('Erro ao listar cidades: $e');
       return [];
     }
   }

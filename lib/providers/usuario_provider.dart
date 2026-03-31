@@ -13,6 +13,7 @@ class UsuarioProvider extends ChangeNotifier {
 
   UsuarioProvider(this._storageService, this._apiService);
 
+  ApiService get apiService => _apiService;
   Usuario? get usuarioLogado => _usuarioLogado;
   bool get estaLogado => _usuarioLogado != null;
   bool get isAdmin => _isAdmin;

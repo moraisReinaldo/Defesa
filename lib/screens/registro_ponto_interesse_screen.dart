@@ -23,6 +23,10 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   String? _cidadeDetectada;
   bool _buscandoCidade = true;
   final _geocodingService = GeocodingService();
+  
+  List<Map<String, String>> _cidadesSuportadas = [];
+  String? _cidadeSelecionada; // Armazena o CÓDIGO
+  bool _carregandoCidades = true;
 
   final List<Map<String, dynamic>> _tipos = [
     {'valor': 'PONTO_COLETA_AGUA', 'label': 'Coleta de Água', 'icon': Icons.water_drop_rounded, 'color': Colors.blue},
@@ -35,7 +39,22 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   @override
   void initState() {
     super.initState();
-    _detectarCidade();
+    _carregarCidades().then((_) => _detectarCidade());
+  }
+
+  Future<void> _carregarCidades() async {
+    try {
+      final api = context.read<UsuarioProvider>().apiService;
+      final list = await api.listarCidades();
+      if (mounted) {
+        setState(() {
+          _cidadesSuportadas = list;
+          _carregandoCidades = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _carregandoCidades = false);
+    }
   }
 
   Future<void> _detectarCidade() async {
@@ -44,8 +63,22 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
       widget.posicao.longitude,
     );
     if (mounted) {
+      // Tentar mapear para nosso código
+      String? codigoCorrespondente;
+      if (cidade != null) {
+        for (var c in _cidadesSuportadas) {
+          String nome = c['nome'] ?? '';
+          if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
+              nome.toLowerCase().contains(cidade.toLowerCase())) {
+            codigoCorrespondente = c['codigo'];
+            break;
+          }
+        }
+      }
+
       setState(() {
         _cidadeDetectada = cidade;
+        _cidadeSelecionada = codigoCorrespondente;
         _buscandoCidade = false;
       });
     }
@@ -98,17 +131,32 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
               const SizedBox(height: 24),
               
               // Cidade Detectada
-              const Text('Cidade Detectada (via GPS)', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              if (_buscandoCidade)
-                const Row(children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 8), Text('Localizando...', style: TextStyle(fontSize: 13))])
+              if (_carregandoCidades)
+                const LinearProgressIndicator()
               else
-                Text(
-                  _cidadeDetectada ?? 'Não identificada',
-                  style: TextStyle(
-                    color: _cidadeDetectada == null ? Colors.red : AppColors.primaryTeal,
-                    fontWeight: FontWeight.w600,
+                DropdownButtonFormField<String>(
+                  value: _cidadeSelecionada,
+                  hint: const Text('Selecione a cidade'),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
+                    filled: true,
+                    fillColor: AppColors.backgroundOffWhite,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
+                  items: _cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
+                  onChanged: (v) => setState(() => _cidadeSelecionada = v),
+                  validator: (v) => v == null ? 'Obrigatório' : null,
+                ),
+              if (_buscandoCidade)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Row(children: [const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), const SizedBox(width: 8), Text('GPS: Localizando...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary))]),
+                )
+              else if (_cidadeDetectada != null && _cidadeSelecionada == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('GPS detectou "$_cidadeDetectada", mas não está na nossa lista. Selecione manualmente.', style: const TextStyle(fontSize: 12, color: Colors.orange)),
                 ),
               
               const SizedBox(height: 24),
@@ -155,15 +203,20 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
         return;
       }
       
-      final cidadeUsuario = user?.cidade?.toLowerCase().trim();
-      final cidadeGPS = _cidadeDetectada?.toLowerCase().trim();
+      final cidadeUsuario = user?.cidade; // Agora é um CÓDIGO
+      final cidadeSelecionada = _cidadeSelecionada;
       
-      if (cidadeUsuario != cidadeGPS) {
+      if (cidadeUsuario != cidadeSelecionada) {
+        String nomeCidade = 'outra cidade';
+        try {
+          nomeCidade = _cidadesSuportadas.firstWhere((c) => c['codigo'] == cidadeSelecionada)['nome'] ?? 'outra cidade';
+        } catch (_) {}
+        
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Acesso Negado'),
-            content: Text('Você é administrador da cidade "$cidadeUsuario" e não pode cadastrar pontos em "$cidadeGPS".'),
+            content: Text('Você é administrador da cidade "$cidadeUsuario" e não pode cadastrar pontos em "$nomeCidade".'),
             actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
           )
         );
@@ -176,7 +229,7 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
       descricao: _descricaoController.text.trim(),
       latitude: widget.posicao.latitude,
       longitude: widget.posicao.longitude,
-      cidade: _cidadeDetectada ?? user?.cidade,
+      cidade: _cidadeSelecionada,
       criadoPor: user?.id,
     );
     

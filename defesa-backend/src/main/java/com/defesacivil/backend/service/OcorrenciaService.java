@@ -26,6 +26,9 @@ public class OcorrenciaService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private FirebaseStorageService storageService;
+
     public Ocorrencia registrarOcorrencia(OcorrenciaRequest request) {
         // Validação de input
         if (request.getTipo() == null || request.getTipo().isBlank()) {
@@ -41,10 +44,22 @@ public class OcorrenciaService {
         oc.setLatitude(request.getLatitude());
         oc.setLongitude(request.getLongitude());
         oc.setCidade(sanitizeInput(request.getCidade()));
-        oc.setCaminhoFoto(request.getCaminhoFoto());
         oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
         oc.setUsuarioId(request.getUsuarioId());
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
+
+        // Se for Base64, subir para o Firebase Storage para economizar espaço no Firestore
+        String foto = request.getCaminhoFoto();
+        if (foto != null && foto.startsWith("data:image")) {
+            String urlPublica = storageService.uploadBase64Image(foto, "ocorrencias");
+            if (urlPublica != null) {
+                oc.setCaminhoFoto(urlPublica);
+            } else {
+                oc.setCaminhoFoto(foto); // fallback se falhar
+            }
+        } else {
+            oc.setCaminhoFoto(foto);
+        }
 
         // Regra de Aprovação: Admins e Agentes são sempre aprovados
         boolean autoAprovado = oc.isCriadoPorAgente();

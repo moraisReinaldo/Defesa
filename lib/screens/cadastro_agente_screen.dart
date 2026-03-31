@@ -22,6 +22,10 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
   final _telefoneController = TextEditingController();
   final _cidadeController = TextEditingController();
   final _especialidadeController = TextEditingController();
+  
+  List<Map<String, String>> _cidadesSuportadas = [];
+  String? _cidadeSelecionada; // Armazena o CÓDIGO da cidade
+  bool _carregandoCidades = true;
 
   final LocalizacaoService _localizacaoService = LocalizacaoService();
   bool _obtendoLocalizacao = false;
@@ -31,9 +35,23 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
   @override
   void initState() {
     super.initState();
+    _carregarCidades();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UsuarioProvider>().carregarTudo();
     });
+  }
+
+  Future<void> _carregarCidades() async {
+    try {
+      final api = context.read<UsuarioProvider>().apiService;
+      final list = await api.listarCidades();
+      setState(() {
+        _cidadesSuportadas = list;
+        _carregandoCidades = false;
+      });
+    } catch (e) {
+      setState(() => _carregandoCidades = false);
+    }
   }
 
   Future<void> _obterCidadePorLocalizacao() async {
@@ -48,19 +66,37 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
 
         if (placemarks.isNotEmpty) {
           final placemark = placemarks.first;
-          final cidade = placemark.subAdministrativeArea ??
+          final cidadeDetectada = placemark.subAdministrativeArea ??
               placemark.locality ??
               placemark.administrativeArea ??
               'Desconhecida';
 
+          // Tentar encontrar a melhor correspondência na nossa lista controlada
+          String? codigoCorrespondente;
+          for (var c in _cidadesSuportadas) {
+            String nome = c['nome'] ?? '';
+            if (cidadeDetectada.toLowerCase().contains(nome.toLowerCase()) || 
+                nome.toLowerCase().contains(cidadeDetectada.toLowerCase())) {
+              codigoCorrespondente = c['codigo'];
+              break;
+            }
+          }
+
           setState(() {
-            _cidadeController.text = cidade;
+            _cidadeSelecionada = codigoCorrespondente;
+            if (codigoCorrespondente == null) {
+               _cidadeController.text = cidadeDetectada;
+            } else {
+               _cidadeController.text = _cidadesSuportadas.firstWhere((c) => c['codigo'] == codigoCorrespondente)['nome']!;
+            }
           });
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Cidade detectada: $cidade'),
+                content: Text(codigoCorrespondente != null 
+                  ? 'Cidade detectada e vinculada: ${_cidadesSuportadas.firstWhere((c) => c['codigo'] == codigoCorrespondente)['nome']}' 
+                  : 'Cidade detectada: $cidadeDetectada (Selecione na lista)'),
                 backgroundColor: AppColors.statusResolved,
               ),
             );
@@ -91,7 +127,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
             email: _emailController.text.trim(),
             telefone: _telefoneController.text.trim(),
             senha: _senhaController.text,
-            cidade: _cidadeController.text.trim(),
+            cidade: _cidadeSelecionada ?? _cidadeController.text.trim(),
             especialidade: _especialidadeController.text.trim(),
           );
 
@@ -109,6 +145,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
           _senhaController.clear();
           _telefoneController.clear();
           _cidadeController.clear();
+          _cidadeSelecionada = null;
           _especialidadeController.clear();
           FocusScope.of(context).unfocus();
         } else {
@@ -285,15 +322,29 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: _buildTextFieldOnly(
-                                _cidadeController,
-                                Icons.location_city_rounded,
-                                'Sua cidade',
-                              ),
+                              child: _carregandoCidades
+                                  ? const Center(child: LinearProgressIndicator())
+                                  : DropdownButtonFormField<String>(
+                                      value: _cidadeSelecionada,
+                                      hint: const Text('Selecione a cidade'),
+                                      decoration: InputDecoration(
+                                        prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
+                                        filled: true,
+                                        fillColor: AppColors.backgroundOffWhite,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                                      ),
+                                      items: _cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!, style: const TextStyle(fontSize: 14)))).toList(),
+                                      onChanged: (val) => setState(() => _cidadeSelecionada = val),
+                                      validator: (val) => val == null ? 'Obrigatório' : null,
+                                    ),
                             ),
                             const SizedBox(width: 10),
                             Container(
-                              height: 54, // Altura padrão do TextField
+                              height: 58,
                               decoration: BoxDecoration(
                                 color: AppColors.primaryTeal.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(16),

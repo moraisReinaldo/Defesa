@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
 import '../services/api_service.dart';
@@ -20,14 +21,33 @@ class _LoginScreenState extends State<LoginScreen> {
   final _nomeController = TextEditingController();
   final _telefoneController = TextEditingController();
   final _cidadeController = TextEditingController();
-  bool _senhaVisivel = false;
   bool _carregando = false;
+  bool _senhaVisivel = false;
   String _roleSelecionada = 'CIDADAO'; 
+  List<Map<String, String>> _cidadesSuportadas = [];
+  String? _cidadeSelecionada;
+  bool _carregandoCidades = true;
 
   @override
   void initState() {
     super.initState();
     _modoRegistro = widget.modoRegistro;
+    _carregarCidades();
+  }
+
+  Future<void> _carregarCidades() async {
+    try {
+      final api = context.read<UsuarioProvider>().apiService;
+      final list = await api.listarCidades();
+      if (mounted) {
+        setState(() {
+          _cidadesSuportadas = list;
+          _carregandoCidades = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _carregandoCidades = false);
+    }
   }
 
   bool _concordaLGPD = false;
@@ -75,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
             email: _emailController.text,
             telefone: _telefoneController.text,
             senha: _senhaController.text,
-            cidade: _roleSelecionada == 'ADMINISTRADOR' ? _cidadeController.text : '', 
+            cidade: _roleSelecionada == 'ADMINISTRADOR' ? (_cidadeSelecionada ?? '') : '', 
             role: _roleSelecionada,
             concordaLGPD: _concordaLGPD,
           ),
@@ -194,10 +214,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    if (_modoRegistro) _field('Nome completo', _nomeController, Icons.person_rounded, 'Seu nome', validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
-                    _field('Email', _emailController, Icons.email_rounded, 'seu@email.com', keyboardType: TextInputType.emailAddress, validator: (v) { if (v == null || v.isEmpty) return 'Obrigatório'; if (!v.contains('@')) return 'Email inválido'; return null; }),
                     if (_modoRegistro) ...[
-                      _field('Telefone', _telefoneController, Icons.phone_rounded, '(11) 99999-9999', keyboardType: TextInputType.phone, validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
+                      _field('Nome completo', _nomeController, Icons.person_rounded, 'Seu nome', validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
                       
                       const SizedBox(height: 8),
                       const Align(alignment: Alignment.centerLeft, child: Text('Tipo de Perfil', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
@@ -205,11 +223,94 @@ class _LoginScreenState extends State<LoginScreen> {
                         Flexible(child: RadioListTile<String>(title: const Text('Cidadão', style: TextStyle(fontSize: 13)), value: 'CIDADAO', groupValue: _roleSelecionada, onChanged: (v) => setState(() => _roleSelecionada = v!), contentPadding: EdgeInsets.zero)),
                         Flexible(child: RadioListTile<String>(title: const Text('Admin', style: TextStyle(fontSize: 13)), value: 'ADMINISTRADOR', groupValue: _roleSelecionada, onChanged: (v) => setState(() => _roleSelecionada = v!), contentPadding: EdgeInsets.zero)),
                       ]),
-
-                      if (_roleSelecionada == 'ADMINISTRADOR')
-                        _field('Cidade de Atuação', _cidadeController, Icons.location_city_rounded, 'Ex: Rio de Janeiro', validator: (v) => v == null || v.isEmpty ? 'Obrigatório para Admin' : null),
-                      const SizedBox(height: 8),
                     ],
+                    _field('Email', _emailController, Icons.email_rounded, 'seu@email.com', keyboardType: TextInputType.emailAddress, validator: (v) { if (v == null || v.isEmpty) return 'Obrigatório'; if (!v.contains('@')) return 'Email inválido'; return null; }),
+                    if (_modoRegistro && _roleSelecionada == 'ADMINISTRADOR') ...[
+                        const SizedBox(height: 8),
+                        const Align(alignment: Alignment.centerLeft, child: Text('Selecione sua Cidade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                        const SizedBox(height: 8),
+                        _carregandoCidades 
+                          ? const LinearProgressIndicator()
+                          : DropdownButtonFormField<String>(
+                              value: _cidadeSelecionada,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: Colors.grey.shade300),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              items: _cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
+                              onChanged: (v) => setState(() => _cidadeSelecionada = v),
+                              validator: (v) => v == null ? 'Selecione uma cidade' : null,
+                            ),
+                        const SizedBox(height: 16),
+                        
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.primaryTeal.withOpacity(0.2)),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.info_outline_rounded, color: AppColors.primaryTeal, size: 32),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Solicitação Manual Necessária',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Contas de administrador não podem ser criadas automaticamente. '
+                                'Para solicitar acesso, envie um e-mail para:',
+                                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              const SelectableText(
+                                'reinaldoinfra07@gmail.com',
+                                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryTeal, fontSize: 14),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    final Uri emailLaunchUri = Uri(
+                                      scheme: 'mailto',
+                                      path: 'reinaldoinfra07@gmail.com',
+                                      query: 'subject=Solicitação de Acesso - ADMINISTRADOR&body=Olá, gostaria de solicitar acesso como ADMINISTRADOR da cidade de ...',
+                                    );
+                                    if (await canLaunchUrl(emailLaunchUri)) {
+                                      await launchUrl(emailLaunchUri);
+                                    }
+                                  },
+                                  icon: const Icon(Icons.email_outlined, size: 18),
+                                  label: const Text('Enviar E-mail'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primaryTeal,
+                                    side: const BorderSide(color: AppColors.primaryTeal),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        _field('Telefone', _telefoneController, Icons.phone_rounded, '(11) 99999-9999', keyboardType: TextInputType.phone, validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
+                        
+                        const SizedBox(height: 8),
+                      ],
+                        const SizedBox(height: 8),
                     _field('Senha', _senhaController, Icons.lock_rounded, 'Sua senha', obscure: !_senhaVisivel,
                         suffixIcon: IconButton(icon: Icon(_senhaVisivel ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: AppColors.textLight), onPressed: () => setState(() => _senhaVisivel = !_senhaVisivel)),
                         validator: (v) { if (v == null || v.isEmpty) return 'Obrigatório'; if (v.length < 6) return 'Mínimo 6 caracteres'; return null; }),
@@ -248,7 +349,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity, height: 56,
                       child: ElevatedButton(
-                        onPressed: _carregando ? null : _enviar,
+                        onPressed: (_carregando || (_modoRegistro && _roleSelecionada == 'ADMINISTRADOR')) ? null : _enviar,
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentAmber, foregroundColor: AppColors.textOnAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 4, shadowColor: AppColors.accentAmber.withOpacity(0.4)),
                         child: _carregando ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) : Text(_modoRegistro ? 'Criar Conta' : 'Entrar', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       ),
