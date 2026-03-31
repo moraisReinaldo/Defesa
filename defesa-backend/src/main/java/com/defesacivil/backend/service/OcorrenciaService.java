@@ -126,6 +126,7 @@ public class OcorrenciaService {
         if (oc != null) {
             oc.setAgenteNoLocal(true);
             oc.setDataChegadaAgente(LocalDateTime.now().toString());
+            oc.setStatus(OcorrenciaStatus.TRABALHANDO_ATUALMENTE.name());
             return ocorrenciaRepository.save(oc);
         }
         return null;

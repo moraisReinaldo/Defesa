@@ -313,30 +313,60 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    if (usuarioProvider.usuarioLogado?.isAgente == true && !usuarioProvider.isAdmin && ocorrencia.status == OcorrenciaStatus.aprovada && !ocorrencia.agenteNoLocal)
+                    // Botão de Chegada no Local (Apenas se já aprovada e não chegou ainda)
+                    if (usuarioProvider.usuarioLogado?.isAgente == true && 
+                        ocorrencia.status == OcorrenciaStatus.aprovada && 
+                        !ocorrencia.agenteNoLocal)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton.icon(onPressed: () async { await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.location_on_rounded), label: const Text('ESTOU NO LOCAL'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal)),
+                          child: ElevatedButton.icon(
+                            onPressed: () async { 
+                              await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id); 
+                              if (context.mounted) Navigator.pop(context); 
+                            }, 
+                            icon: const Icon(Icons.location_on_rounded), 
+                            label: const Text('ESTOU NO LOCAL'), 
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal),
+                          ),
                         ),
                       ),
 
+                    // Botões de Administrador (Resolver/Excluir/Aprovar/Recusar)
                     if (usuarioProvider.isAdmin)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: Row(
                           children: [
-                            Expanded(child: ElevatedButton.icon(onPressed: () => _alterarStatusOcorrencia(ocorrencia), icon: Icon(ocorrencia.resolvida ? Icons.refresh_rounded : Icons.check_circle_rounded, size: 18), label: Text(ocorrencia.resolvida ? 'Reativar' : 'Resolver'), style: ElevatedButton.styleFrom(backgroundColor: ocorrencia.resolvida ? AppColors.statusEnRoute : AppColors.statusResolved))),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _alterarStatusOcorrencia(ocorrencia), 
+                                icon: Icon(ocorrencia.resolvida ? Icons.refresh_rounded : Icons.check_circle_rounded, size: 18), 
+                                label: Text(ocorrencia.resolvida ? 'Reativar' : 'Resolver'), 
+                                style: ElevatedButton.styleFrom(backgroundColor: ocorrencia.resolvida ? AppColors.statusEnRoute : AppColors.statusResolved),
+                              ),
+                            ),
                             const SizedBox(width: 8),
                             Expanded(child: ElevatedButton.icon(onPressed: () => _deletarOcorrencia(ocorrencia), icon: const Icon(Icons.delete_rounded, size: 18), label: const Text('Excluir'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusActive))),
                           ],
                         ),
                       )
-                    else if ((ocorrencia.status == OcorrenciaStatus.aprovada || ocorrencia.status == OcorrenciaStatus.trabalhandoAtualmente) && !ocorrencia.resolvida && (usuarioProvider.usuarioLogado?.isAgente == true))
+                    // Botão de Resolver para Agentes (Apenas se estiver no local ou já trabalhando)
+                    else if ((ocorrencia.status == OcorrenciaStatus.aprovada || ocorrencia.status == OcorrenciaStatus.trabalhandoAtualmente) && 
+                             !ocorrencia.resolvida && 
+                             (usuarioProvider.usuarioLogado?.isAgente == true))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
-                        child: SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => _alterarStatusOcorrencia(ocorrencia), icon: const Icon(Icons.check_circle_rounded, size: 18), label: const Text('Marcar como Resolvida'), style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusResolved))),
+                        child: SizedBox(
+                          width: double.infinity, 
+                          child: ElevatedButton.icon(
+                            onPressed: () => _alterarStatusOcorrencia(ocorrencia), 
+                            icon: const Icon(Icons.check_circle_rounded, size: 18), 
+                            label: const Text('Marcar como Resolvida'), 
+                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusResolved),
+                          ),
+                        ),
                       ),
                   ],
                 ),

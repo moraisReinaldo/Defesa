@@ -59,13 +59,24 @@ class UsuarioProvider extends ChangeNotifier {
     await carregarTudo();
   }
 
+  bool _buscandoCidades = false;
+
   Future<void> carregarCidades() async {
+    if (_buscandoCidades) return;
+    _buscandoCidades = true;
     try {
       final list = await _apiService.listarCidades();
       _cidadesSuportadas = list;
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print('Erro ao carregar cidades no Provider: $e');
+      // Fallback for UI if API fails completely
+      if (_cidadesSuportadas.isEmpty) {
+         _cidadesSuportadas = ApiService.fallbackCidades;
+      }
+    } finally {
+      _buscandoCidades = false;
+      notifyListeners();
     }
   }
 
@@ -168,6 +179,9 @@ class UsuarioProvider extends ChangeNotifier {
     await _storageService.limparSessao();
     _usuarioLogado = null;
     _isAdmin = false;
+    _estaInicializado = false; // Reset essencial para evitar loop de carregamento
+    _todosAgentes = [];
+    _cidadesSuportadas = [];
     notifyListeners();
   }
 

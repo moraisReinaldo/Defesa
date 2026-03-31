@@ -77,9 +77,21 @@ class ApiService {
           .get(url, headers: headers)
           .timeout(_timeoutLimit);
     } on SocketException catch (e) {
-      if (kDebugMode) print('🚨 Erro de Socket em $url: $e');
-      // Se falhar no Render em debug, talvez devêssemos sugerir o local?
-      throw Exception('Erro de conexão: Não foi possível alcançar o servidor em $url.');
+      if (kDebugMode) {
+        print('🚨 Erro de Socket em $url: $e');
+        // Se falhar no Render em debug, tentamos o fallback local (Android Emulator)
+        if (baseUrl.contains('onrender.com')) {
+          print('🔄 Tentando fallback para backend local: $_localFallbackUrl$path');
+          try {
+            return await http
+                .get(Uri.parse('$_localFallbackUrl$path'), headers: headers)
+                .timeout(const Duration(seconds: 5));
+          } catch (e2) {
+            print('⚠️ Fallback local também falhou: $e2');
+          }
+        }
+      }
+      throw Exception('Erro de conexão: Não foi possível alcançar o servidor em $url. Verifique se o backend está rodando localmente ou se a URL $baseUrl é válida.');
     } on TimeoutException {
       throw Exception('O servidor demorou para responder. Tente novamente em instantes.');
     } catch (e) {
