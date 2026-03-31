@@ -109,6 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
             senha: _senhaController.text,
             cidade: _cidadeSelecionada ?? '', 
             role: _roleSelecionada,
+            situacao: _roleSelecionada == 'ADMINISTRADOR' ? 'PENDENTE' : 'ATIVO',
             concordaLGPD: _concordaLGPD,
           ),
         );
@@ -299,10 +300,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
                                 textAlign: TextAlign.center,
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Contas de administrador não podem ser criadas automaticamente. '
-                                'Para solicitar acesso, envie um e-mail para:',
+                                                    const Text(
+                                'Contas de administrador requerem aprovação manual. '
+                                'Você pode criar sua conta agora e, se desejar agilizar o processo, envie um e-mail para:',
                                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                                 textAlign: TextAlign.center,
                               ),
@@ -321,12 +321,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                       path: 'reinaldoinfra07@gmail.com',
                                       query: 'subject=Solicitação de Acesso - ADMINISTRADOR&body=Olá, gostaria de solicitar acesso como ADMINISTRADOR da cidade de ...',
                                     );
-                                    if (await canLaunchUrl(emailLaunchUri)) {
-                                      await launchUrl(emailLaunchUri);
+                                    try {
+                                      await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+                                    } catch (e) {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o app de e-mail')));
+                                      }
                                     }
                                   },
                                   icon: const Icon(Icons.email_outlined, size: 18),
-                                  label: const Text('Enviar E-mail'),
+                                  label: const Text('Enviar E-mail (Opcional)'),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.primaryTeal,
                                     side: const BorderSide(color: AppColors.primaryTeal),
@@ -386,7 +390,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     SizedBox(
                       width: double.infinity, height: 56,
                       child: ElevatedButton(
-                        onPressed: (_carregando || (_modoRegistro && _roleSelecionada == 'ADMINISTRADOR')) ? null : _enviar,
+                        onPressed: _carregando ? null : _enviar,
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentAmber, foregroundColor: AppColors.textOnAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 4, shadowColor: AppColors.accentAmber.withAlpha(100)),
                         child: _carregando ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) : Text(_modoRegistro ? 'Criar Conta' : 'Entrar', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       ),

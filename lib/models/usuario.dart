@@ -18,6 +18,7 @@ class Usuario {
   final String? especialidade;
   final String? fcmToken;
   final DateTime dataCriacao;
+  final String situacao; // PENDENTE ou ATIVO
 
   Usuario({
     String? id,
@@ -30,12 +31,14 @@ class Usuario {
     this.cidade,
     this.especialidade,
     this.fcmToken,
+    this.situacao = 'ATIVO',
     DateTime? dataCriacao,
   })  : id = id ?? const Uuid().v4(),
         dataCriacao = dataCriacao ?? DateTime.now();
 
   bool get isAgente => role == Role.agente || role == Role.administrador;
   bool get isAdmin => role == Role.administrador;
+  bool get isAtivo => situacao.toUpperCase() == 'ATIVO';
 
   // Converter para JSON
   Map<String, dynamic> toJson() {
@@ -50,6 +53,7 @@ class Usuario {
       'cidade': cidade,
       'especialidade': especialidade,
       'fcmToken': fcmToken,
+      'situacao': situacao,
       'dataCriacao': dataCriacao.toIso8601String(),
     };
   }
@@ -70,6 +74,7 @@ class Usuario {
       cidade: json['cidade'],
       especialidade: json['especialidade'],
       fcmToken: json['fcmToken'],
+      situacao: json['situacao'] ?? 'ATIVO',
       dataCriacao: _parseSafe(json['dataCriacao']) ?? DateTime.now(),
     );
   }

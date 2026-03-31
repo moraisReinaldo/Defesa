@@ -19,6 +19,10 @@ class ApiService {
     defaultValue: 'https://defesa-civil-backend.onrender.com/api',
   );
 
+  static String getServerRoot() {
+    return baseUrl.replaceAll('/api', '');
+  }
+
   static const Duration _timeoutLimit = Duration(seconds: 90);
 
   String _extractMessageFromBody(String body) {
@@ -288,6 +292,7 @@ class UsuarioRequest {
   final String telefone;
   final String cidade;
   final String role;
+  final String situacao;
   final bool concordaLGPD;
 
   UsuarioRequest({
@@ -297,6 +302,7 @@ class UsuarioRequest {
     required this.telefone,
     required this.cidade,
     required this.role,
+    this.situacao = 'ATIVO',
     required this.concordaLGPD,
   });
 
@@ -308,6 +314,7 @@ class UsuarioRequest {
       'telefone': telefone,
       'cidade': cidade,
       'role': role,
+      'situacao': situacao,
       'concordaLGPD': concordaLGPD,
     };
   }
