@@ -35,7 +35,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
   @override
   void initState() {
     super.initState();
-    _carregarCidades();
+    _carregarCidades().then((_) => _obterCidadePorLocalizacao());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UsuarioProvider>().carregarTudo();
     });

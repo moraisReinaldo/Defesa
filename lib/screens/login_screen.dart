@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
 import '../services/api_service.dart';
+import '../services/localizacao_service.dart';
+import '../services/geocoding_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool modoRegistro;
@@ -32,7 +34,35 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _modoRegistro = widget.modoRegistro;
-    _carregarCidades();
+    _carregarCidades().then((_) {
+      if (_modoRegistro) _detectarCidadeAtual();
+    });
+  }
+
+  Future<void> _detectarCidadeAtual() async {
+    try {
+      final locSvc = LocalizacaoService();
+      final pos = await locSvc.obterPosicaoAtual();
+      if (pos != null) {
+        final geocoder = GeocodingService(); // Precisamos importar ou usar o disponível
+        final cidadeNome = await geocoder.obterCidade(pos.latitude, pos.longitude);
+        
+        if (cidadeNome != null && mounted) {
+          String? codigo;
+          for (var c in _cidadesSuportadas) {
+            final nome = c['nome'] ?? '';
+            if (cidadeNome.toLowerCase().contains(nome.toLowerCase()) || 
+                nome.toLowerCase().contains(cidadeNome.toLowerCase())) {
+              codigo = c['codigo'];
+              break;
+            }
+          }
+          if (codigo != null) {
+            setState(() => _cidadeSelecionada = codigo);
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _carregarCidades() async {

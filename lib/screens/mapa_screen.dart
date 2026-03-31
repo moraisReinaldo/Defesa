@@ -52,13 +52,25 @@ class _MapaScreenState extends State<MapaScreen> {
     await context.read<OcorrenciaProvider>().carregarOcorrencias();
     if (!mounted) return;
     await context.read<PontoInteresseProvider>().carregarPontos();
-    _posicaoAtual = await _localizacaoService.obterPosicaoAtual();
+    
+    // Na inicialização, centralizamos sem animação brusca se possível, 
+    // mas garantindo que o mapa mova para o local correto.
+    await _centralizarLocalizacao(animar: true);
+  }
 
-    if (_posicaoAtual != null && mounted) {
-      _mapController.move(
-        LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude),
-        14,
-      );
+  Future<void> _centralizarLocalizacao({bool animar = true}) async {
+    final posicao = await _localizacaoService.obterPosicaoAtual();
+    if (posicao != null && mounted) {
+      setState(() {
+        _posicaoAtual = posicao;
+      });
+      
+      if (animar) {
+        _mapController.move(
+          LatLng(posicao.latitude, posicao.longitude),
+          15,
+        );
+      }
     }
   }
 
@@ -520,6 +532,15 @@ class _MapaScreenState extends State<MapaScreen> {
                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen())),
                   icon: const Icon(Icons.add),
                   label: const Text('Nova Ocorrência'),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton(
+                  mini: true,
+                  heroTag: 'fab_gps',
+                  onPressed: () => _centralizarLocalizacao(),
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primaryTeal,
+                  child: const Icon(Icons.my_location_rounded),
                 ),
               ],
             )
