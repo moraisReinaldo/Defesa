@@ -429,8 +429,9 @@ class _MapaScreenState extends State<MapaScreen> {
                           ),
                         ),
                       ),
-                  ],
-                ),
+                      SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+                    ],
+                  ),
               ),
             ),
             ],
@@ -705,6 +706,53 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   void _mostrarDetalhesPOI(PontoInteresse p) {
-    showModalBottomSheet(context: context, builder: (_) => Container(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [Text(p.tipo), Text(p.descricao), if (context.read<UsuarioProvider>().isAdmin) ElevatedButton(onPressed: () { context.read<PontoInteresseProvider>().deletarPonto(p.id); Navigator.pop(context); }, child: const Text('Remover'))])));
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 24),
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceCard,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Icon(Icons.location_on_rounded, color: AppColors.primaryTeal),
+                const SizedBox(width: 8),
+                Text(p.tipo.replaceAll('_', ' '), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(p.descricao, style: const TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.4)),
+            if (context.read<UsuarioProvider>().isAdmin) ...[
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () { 
+                    context.read<PontoInteresseProvider>().deletarPonto(p.id); 
+                    Navigator.pop(context); 
+                  }, 
+                  icon: const Icon(Icons.delete_rounded),
+                  label: const Text('Remover Ponto de Apoio'),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusActive, foregroundColor: Colors.white),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -52,43 +52,46 @@ class TipoOcorrenciaCard extends StatelessWidget {
         child: Stack(
           children: [
             // Conteúdo
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Ícone
-                  Container(
-                    width: 56,
-                    height: 56,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? tipoColor.withValues(alpha: 0.15)
-                          : tipoColorLight,
-                      borderRadius: BorderRadius.circular(16),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Ícone
+                    Container(
+                      width: 56,
+                      height: 56,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? tipoColor.withValues(alpha: 0.15)
+                            : tipoColorLight,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        icone,
+                        color: tipoColor,
+                        size: 28,
+                      ),
                     ),
-                    child: Icon(
-                      icone,
-                      color: tipoColor,
-                      size: 28,
+                    const SizedBox(height: 10),
+                    // Nome
+                    Text(
+                      nome,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                        color: selected ? tipoColor : AppColors.textPrimary,
+                        height: 1.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Nome
-                  Text(
-                    nome,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                      color: selected ? tipoColor : AppColors.textPrimary,
-                      height: 1.2,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 

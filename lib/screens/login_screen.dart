@@ -232,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: SegmentedButton<String>(
                           segments: const [
                             ButtonSegment(value: 'CIDADAO', label: Text('Cidadão'), icon: Icon(Icons.person_outline_rounded)),
-                            ButtonSegment(value: 'ADMINISTRADOR', label: Text('Admin'), icon: Icon(Icons.admin_panel_settings_outlined)),
+                            ButtonSegment(value: 'ADMINISTRADOR', label: Text('Coordenador'), icon: Icon(Icons.admin_panel_settings_outlined)),
                           ],
                           selected: {_roleSelecionada},
                           onSelectionChanged: (Set<String> selection) {
