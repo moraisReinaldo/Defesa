@@ -662,8 +662,14 @@ class _MapaScreenState extends State<MapaScreen> {
           options: MapOptions(
             center: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
             zoom: 14,
+            minZoom: 5,
+            maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),
             onLongPress: (_, latlng) { if (userProv.isAdmin) _confirmarNovoPontoInteresse(latlng); },
+            maxBounds: LatLngBounds(
+              const LatLng(-33.0, -73.0),
+              const LatLng(5.0, -34.0),
+            ),
           ),
           children: [
             TileLayer(

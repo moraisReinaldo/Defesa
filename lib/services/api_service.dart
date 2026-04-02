@@ -353,6 +353,14 @@ class ApiService {
 
   // ========== USUARIOS / AGENTES ==========
 
+  Future<dynamic> promoverParaAgente(String email) async {
+    final response = await _post('/usuarios/promover', {'email': email});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw _httpException(response);
+  }
+
   Future<List<Usuario>> listarAgentes({String? cidade}) async {
     try {
       final query = cidade != null ? '?cidade=$cidade' : '';

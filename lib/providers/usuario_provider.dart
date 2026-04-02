@@ -93,6 +93,23 @@ class UsuarioProvider extends ChangeNotifier {
     // TODO: Implementar DELETE /api/usuarios/{id} no backend
   }
 
+  Future<bool> promoverParaAgente(String email) async {
+    _setLoading(true);
+    try {
+      final res = await _apiService.promoverParaAgente(email);
+      if (res != null) {
+        await carregarAgentes();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao promover agente: $e');
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> cadastrarAgente({
     required String nome,
     required String email,

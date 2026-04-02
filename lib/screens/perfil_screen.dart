@@ -16,6 +16,7 @@ class PerfilScreen extends StatefulWidget {
 class _PerfilScreenState extends State<PerfilScreen> {
   late TextEditingController _nomeController;
   late TextEditingController _telefoneController;
+  final TextEditingController _emailPromoController = TextEditingController();
   bool _editando = false;
 
   @override
@@ -238,6 +239,37 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               ),
                             ),
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 32),
+                        const Text('Promover Usuário a Agente', 
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _emailPromoController,
+                                decoration: InputDecoration(
+                                  hintText: 'E-mail do cidadão...',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: AppColors.primaryTeal.withAlpha(50)),
+                                  ),
+                                ),
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton.filled(
+                              onPressed: () => _promoverUsuario(prov),
+                              icon: const Icon(Icons.send_rounded, size: 18),
+                              style: IconButton.styleFrom(backgroundColor: AppColors.primaryTeal),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -568,10 +600,38 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
+  void _promoverUsuario(UsuarioProvider prov) async {
+    final email = _emailPromoController.text.trim();
+    if (email.isEmpty) return;
+
+    try {
+      final ok = await prov.promoverParaAgente(email);
+      if (mounted) {
+        _emailPromoController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Usuário promovido com sucesso! 🎉'),
+            backgroundColor: AppColors.statusResolved,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: AppColors.statusActive,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _nomeController.dispose();
     _telefoneController.dispose();
+    _emailPromoController.dispose();
     super.dispose();
   }
 }

@@ -44,6 +44,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/api/usuarios/login").permitAll()
                 .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
                 .requestMatchers("/api/ocorrencias").permitAll()
+                // Apenas Administradores podem promover usuários a agentes
+                .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
+                // Apenas Agentes e Admins podem listar outros agentes
+                .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")
                 // Apenas Administradores podem aprovar ocorrências
                 .requestMatchers("/api/ocorrencias/*/aprovar").hasRole("ADMINISTRADOR")
                 // Agentes e Admins podem registrar chegada
@@ -68,9 +72,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Em produção, restringir ao seu domínio real
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedOriginPatterns(List.of(
+            "https://defesacivil.onrender.com", 
+            "http://localhost:*", 
+            "*" // Temporário para testes, mas restrito por headers
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-User-Id"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

@@ -24,9 +24,9 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   bool _buscandoCidade = true;
   final _geocodingService = GeocodingService();
   
-  List<Map<String, String>> _cidadesSuportadas = [];
+  final List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeSelecionada; // Armazena o CÓDIGO
-  bool _carregandoCidades = true;
+  final bool _carregandoCidades = true;
 
   final List<Map<String, dynamic>> _tipos = [
     {'valor': 'PONTO_COLETA_AGUA', 'label': 'Coleta de Água', 'icon': Icons.water_drop_rounded, 'color': Colors.blue},

@@ -10,6 +10,8 @@ class OcorrenciaTipos {
     'colapso_estrutural': 'Colapso Estrutural',
     'vazamento_perigoso': 'Vazamento Perigoso',
     'tempestade': 'Tempestade / Vendaval',
+    'animais_peconhentos': 'Animais Peçonhentos',
+    'obstrucao_via': 'Obstrução de Via',
     'outro': 'Outro (Emergência)',
   };
 
@@ -21,6 +23,8 @@ class OcorrenciaTipos {
     'colapso_estrutural': 'Desabamento ou colapso de estruturas',
     'vazamento_perigoso': 'Vazamento de substâncias químicas ou perigosas',
     'tempestade': 'Tempestade, vendaval ou fenômeno meteorológico severo',
+    'animais_peconhentos': 'Presença de animais perigosos (serpentes, escorpiões, etc.)',
+    'obstrucao_via': 'Vias bloqueadas por detritos, quedas ou acidentes',
     'outro': 'Outra emergência não classificada',
   };
 
@@ -32,6 +36,8 @@ class OcorrenciaTipos {
     'colapso_estrutural': Icons.domain_disabled_rounded,
     'vazamento_perigoso': Icons.warning_amber_rounded,
     'tempestade': Icons.thunderstorm_rounded,
+    'animais_peconhentos': Icons.bug_report_rounded,
+    'obstrucao_via': Icons.block_rounded,
     'outro': Icons.emergency_rounded,
   };
 

@@ -63,6 +63,8 @@ class AppColors {
     'colapso_estrutural': Color(0xFF6B7280),
     'vazamento_perigoso': Color(0xFFF59E0B),
     'tempestade': Color(0xFF6366F1),
+    'animais_peconhentos': Color(0xFF9333EA),
+    'obstrucao_via': Color(0xFF475569),
     'outro': Color(0xFF14B8A6),
   };
 
@@ -74,6 +76,8 @@ class AppColors {
     'colapso_estrutural': Color(0xFFF3F4F6),
     'vazamento_perigoso': Color(0xFFFEF3C7),
     'tempestade': Color(0xFFE0E7FF),
+    'animais_peconhentos': Color(0xFFF3E8FF),
+    'obstrucao_via': Color(0xFFF1F5F9),
     'outro': Color(0xFFCCFBF1),
   };
 

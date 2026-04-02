@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
   final _nomeController = TextEditingController();
+  final _telefoneController = TextEditingController();
   final _cidadeController = TextEditingController();
   bool _carregando = false;
   bool _senhaVisivel = false;
@@ -105,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
           UsuarioRequest(
             nome: _nomeController.text,
             email: _emailController.text,
-            telefone: '', 
+            telefone: _telefoneController.text, 
             senha: _senhaController.text,
             cidade: _cidadeSelecionada ?? '', 
             role: _roleSelecionada,
@@ -257,13 +258,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     if (_modoRegistro) ...[
                       const SizedBox(height: 8),
+                      _field('Telefone / WhatsApp', _telefoneController, Icons.phone_android_rounded, '(00) 00000-0000', 
+                        keyboardType: TextInputType.phone,
+                        validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
+                    ],
+
+                    if (_modoRegistro) ...[
+                      const SizedBox(height: 8),
                       const Align(
                         alignment: Alignment.centerLeft, 
                         child: Text('Selecione sua Cidade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _cidadeSelecionada,
+                        initialValue: _cidadeSelecionada,
                         isExpanded: true,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
@@ -447,6 +455,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose(); 
     _senhaController.dispose(); 
     _nomeController.dispose(); 
+    _telefoneController.dispose();
     _cidadeController.dispose(); 
     super.dispose(); 
   }

@@ -45,8 +45,26 @@ public class UsuarioService {
         } catch (Exception e) {
             roleReq = Role.CIDADAO; // fallback
         }
+
+        // --- SEGURANÇA: Prevenir Role Injection ---
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean isSolicianteAdmin = auth != null && auth.isAuthenticated() && 
+            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+
+        if (!isSolicianteAdmin) {
+            // Se não for um admin logado criando o usuário, restringimos as opções
+            if (roleReq == Role.AGENTE) {
+                throw new RuntimeException("Apenas administradores podem cadastrar novos agentes.");
+            }
+            // Só permitimos CIDADAO ou ADMINISTRADOR (que ficará PENDENTE)
+            if (roleReq != Role.CIDADAO && roleReq != Role.ADMINISTRADOR) {
+                roleReq = Role.CIDADAO;
+            }
+        }
         
-        Status statusInicial = (roleReq == Role.ADMINISTRADOR) ? Status.PENDENTE : Status.ATIVO;
+        // Admins já nascem ATIVOS se criados por outro Admin. 
+        // Se for auto-cadastro de Admin, fica PENDENTE.
+        Status statusInicial = (roleReq == Role.ADMINISTRADOR && !isSolicianteAdmin) ? Status.PENDENTE : Status.ATIVO;
 
         Usuario usuario = new Usuario();
         usuario.setNome(request.getNome());

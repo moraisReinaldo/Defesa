@@ -38,7 +38,7 @@ class StatusBadge extends StatelessWidget {
     }
     // "Em caminho" se houver agentes associados e ainda estiver "Aprovada"
     else if (status == OcorrenciaStatus.aprovada && agentes != null && agentes!.isNotEmpty) {
-      label = 'Em caminho';
+      label = 'A caminho';
       bgColor = AppColors.statusEnRoute.withValues(alpha: 0.15);
       textColor = AppColors.statusEnRoute;
       icon = Icons.directions_run_rounded;

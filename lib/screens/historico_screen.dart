@@ -423,11 +423,11 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         ocorrencias = provider.ocorrencias;
     }
 
-    // Filtragem por cidade para Admin e Agentes (Segurança e Foco)
-    if (usuarioProvider.estaLogado && usuarioProvider.usuarioLogado!.isAgente) {
-      final cidadeAdmin = usuarioProvider.usuarioLogado?.cidade;
-      if (cidadeAdmin != null && cidadeAdmin.isNotEmpty) {
-        ocorrencias = ocorrencias.where((o) => o.cidade == cidadeAdmin).toList();
+    // Filtragem por cidade obrigatória (Privacidade e Foco por Município)
+    if (usuarioProvider.estaLogado) {
+      final cidadeUsuario = usuarioProvider.usuarioLogado?.cidade;
+      if (cidadeUsuario != null && cidadeUsuario.isNotEmpty) {
+        ocorrencias = ocorrencias.where((o) => o.cidade == cidadeUsuario).toList();
       }
     }
 

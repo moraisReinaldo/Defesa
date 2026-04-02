@@ -199,6 +199,20 @@ public class OcorrenciaService {
     }
 
     public List<Ocorrencia> buscarPorCidade(String cidade) {
+        // Enforçar filtro por cidade para usuários não-administrativos via SecurityContext
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        
+        if (auth != null && auth.isAuthenticated() && !auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"))) {
+            // Se for um cidadão ou agente autenticado, buscar os dados dele para saber a cidade real
+            Optional<Usuario> usuario = usuarioRepository.findByEmail(auth.getName());
+            if (usuario.isPresent()) {
+                String cidadeUsuario = usuario.get().getCidade();
+                if (cidadeUsuario != null && !cidadeUsuario.isBlank()) {
+                    return ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeUsuario);
+                }
+            }
+        }
+
         if (cidade == null || cidade.trim().isEmpty()) {
             return ocorrenciaRepository.findAll();
         }
@@ -208,24 +222,30 @@ public class OcorrenciaService {
     // ========== SEGURANÇA ==========
 
     private void verificarRole(String userId, Role roleRequerida, String mensagem) {
-        if (userId == null || userId.isEmpty()) {
-            // Se não há userId, permitir temporariamente (até JWT ser implementado)
-            System.err.println("ALERTA SEGURANÇA: Requisição sem userId para endpoint protegido");
-            return;
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new SecurityException("Acesso negado: Usuário não autenticado");
         }
-        Optional<Usuario> usuario = usuarioRepository.findById(userId);
-        if (usuario.isEmpty() || !roleRequerida.name().equals(usuario.get().getRole())) {
+        
+        boolean hasRole = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_" + roleRequerida.name()));
+        
+        if (!hasRole) {
             throw new SecurityException(mensagem);
         }
     }
 
     private void verificarRoleMultiple(String userId, List<Role> rolesPermitidas, String mensagem) {
-        if (userId == null || userId.isEmpty()) {
-            System.err.println("ALERTA SEGURANÇA: Requisição sem userId para endpoint protegido");
-            return;
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new SecurityException("Acesso negado: Usuário não autenticado");
         }
-        Optional<Usuario> usuario = usuarioRepository.findById(userId);
-        if (usuario.isEmpty() || !rolesPermitidas.stream().map(Enum::name).toList().contains(usuario.get().getRole())) {
+
+        boolean hasAnyRole = auth.getAuthorities().stream()
+                .anyMatch(a -> rolesPermitidas.stream()
+                        .anyMatch(role -> a.getAuthority().equals("ROLE_" + role.name())));
+
+        if (!hasAnyRole) {
             throw new SecurityException(mensagem);
         }
     }
