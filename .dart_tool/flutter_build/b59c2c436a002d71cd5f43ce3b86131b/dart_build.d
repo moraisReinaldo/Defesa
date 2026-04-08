@@ -1,1 +1,0 @@
- /home/rhmorais/Documentos/GitHub/Defesa/.dart_tool/flutter_build/b59c2c436a002d71cd5f43ce3b86131b/dart_build_result.json:  /home/rhmorais/Android/flutter/flutter/bin/cache/dart-sdk/version /home/rhmorais/Documentos/GitHub/Defesa/.dart_tool/package_config.json /home/rhmorais/Documentos/GitHub/Defesa/pubspec.yaml

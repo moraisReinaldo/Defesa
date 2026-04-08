@@ -147,7 +147,7 @@ class ApiService {
     }
   }
 
-  Future<http.Response> _delete(String path, {bool secure = true}) async {
+  Future<http.Response> _delete(String path) async {
     final headers = await _getHeaders();
     try {
       return await http
