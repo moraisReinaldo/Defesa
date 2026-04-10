@@ -15,10 +15,6 @@ Defesa Em Foco é um aplicativo móvel desenvolvido em Flutter que visa fornecer
 - 👥 Gerenciamento de usuários
 - 📱 Interface intuitiva
 
-## 📸 Screenshots
-
-![Screenshot do App](./assets/images/defe.png)
-
 ## 📱 Instalação
 
 1. Clone o repositório
