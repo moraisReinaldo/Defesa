@@ -2,13 +2,12 @@ package com.defesacivil.backend.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import java.security.Key;
+import jakarta.annotation.PostConstruct;
+import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +19,7 @@ public class JwtService {
     @Value("${app.jwt.secret:}")
     private String secret;
 
-    private Key signingKey;
+    private SecretKey signingKey;
 
     private static final long EXPIRATION_TIME = 86400000; // 24 horas
 
@@ -28,7 +27,7 @@ public class JwtService {
     public void init() {
         if (secret == null || secret.isEmpty() || secret.length() < 32) {
             // Em desenvolvimento, gera uma chave segura se não houver no env
-            this.signingKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            this.signingKey = Jwts.SIG.HS256.key().build();
         } else {
             this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
         }
@@ -42,11 +41,11 @@ public class JwtService {
 
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -64,11 +63,11 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(signingKey)
+        return Jwts.parser()
+                .verifyWith(signingKey)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     public boolean isTokenValid(String token, String userEmail) {

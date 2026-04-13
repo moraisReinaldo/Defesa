@@ -7,7 +7,6 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,17 +16,20 @@ import java.util.Optional;
 @Service
 public class OcorrenciaService {
 
-    @Autowired
-    private OcorrenciaRepository ocorrenciaRepository;
+    private final OcorrenciaRepository ocorrenciaRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final NotificationService notificationService;
+    private final FirebaseStorageService storageService;
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    @Autowired
-    private NotificationService notificationService;
-
-    @Autowired
-    private FirebaseStorageService storageService;
+    public OcorrenciaService(OcorrenciaRepository ocorrenciaRepository,
+                             UsuarioRepository usuarioRepository,
+                             NotificationService notificationService,
+                             FirebaseStorageService storageService) {
+        this.ocorrenciaRepository = ocorrenciaRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.notificationService = notificationService;
+        this.storageService = storageService;
+    }
 
     public Ocorrencia registrarOcorrencia(OcorrenciaRequest request) {
         // Validação de input
@@ -64,7 +66,8 @@ public class OcorrenciaService {
         // Regra de Aprovação: Admins e Agentes são sempre aprovados
         boolean autoAprovado = oc.isCriadoPorAgente();
         
-        if (oc.getUsuarioId() != null) {
+        // Short-circuit: se já sabemos que é agente, não precisa buscar no banco
+        if (!autoAprovado && oc.getUsuarioId() != null) {
             Optional<Usuario> criador = usuarioRepository.findById(oc.getUsuarioId());
             if (criador.isPresent()) {
                 String role = criador.get().getRole();
@@ -180,6 +183,18 @@ public class OcorrenciaService {
             return ocorrenciaRepository.save(oc);
         }
         return null;
+    }
+
+    public boolean deletarOcorrencia(String id, String userId) {
+        // Verificação de role: apenas ADMINISTRADOR pode deletar
+        verificarRole(userId, Role.ADMINISTRADOR, "Apenas administradores podem deletar ocorrências");
+
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
+        if (oc != null && oc.getId() != null) {
+            ocorrenciaRepository.deleteById(oc.getId());
+            return true;
+        }
+        return false;
     }
 
     public Ocorrencia atualizarOcorrencia(String id, OcorrenciaRequest request) {

@@ -112,9 +112,19 @@ class OcorrenciaProvider extends ChangeNotifier {
   }
 
   Future<void> deletarOcorrencia(String id) async {
-    await _storageService.deletarOcorrencia(id);
-    _ocorrencias.removeWhere((o) => o.id == id);
-    notifyListeners();
+    try {
+      await _apiService.deletarOcorrencia(id);
+      await _storageService.deletarOcorrencia(id);
+      _ocorrencias.removeWhere((o) => o.id == id);
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print("Erro ao deletar ocorrência na API: $e");
+      // Fallback local
+      await _storageService.deletarOcorrencia(id);
+      _ocorrencias.removeWhere((o) => o.id == id);
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> resolverOcorrencia(String id, {String? parecer}) async {

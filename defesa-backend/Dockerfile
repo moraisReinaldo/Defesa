@@ -18,5 +18,5 @@ COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
 
 # Run the jar file
-# Render define a porta pela variável de ambiente PORT
-CMD ["java", "-Xmx512m", "-Dserver.port=${PORT:8080}", "-jar", "app.jar"]
+# Shell form para que a variable expansion de ${PORT} funcione
+CMD java -Xmx512m -Dserver.port=${PORT:-8080} -jar app.jar

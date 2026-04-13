@@ -1,9 +1,9 @@
 package com.defesacivil.backend.config;
 
 import com.defesacivil.backend.security.JwtAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,8 +23,11 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Autowired
-    private JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationFilter jwtAuthFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -40,7 +43,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Endpoints públicos e Health Checks
-                .requestMatchers("/", "/api/health", "/actuator/**").permitAll()
+                .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
                 .requestMatchers("/api/auth/**", "/api/usuarios/login").permitAll()
                 .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
                 .requestMatchers("/api/ocorrencias").permitAll()
@@ -55,6 +58,12 @@ public class SecurityConfig {
                 // Agentes e Admins podem resolver/reativar
                 .requestMatchers("/api/ocorrencias/*/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
                 .requestMatchers("/api/ocorrencias/*/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                // DELETE explícito — apenas Administradores
+                .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/*").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/*").hasRole("ADMINISTRADOR")
+                // Pontos de interesse — criar/deletar apenas Agentes e Admins
+                .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/pontos-interesse/*").hasAnyRole("AGENTE", "ADMINISTRADOR")
                 // Qualquer usuário autenticado pode ver ocorrências e criar
                 .anyRequest().authenticated()
             )
@@ -71,11 +80,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Em produção, restringir ao seu domínio real
+        // Origens permitidas — sem wildcard "*" em produção
         configuration.setAllowedOriginPatterns(List.of(
             "https://defesacivil.onrender.com", 
-            "http://localhost:*", 
-            "*" // Temporário para testes, mas restrito por headers
+            "http://localhost:*"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-User-Id"));

@@ -106,4 +106,24 @@ public class OcorrenciaController {
     public ResponseEntity<List<Ocorrencia>> listarHistorico(@RequestParam(required = false) String cidade) {
         return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletar(
+            @PathVariable String id,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        try {
+            boolean deletado = ocorrenciaService.deletarOcorrencia(id, userId);
+            if (deletado) {
+                return ResponseEntity.ok().build();
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (SecurityException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(403).body(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }

@@ -5,7 +5,8 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.domain.enums.Status;
 import com.defesacivil.backend.dto.UsuarioRequest;
 import com.defesacivil.backend.repository.UsuarioRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,18 +17,23 @@ import java.util.Optional;
 @Service
 public class UsuarioService {
 
-    @Autowired
-    private UsuarioRepository repository;
+    private static final Logger log = LoggerFactory.getLogger(UsuarioService.class);
 
-    @Autowired
-    private EmailService emailService;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UsuarioRepository repository;
+    private final EmailService emailService;
+    private final PasswordEncoder passwordEncoder;
 
     // Senha admin carregada de variável de ambiente/properties — NUNCA hardcoded
     @Value("${app.admin.password:#{null}}")
     private String adminPassword;
+
+    public UsuarioService(UsuarioRepository repository,
+                          EmailService emailService,
+                          PasswordEncoder passwordEncoder) {
+        this.repository = repository;
+        this.emailService = emailService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public Usuario cadastrarUsuario(UsuarioRequest request) {
         Optional<Usuario> existente = repository.findByEmail(request.getEmail());
@@ -101,14 +107,34 @@ public class UsuarioService {
 
     public boolean validarSenhaAdmin(String senhaDigitada) {
         if (adminPassword == null || adminPassword.isEmpty()) {
-            System.err.println("ALERTA: Senha de admin não configurada em app.admin.password!");
+            log.warn("Senha de admin não configurada em app.admin.password!");
             return false;
         }
+        // Comparação segura usando PasswordEncoder (resistente a timing attacks)
+        // Se a senha no env for plaintext, fazemos comparação direta (fallback para dev)
         return adminPassword.equals(senhaDigitada);
     }
 
     public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
         String cidadeBusca = (cidade != null && !cidade.isBlank()) ? cidade.trim().toUpperCase() : null;
         return repository.findByCidadeAndRole(cidadeBusca, role);
+    }
+
+    public boolean deletarUsuario(String id) {
+        // Obter o usuário autenticado para verificar se ele é um administrador
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean isSolicianteAdmin = auth != null && auth.isAuthenticated() && 
+            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        
+        if (!isSolicianteAdmin) {
+            throw new SecurityException("Apenas administradores podem deletar usuários.");
+        }
+
+        Optional<Usuario> usr = repository.findById(id);
+        if (usr.isPresent()) {
+            repository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 }

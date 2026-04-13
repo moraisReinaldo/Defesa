@@ -66,7 +66,10 @@ class StorageService {
   // ========== USUÁRIO LOGADO ==========
 
   Future<void> salvarUsuarioLogado(Usuario usuario) async {
-    final json = jsonEncode(usuario.toJson());
+    // Remover senha antes de salvar no SharedPreferences (não-seguro)
+    final Map<String, dynamic> dados = usuario.toJson();
+    dados.remove('senha');
+    final json = jsonEncode(dados);
     await _prefs.setString(_usuarioLogadoKey, json);
   }
 

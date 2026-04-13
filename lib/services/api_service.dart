@@ -26,7 +26,10 @@ class ApiService {
   // Backup para desenvolvimento local (Android Emulator -> 10.0.2.2)
   static const String _localFallbackUrl = 'http://10.0.2.2:8080/api';
 
-  static const Duration _timeoutLimit = Duration(seconds: 90);
+  // Timeout padrão de 30s (era 90s — excessivo para a maioria das operações)
+  static const Duration _timeoutLimit = Duration(seconds: 30);
+  // Timeout maior para uploads de imagem
+  static const Duration _uploadTimeoutLimit = Duration(seconds: 60);
 
   String _extractMessageFromBody(String body) {
     if (body.isEmpty) return 'Erro desconhecido';
@@ -50,8 +53,9 @@ class ApiService {
 
   // ========== METODOS BASE COM RESILIÊNCIA ==========
 
-  Future<http.Response> _post(String path, dynamic body, {bool secure = true}) async {
+  Future<http.Response> _post(String path, dynamic body, {bool secure = true, Duration? timeout}) async {
     final headers = secure ? await _getHeaders() : {'Content-Type': 'application/json'};
+    final effectiveTimeout = timeout ?? _timeoutLimit;
     try {
       return await http
           .post(
@@ -59,7 +63,7 @@ class ApiService {
             headers: headers,
             body: jsonEncode(body),
           )
-          .timeout(_timeoutLimit);
+          .timeout(effectiveTimeout);
     } on SocketException catch (e) {
       if (kDebugMode) {
         print('🚨 Erro de Socket em POST $path: $e');
@@ -260,7 +264,8 @@ class ApiService {
       }
     }
 
-    final response = await _post('/ocorrencias', body);
+    // Usar timeout maior para upload de imagem
+    final response = await _post('/ocorrencias', body, timeout: _uploadTimeoutLimit);
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Ocorrencia.fromJson(jsonDecode(response.body));
@@ -308,6 +313,13 @@ class ApiService {
       return Ocorrencia.fromJson(jsonDecode(response.body));
     }
     throw _httpException(response);
+  }
+
+  Future<void> deletarOcorrencia(String id) async {
+    final response = await _delete('/ocorrencias/$id');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw _httpException(response);
+    }
   }
 
   // ========== ADMIN (ROOT) ==========
@@ -375,6 +387,13 @@ class ApiService {
       return [];
     }
   }
+
+  Future<void> deletarUsuario(String id) async {
+    final response = await _delete('/usuarios/$id');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw _httpException(response);
+    }
+  }
   // ========== CIDADES ==========
 
   static const List<Map<String, String>> fallbackCidades = [
@@ -393,7 +412,7 @@ class ApiService {
       if (response.statusCode == 200) {
         final List vindoDaApi = jsonDecode(response.body);
         if (vindoDaApi.isNotEmpty) {
-          return vindoDaApi.map((e) => {
+          return vindoDaApi.map((e) => <String, String>{
             'codigo': e['codigo'].toString(),
             'nome': e['nome'].toString(),
           }).toList();

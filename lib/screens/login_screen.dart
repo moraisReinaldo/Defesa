@@ -331,7 +331,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     try {
                                       await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
                                     } catch (e) {
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o app de e-mail')));
                                       }
                                     }

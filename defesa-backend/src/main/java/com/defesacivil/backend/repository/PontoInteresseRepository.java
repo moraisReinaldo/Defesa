@@ -1,6 +1,8 @@
 package com.defesacivil.backend.repository;
 
 import com.defesacivil.backend.domain.PontoInteresse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,8 @@ import java.util.UUID;
 
 @Repository
 public class PontoInteresseRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(PontoInteresseRepository.class);
 
     @Autowired(required = false)
     private Firestore firestore;
@@ -25,7 +29,12 @@ public class PontoInteresseRepository {
         }
         String idParaSalvar = ponto.getId();
         if (idParaSalvar != null) {
-            firestore.collection(COLLECTION_NAME).document(idParaSalvar).set(ponto);
+            try {
+                firestore.collection(COLLECTION_NAME).document(idParaSalvar).set(ponto).get();
+            } catch (Exception e) {
+                log.error("Erro ao salvar ponto de interesse no Firestore: {}", e.getMessage(), e);
+                throw new RuntimeException("Erro ao salvar ponto de interesse", e);
+            }
         }
         return ponto;
     }
@@ -39,7 +48,7 @@ public class PontoInteresseRepository {
                 pontos.add(doc.toObject(PontoInteresse.class));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Erro ao listar pontos de interesse", e);
         }
         return pontos;
     }
@@ -55,13 +64,17 @@ public class PontoInteresseRepository {
                 pontos.add(doc.toObject(PontoInteresse.class));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Erro ao buscar pontos de interesse por cidade: {}", cidade, e);
         }
         return pontos;
     }
 
     public void deleteById(String id) {
         if (firestore == null || id == null) return;
-        firestore.collection(COLLECTION_NAME).document(id).delete();
+        try {
+            firestore.collection(COLLECTION_NAME).document(id).delete().get();
+        } catch (Exception e) {
+            log.error("Erro ao deletar ponto de interesse: {}", id, e);
+        }
     }
 }

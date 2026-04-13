@@ -12,9 +12,23 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen> {
+  String _mensagem = 'Conectando ao servidor...';
+  String _subMensagem = 'Preparando ambiente seguro';
+
   @override
   void initState() {
     super.initState();
+    
+    // Mostra mensagem amigável caso o servidor demore a ligar (Render free tier cold start)
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted && !context.read<UsuarioProvider>().estaInicializado) {
+        setState(() {
+          _mensagem = 'Ligando o servidor...';
+          _subMensagem = 'O servidor gratuito pode demorar até 50s para despertar. Aguarde!';
+        });
+      }
+    });
+
     // Inicia a carga de dados assim que a tela abre
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UsuarioProvider>().carregarTudo();
@@ -72,21 +86,29 @@ class _LoadingScreenState extends State<LoadingScreen> {
             ),
             const SizedBox(height: 24),
             // Mensagem de Status
-            const Text(
-              'Conectando ao servidor...',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.5,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                _mensagem,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'Preparando ambiente seguro',
-              style: TextStyle(
-                color: Colors.white.withAlpha(180),
-                fontSize: 14,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _subMensagem,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withAlpha(180),
+                  fontSize: 14,
+                ),
               ),
             ),
             const Spacer(flex: 2),

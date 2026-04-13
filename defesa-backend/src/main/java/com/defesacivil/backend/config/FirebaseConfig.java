@@ -7,6 +7,8 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
 import com.google.firebase.cloud.StorageClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +22,8 @@ import org.springframework.util.ResourceUtils;
 @Configuration
 public class FirebaseConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(FirebaseConfig.class);
+
     @Value("${firebase.config.path}")
     private String firebaseConfigPath;
 
@@ -29,7 +33,7 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            InputStream serviceAccount = null;
+            InputStream serviceAccount;
             
             if (firebaseConfigPath.startsWith("classpath:")) {
                 serviceAccount = getClass().getClassLoader().getResourceAsStream(firebaseConfigPath.replace("classpath:", ""));
@@ -38,23 +42,27 @@ public class FirebaseConfig {
             }
 
             if (serviceAccount == null) {
-                System.err.println("ALERTA: Arquivo de configuração do Firebase não encontrado! Para conectar, coloque o serviceAccountKey.json");
+                log.warn("Arquivo de configuração do Firebase não encontrado! Para conectar, coloque o serviceAccountKey.json");
                 return;
             }
 
-            FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setStorageBucket(storageBucket)
-                    .build();
+            // Variável final para uso no try-with-resources
+            final InputStream stream = serviceAccount;
+            try (stream) {
+                FirebaseOptions options = FirebaseOptions.builder()
+                        .setCredentials(GoogleCredentials.fromStream(stream))
+                        .setStorageBucket(storageBucket)
+                        .build();
 
-            if (FirebaseApp.getApps().isEmpty()) {
-                FirebaseApp.initializeApp(options);
-                System.out.println("Firebase Application inicializada com sucesso!");
+                if (FirebaseApp.getApps().isEmpty()) {
+                    FirebaseApp.initializeApp(options);
+                    log.info("Firebase Application inicializada com sucesso!");
+                }
             }
         } catch (FileNotFoundException e) {
-            System.err.println("ALERTA: Arquivo json do Firebase não encontrado no caminho: " + firebaseConfigPath);
+            log.warn("Arquivo json do Firebase não encontrado no caminho: {}", firebaseConfigPath);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Erro ao inicializar Firebase", e);
         }
     }
 
@@ -70,7 +78,7 @@ public class FirebaseConfig {
         try {
             return StorageClient.getInstance().bucket();
         } catch (Exception e) {
-            System.err.println("ALERTA: Não foi possível inicializar o Bucket do Firebase Storage. Upload de fotos desativado. Erro: " + e.getMessage());
+            log.warn("Não foi possível inicializar o Bucket do Firebase Storage. Upload de fotos desativado. Erro: {}", e.getMessage());
             return null;
         }
     }

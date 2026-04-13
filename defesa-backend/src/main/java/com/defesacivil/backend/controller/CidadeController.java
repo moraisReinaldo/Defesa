@@ -4,6 +4,8 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -16,6 +18,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/cidades")
 public class CidadeController {
+
+    private static final Logger log = LoggerFactory.getLogger(CidadeController.class);
 
     @Autowired(required = false)
     private Firestore firestore;
@@ -40,7 +44,7 @@ public class CidadeController {
                     return cidades;
                 }
             } catch (Exception e) {
-                System.err.println("Erro ao buscar cidades do Firestore, usando fallback: " + e.getMessage());
+                log.warn("Erro ao buscar cidades do Firestore, usando fallback: {}", e.getMessage());
             }
         }
 

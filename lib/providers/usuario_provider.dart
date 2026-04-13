@@ -90,7 +90,19 @@ class UsuarioProvider extends ChangeNotifier {
   }
 
   Future<void> deletarUsuario(String id) async {
-    // TODO: Implementar DELETE /api/usuarios/{id} no backend
+    _setLoading(true);
+    try {
+      await _apiService.deletarUsuario(id);
+      if (_isAdmin) {
+        _todosAgentes.removeWhere((u) => u.id == id);
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) print('Erro ao deletar usuário: $e');
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<bool> promoverParaAgente(String email) async {

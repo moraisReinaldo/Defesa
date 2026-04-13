@@ -1,7 +1,8 @@
 package com.defesacivil.backend.service;
 
 import com.defesacivil.backend.domain.Usuario;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -11,11 +12,19 @@ import org.springframework.beans.factory.annotation.Value;
 @Service
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+
+    private final JavaMailSender mailSender;
 
     @Value("${app.admin.notification.email}")
     private String adminNotificationEmail;
+
+    @Value("${spring.mail.username:noreply@defesacivil.gov.br}")
+    private String mailFrom;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
 
     @Async
     public void enviarEmailAprovacaoAdmin(Usuario admin) {
@@ -32,12 +41,11 @@ public class EmailService {
                 "Equipe Defesa Civil");
         
         try {
-            message.setFrom(mailSender.toString()); // Apenas por segurança de formatação
+            message.setFrom(mailFrom);
             mailSender.send(message);
-            System.out.println("E-mail de aprovação enviado com sucesso para: " + adminNotificationEmail);
+            log.info("E-mail de aprovação enviado com sucesso para: {}", adminNotificationEmail);
         } catch(Exception e) {
-            System.err.println("Falha ao enviar e-mail. Verifique as configurações de SMTP no application.properties.");
-            e.printStackTrace();
+            log.error("Falha ao enviar e-mail. Verifique as configurações de SMTP.", e);
         }
     }
 }

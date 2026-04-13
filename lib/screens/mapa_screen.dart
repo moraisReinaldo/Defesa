@@ -297,7 +297,7 @@ class _MapaScreenState extends State<MapaScreen> {
                                     
                                     try {
                                       await context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrenciaAtualizada);
-                                      if (selected) {
+                                      if (selected && context.mounted) {
                                         final comentario = Comentario(texto: 'Agente ${agente.nome} associado', usuarioNome: 'Sistema');
                                         context.read<OcorrenciaProvider>().adicionarComentario(o.id, comentario);
                                       }

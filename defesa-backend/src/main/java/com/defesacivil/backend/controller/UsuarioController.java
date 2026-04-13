@@ -16,6 +16,9 @@ public class UsuarioController {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
+    @Autowired
+    private com.defesacivil.backend.service.UsuarioService usuarioService;
+
     @PostMapping("/promover")
     public ResponseEntity<?> promoverParaAgente(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
@@ -38,5 +41,18 @@ public class UsuarioController {
             "message", "Usuário promovido a AGENTE com sucesso!",
             "usuario", usuario
         ));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletarUsuario(@PathVariable String id) {
+        try {
+            boolean deletado = usuarioService.deletarUsuario(id);
+            if (deletado) return ResponseEntity.ok().build();
+            return ResponseEntity.notFound().build();
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

@@ -1,6 +1,8 @@
 package com.defesacivil.backend.service;
 
 import com.google.cloud.storage.Bucket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,7 +12,9 @@ import java.util.UUID;
 @Service
 public class FirebaseStorageService {
 
-    @Autowired
+    private static final Logger log = LoggerFactory.getLogger(FirebaseStorageService.class);
+
+    @Autowired(required = false)
     private Bucket storageBucket;
 
     /**
@@ -21,6 +25,10 @@ public class FirebaseStorageService {
      */
     public String uploadBase64Image(String base64Data, String folder) {
         if (base64Data == null || base64Data.isEmpty()) return null;
+        if (storageBucket == null) {
+            log.warn("Firebase Storage Bucket não configurado. Upload de imagem ignorado.");
+            return null;
+        }
 
         try {
             // Remover prefixo do data URI se existir
@@ -50,8 +58,7 @@ public class FirebaseStorageService {
                 bucketName, encodedFileName);
 
         } catch (Exception e) {
-            System.err.println("Erro ao fazer upload para o Firebase Storage: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Erro ao fazer upload para o Firebase Storage: {}", e.getMessage(), e);
             return null;
         }
     }

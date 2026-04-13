@@ -605,7 +605,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
     if (email.isEmpty) return;
 
     try {
-      final ok = await prov.promoverParaAgente(email);
+      await prov.promoverParaAgente(email);
       if (mounted) {
         _emailPromoController.clear();
         ScaffoldMessenger.of(context).showSnackBar(

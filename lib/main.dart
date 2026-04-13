@@ -94,16 +94,6 @@ class MyApp extends StatelessWidget {
               ),
             ),
             navigatorObservers: [SyncNavigatorObserver(context)],
-            builder: (context, child) {
-              return Listener(
-                onPointerDown: (_) {
-                  // Qualquer toque na tela (independente de onde seja)
-                  // tenta rodar a sincronização global
-                  context.read<UsuarioProvider>().sincronizarGlobal();
-                },
-                child: child!,
-              );
-            },
             home:  const LoadingScreen(),
           );
         }
