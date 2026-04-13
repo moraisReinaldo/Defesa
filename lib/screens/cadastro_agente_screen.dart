@@ -449,7 +449,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 4),
-                            Text('${agente.especialidade ?? "Geral"} • ${agente.cidade ?? "Sem local"}',
+                            Text('${agente.especialidade ?? "Geral"} • ${context.read<UsuarioProvider>().cidadesSuportadas.firstWhere((c) => c['codigo'] == agente.cidade, orElse: () => {'nome': agente.cidade ?? "Sem local"})['nome']}',
                                 style: const TextStyle(fontSize: 12)),
                             Text(agente.telefone,
                                 style: const TextStyle(fontSize: 12)),

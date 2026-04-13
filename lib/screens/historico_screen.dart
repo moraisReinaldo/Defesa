@@ -414,9 +414,16 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         break;
       case 'minhas':
         if (usuarioProvider.estaLogado) {
-          ocorrencias = provider.obterOcorrenciasDoUsuario(
-            usuarioProvider.usuarioLogado!.id,
-          );
+          final userId = usuarioProvider.usuarioLogado!.id;
+          final userName = usuarioProvider.usuarioLogado!.nome;
+          final isAgente = usuarioProvider.isAgente;
+
+          ocorrencias = provider.ocorrencias.where((o) {
+            // É minha se: eu criei OU sou um agente e meu nome está na lista de agentes
+            bool souCriador = o.usuarioId == userId;
+            bool souAgenteAtribuido = isAgente && o.agentes != null && o.agentes!.contains(userName);
+            return souCriador || souAgenteAtribuido;
+          }).toList();
         }
         break;
       default:

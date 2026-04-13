@@ -1,0 +1,1 @@
+ C:\\Users\\RhGameplay\\Documents\\GitHub\\Defesa\\.dart_tool\\flutter_build\\8f317184e4cc0d1972436d44cdc6421f\\native_assets.json: 

@@ -25,21 +25,27 @@ class OcorrenciaProvider extends ChangeNotifier {
       _ocorrencias.where((o) => o.status == OcorrenciaStatus.resolvida).toList();
 
   Future<void> carregarOcorrencias({String? cidade}) async {
+    // Isolamento Geográfico: Se não houver cidade, não mostramos nada por segurança.
+    if (cidade == null || cidade.isEmpty) {
+      _ocorrencias = [];
+      notifyListeners();
+      return;
+    }
+
     try {
       final vindoDaApi = await _apiService.listarOcorrencias(cidade: cidade);
-      if (vindoDaApi.isNotEmpty) {
-        _ocorrencias = vindoDaApi;
-      } else {
+      
+      // Filtro Rigoroso no Front-end: 
+      // Ignora qualquer item que possa ter vindo de outra cidade por erro/permissividade do backend.
+      _ocorrencias = vindoDaApi.where((o) => o.cidade == cidade).toList();
+      
+      if (_ocorrencias.isEmpty) {
         final local = await _storageService.obterOcorrencias();
-        _ocorrencias = (cidade != null && cidade.isNotEmpty) 
-            ? local.where((o) => o.cidade == cidade).toList()
-            : local;
+        _ocorrencias = local.where((o) => o.cidade == cidade).toList();
       }
     } catch (e) {
       final local = await _storageService.obterOcorrencias();
-      _ocorrencias = (cidade != null && cidade.isNotEmpty) 
-          ? local.where((o) => o.cidade == cidade).toList()
-          : local;
+      _ocorrencias = local.where((o) => o.cidade == cidade).toList();
     }
     notifyListeners();
   }

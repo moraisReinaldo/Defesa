@@ -8,6 +8,7 @@ import '../services/geocoding_service.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
+import '../models/usuario.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
 import '../services/localizacao_service.dart';
@@ -296,6 +297,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     try {
       final usuarioProvider = context.read<UsuarioProvider>();
       final usuarioLogado = usuarioProvider.usuarioLogado;
+      final isAgenteOuAdmin = usuarioProvider.isAdmin || (usuarioLogado?.role == Role.agente);
 
       final ocorrencia = Ocorrencia(
         tipo: widget.tipoOcorrencia,
@@ -305,6 +307,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         cidade: _codigoCidadeDetectada, // Sempre usa o CÓDIGO
         caminhoFoto: _fotoSelecionada?.path,
         usuarioId: usuarioLogado?.id,
+        // Se for agente/admin, ele já é parte da ocorrência e ela é marcada como 'criada por agente'
+        agentes: isAgenteOuAdmin ? usuarioLogado?.nome : null,
+        criadoPorAgente: isAgenteOuAdmin,
       );
 
       await context.read<OcorrenciaProvider>().adicionarOcorrencia(ocorrencia);

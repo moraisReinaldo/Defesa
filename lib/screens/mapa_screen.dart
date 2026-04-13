@@ -48,15 +48,22 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   Future<void> _inicializarMapa() async {
-    final usuario = context.read<UsuarioProvider>().usuarioLogado;
-    final cidadeFiltro = usuario?.isAgente == true ? usuario?.cidade : null;
+    final usuarioProv = context.read<UsuarioProvider>();
+    final ocorrenciaProv = context.read<OcorrenciaProvider>();
     
-    await context.read<OcorrenciaProvider>().carregarOcorrencias(cidade: cidadeFiltro);
-    if (!mounted) return;
-    await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
+    // Prioridade: Cidade Ativa (Logado ou GPS Detectado)
+    final cidadeFiltro = usuarioProv.cidadeAtiva;
     
-    // Na inicialização, centralizamos sem animação brusca se possível, 
-    // mas garantindo que o mapa mova para o local correto.
+    // Só carregamos se soubermos a cidade (Isolamento Geográfico Estrito)
+    if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
+      await ocorrenciaProv.carregarOcorrencias(cidade: cidadeFiltro);
+      if (!mounted) return;
+      await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
+    } else {
+      debugPrint('⚠️ Mapa inicializado sem cidade de contexto. Nada será exibido.');
+    }
+    
+    // Na inicialização, centralizamos sem animação brusca se possível
     await _centralizarLocalizacao(animar: true);
   }
 

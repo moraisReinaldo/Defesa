@@ -24,7 +24,7 @@ Defesa Em Foco é um aplicativo móvel desenvolvido em Flutter que visa fornecer
 ## 🔗 Links
 
 - [📱 Play Store](https://play.google.com/apps/testing/defesa.civil.foco)
-- [📊 Apresentação](./Defesa_Em_Foco_Aplicativo_de_Defesa_Civil.pptx)
+- [📊 Apresentação](https://canva.link/z3al2f3f5bj3uff)
 
 ## 👥 Equipe
 

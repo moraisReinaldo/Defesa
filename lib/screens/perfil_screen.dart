@@ -154,7 +154,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       const SizedBox(height: 14),
 
                       // Telefone
-                      if (!prov.isAdmin)
+                      if (!prov.isAdmin) ...[
                         _buildInfoField(
                           label: 'Telefone',
                           icon: Icons.phone_rounded,
@@ -162,6 +162,19 @@ class _PerfilScreenState extends State<PerfilScreen> {
                           controller: _telefoneController,
                           value: usuario.telefone,
                         ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // Cidade (Mapeada de ID para Nome)
+                      _buildInfoField(
+                        label: 'Cidade',
+                        icon: Icons.location_city_rounded,
+                        editing: false, // Por enquanto não permite editar cidade aqui para evitar desalinhamento com o cadastro
+                        value: prov.cidadesSuportadas.firstWhere(
+                          (c) => c['codigo'] == usuario.cidade,
+                          orElse: () => {'nome': usuario.cidade ?? 'Não informada'},
+                        )['nome']!,
+                      ),
                     ],
                   ),
                 ),

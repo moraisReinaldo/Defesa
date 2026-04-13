@@ -26,8 +26,8 @@ class ApiService {
   // Backup para desenvolvimento local (Android Emulator -> 10.0.2.2)
   static const String _localFallbackUrl = 'http://10.0.2.2:8080/api';
 
-  // Timeout padrão de 30s (era 90s — excessivo para a maioria das operações)
-  static const Duration _timeoutLimit = Duration(seconds: 30);
+  // Timeout ampliado para 60s para acomodar o "Cold Start" do servidor na Render (camada gratuita)
+  static const Duration _timeoutLimit = Duration(seconds: 60);
   // Timeout maior para uploads de imagem
   static const Duration _uploadTimeoutLimit = Duration(seconds: 60);
 

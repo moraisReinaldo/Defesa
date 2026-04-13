@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/usuario.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 
@@ -13,15 +15,22 @@ class UsuarioProvider extends ChangeNotifier {
   bool get estaInicializado => _estaInicializado;
   List<Usuario> _todosAgentes = [];
   List<Map<String, String>> _cidadesSuportadas = [];
+  String? _cidadeDetectadaGps;
 
   UsuarioProvider(this._storageService, this._apiService) {
     // A inicialização pesada será feita pela LoadingScreen chamando carregarTudo()
   }
 
+  /// Retorna a cidade "ativa" para o contexto atual:
+  /// 1. Cidade do perfil se logado
+  /// 2. Cidade detectada via GPS se anônimo
+  String? get cidadeAtiva => _usuarioLogado?.cidade ?? _cidadeDetectadaGps;
+
   ApiService get apiService => _apiService;
   Usuario? get usuarioLogado => _usuarioLogado;
   bool get estaLogado => _usuarioLogado != null;
   bool get isAdmin => _isAdmin;
+  bool get isAgente => _usuarioLogado?.isAgente ?? false;
   bool get isLoading => _isLoading;
   List<Map<String, String>> get cidadesSuportadas => _cidadesSuportadas;
   List<Usuario> get todosAgentes => _todosAgentes;
@@ -30,15 +39,63 @@ class UsuarioProvider extends ChangeNotifier {
 
   Future<void> carregarTudo() async {
     try {
+      // 1. Cidades Suportadas (CRÍTICO: essencial para mapear localização)
       await carregarCidades();
+      
+      // 2. Verificar Sessão (CRÍTICO: define se usamos perfil ou GPS)
       await verificarUsuarioLogado();
-      if (_isAdmin) {
-        await carregarAgentes();
-      }
-      _ultimoSync = DateTime.now();
+      
+      // Nesse ponto, cidades e usuário estão resolvidos.
+      // O GPS será tratado pela LoadingScreen se necessário.
+    } catch (e) {
+      if (kDebugMode) print('Erro na carga crítica: $e');
     } finally {
+      // NOTA: O LoadingScreen chamará 'determinarCidadePorGps' antes de liberar,
+      // então 'estaInicializado' pode ser setado aqui ou pela LoadingScreen.
+      // Vamos setar aqui como sinalizador de que a Carga Base acabou.
       _estaInicializado = true;
       notifyListeners();
+
+      // Tarefas não-críticas rodam silenciosamente em background
+      if (_isAdmin) {
+        carregarAgentes();
+      }
+      _ultimoSync = DateTime.now();
+    }
+  }
+
+  /// Determina a cidade atual via GPS para usuários não logados.
+  Future<void> determinarCidadePorGps() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low, // Baixa precisão bastar para cidade
+        timeLimit: const Duration(seconds: 5),
+      );
+
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        String? cidadeGps = placemarks.first.subAdministrativeArea ?? placemarks.first.locality;
+        if (cidadeGps != null && cidadeGps.isNotEmpty) {
+          // Mapear nome para código técnico
+          final correspondente = _cidadesSuportadas.firstWhere(
+            (c) => c['nome']?.toLowerCase() == cidadeGps.toLowerCase() || 
+                   cidadeGps.toLowerCase().contains(c['nome']!.toLowerCase()),
+            orElse: () => {},
+          );
+          
+          if (correspondente.isNotEmpty) {
+            _cidadeDetectadaGps = correspondente['codigo'];
+            if (kDebugMode) print('📍 GPS detectou cidade: $cidadeGps -> $_cidadeDetectadaGps');
+            notifyListeners();
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print('⚠️ Falha ao detectar cidade via GPS: $e');
     }
   }
 

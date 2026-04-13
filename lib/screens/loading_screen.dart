@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
 import 'mapa_screen.dart';
@@ -29,10 +30,53 @@ class _LoadingScreenState extends State<LoadingScreen> {
       }
     });
 
-    // Inicia a carga de dados assim que a tela abre
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<UsuarioProvider>().carregarTudo();
+    // Sequência de Inicialização Crítica e Bloqueante
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final userProv = context.read<UsuarioProvider>();
+      
+      // 1. Permissões (Pilar 1)
+      await _solicitarPermissoesIniciais();
+      
+      if (mounted) {
+        // 2. Carga Base: Cidades e Sessão (Pilar 2)
+        // Isso garante que temos a lista de cidades suportadas para o 'match' do GPS
+        await userProv.carregarTudo();
+        
+        // 3. Contexto Geográfico (Pilar 3)
+        // Só tentamos o GPS se não houver um usuário logado (que já tem cidade no perfil)
+        if (userProv.usuarioLogado == null) {
+          setState(() {
+            _mensagem = 'Localizando sua região...';
+            _subMensagem = 'Isolando ocorrências próximas';
+          });
+          await userProv.determinarCidadePorGps();
+        }
+        
+        // FIM: A UI reagirá ao 'estaInicializado' setado no final do carregarTudo
+        // ou podemos forçar um notify se necessário.
+      }
     });
+  }
+
+  Future<void> _solicitarPermissoesIniciais() async {
+    setState(() {
+      _mensagem = 'Verificando acesso...';
+      _subMensagem = 'Preparando sua localização';
+    });
+
+    try {
+      // Solicita em bloco as permissões essenciais
+      await [
+        Permission.location,
+        Permission.camera,
+        Permission.notification,
+        Permission.photos,
+      ].request();
+      
+      // Removemos o Future.delayed fixo para acelerar a resposta
+    } catch (e) {
+      debugPrint('Erro ao solicitar permissões: $e');
+    }
   }
 
   @override
