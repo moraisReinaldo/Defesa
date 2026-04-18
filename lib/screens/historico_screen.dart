@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
-import '../models/comentario.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
 import '../widgets/search_bar_widget.dart';
@@ -642,77 +641,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             ],
                           ],
                         )),
-
-                    // Comentários
-                    _buildSection('Comentários', Icons.chat_bubble_rounded,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (ocorrencia.comentarios.isEmpty)
-                              const Text('Nenhum comentário.',
-                                  style: TextStyle(
-                                      color: AppColors.textLight,
-                                      fontSize: 13,
-                                      fontStyle: FontStyle.italic))
-                            else
-                              ...ocorrencia.comentarios.map((c) => Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.backgroundOffWhite,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(c.usuarioNome,
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 13)),
-                                             const Spacer(),
-                                            Text(
-                                                _formatarData(c.dataHora),
-                                                style: const TextStyle(
-                                                    color: AppColors.textLight,
-                                                    fontSize: 11)),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(c.texto,
-                                            style: const TextStyle(
-                                                fontSize: 13,
-                                                color:
-                                                    AppColors.textSecondary)),
-                                      ],
-                                    ),
-                                  )),
-                            if (context.watch<UsuarioProvider>().isAdmin) ...[
-                              const SizedBox(height: 10),
-                              TextField(
-                                controller: _comentarioController,
-                                decoration: InputDecoration(
-                                  hintText: 'Adicionar comentário...',
-                                  filled: true,
-                                  fillColor: AppColors.backgroundOffWhite,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.send_rounded,
-                                        color: AppColors.primaryTeal),
-                                    onPressed: () =>
-                                        _adicionarComentario(context, ocorrencia),
-                                  ),
-                                ),
-                                maxLines: 2,
-                              ),
-                            ],
-                          ],
-                        )),
+                    const SizedBox(height: 20),
 
                     // Admin: Agentes
                     if (context.watch<UsuarioProvider>().isAdmin)
@@ -924,22 +853,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     );
   }
 
-  void _adicionarComentario(BuildContext context, Ocorrencia ocorrencia) {
-    final usuarioProvider = context.read<UsuarioProvider>();
-    if (!usuarioProvider.isAdmin) return;
-    if (_comentarioController.text.trim().isEmpty) return;
-
-    final comentario = Comentario(
-      texto: _comentarioController.text.trim(),
-      usuarioNome: 'Administrador',
-      usuarioId: usuarioProvider.usuarioLogado?.id,
-    );
-
-    context
-        .read<OcorrenciaProvider>()
-        .adicionarComentario(ocorrencia.id, comentario);
-    _comentarioController.clear();
-  }
 
   void _alterarStatusOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
     () async {

@@ -1,5 +1,4 @@
 import 'package:uuid/uuid.dart';
-import 'comentario.dart';
 
 enum OcorrenciaStatus {
   pendenteAprovacao,
@@ -22,7 +21,6 @@ class Ocorrencia {
   final OcorrenciaStatus status;
   final DateTime? dataResolucao;
   final String? agentes; 
-  final List<Comentario> comentarios;
   final bool criadoPorAgente;
   final bool agenteNoLocal;
   final DateTime? dataChegadaAgente;
@@ -41,14 +39,12 @@ class Ocorrencia {
     this.status = OcorrenciaStatus.pendenteAprovacao,
     this.dataResolucao,
     this.agentes,
-    List<Comentario>? comentarios,
     this.criadoPorAgente = false,
     this.agenteNoLocal = false,
     this.dataChegadaAgente,
     this.descricaoSituacao,
   })  : id = id ?? const Uuid().v4(),
-        dataHora = dataHora ?? DateTime.now(),
-        comentarios = comentarios ?? [];
+        dataHora = dataHora ?? DateTime.now();
 
   Map<String, dynamic> toJson() {
     return {
@@ -64,7 +60,6 @@ class Ocorrencia {
       'status': status.name.replaceAll(RegExp(r'([A-Z])'), r'_\1').toUpperCase(),
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
-      'comentarios': comentarios.map((c) => c.toJson()).toList(),
       'criadoPorAgente': criadoPorAgente,
       'agenteNoLocal': agenteNoLocal,
       'dataChegadaAgente': dataChegadaAgente?.toIso8601String(),
@@ -93,9 +88,6 @@ class Ocorrencia {
       ),
       dataResolucao: _parseSafe(json['dataResolucao']),
       agentes: json['agentes'],
-      comentarios: json['comentarios'] != null
-          ? (json['comentarios'] as List).map((c) => Comentario.fromJson(c)).toList()
-          : [],
       criadoPorAgente: json['criadoPorAgente'] ?? false,
       agenteNoLocal: json['agenteNoLocal'] ?? false,
       dataChegadaAgente: _parseSafe(json['dataChegadaAgente']),
@@ -132,7 +124,6 @@ class Ocorrencia {
     OcorrenciaStatus? status,
     DateTime? dataResolucao,
     String? agentes,
-    List<Comentario>? comentarios,
     bool? criadoPorAgente,
     bool? agenteNoLocal,
     DateTime? dataChegadaAgente,
@@ -151,7 +142,6 @@ class Ocorrencia {
       status: status ?? this.status,
       dataResolucao: dataResolucao ?? this.dataResolucao,
       agentes: agentes ?? this.agentes,
-      comentarios: comentarios ?? this.comentarios,
       criadoPorAgente: criadoPorAgente ?? this.criadoPorAgente,
       agenteNoLocal: agenteNoLocal ?? this.agenteNoLocal,
       dataChegadaAgente: dataChegadaAgente ?? this.dataChegadaAgente,

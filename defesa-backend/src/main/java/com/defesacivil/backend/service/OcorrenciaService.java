@@ -96,7 +96,7 @@ public class OcorrenciaService {
             }
         }
 
-        return ocorrenciaRepository.save(oc);
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
 
     public Ocorrencia aprovarOcorrencia(String id, String adminUserId) {
@@ -118,7 +118,7 @@ public class OcorrenciaService {
                     );
                 });
             }
-            return salva;
+            return processarUrl(salva);
         }
         return null;
     }
@@ -136,10 +136,10 @@ public class OcorrenciaService {
             oc.setStatus(OcorrenciaStatus.TRABALHANDO_ATUALMENTE.name());
             
             if (parecer != null && !parecer.isBlank()) {
-                adicionarComentario(oc, parecer, agenteUserId);
+                oc.setDescricaoSituacao(sanitizeInput(parecer));
             }
             
-            return ocorrenciaRepository.save(oc);
+            return processarUrl(ocorrenciaRepository.save(oc));
         }
         return null;
     }
@@ -156,7 +156,7 @@ public class OcorrenciaService {
             oc.setDataResolucao(LocalDateTime.now().toString());
             
             if (parecer != null && !parecer.isBlank()) {
-                adicionarComentario(oc, parecer, userId);
+                oc.setDescricaoSituacao(sanitizeInput(parecer));
             }
             
             Ocorrencia salva = ocorrenciaRepository.save(oc);
@@ -172,26 +172,9 @@ public class OcorrenciaService {
                 });
             }
             
-            return salva;
+            return processarUrl(salva);
         }
         return null;
-    }
-
-    private void adicionarComentario(Ocorrencia oc, String texto, String userId) {
-        if (texto == null || texto.isBlank()) return;
-        
-        Comentario com = new Comentario();
-        com.setTexto(sanitizeInput(texto));
-        com.setUsuarioId(userId);
-        com.setDataHora(LocalDateTime.now().toString());
-        
-        // Buscar nome do usuário para o histórico
-        if (userId != null) {
-            usuarioRepository.findById(userId).ifPresent(u -> com.setUsuarioNome(u.getNome()));
-        }
-        
-        oc.getComentarios().add(com);
-        oc.setDescricaoSituacao(com.getTexto()); // Último parecer vira a situação atual
     }
 
     public Ocorrencia reativarOcorrencia(String id, String userId) {
@@ -204,7 +187,7 @@ public class OcorrenciaService {
         if (oc != null) {
             oc.setStatus(OcorrenciaStatus.APROVADA.name());
             oc.setDataResolucao(null);
-            return ocorrenciaRepository.save(oc);
+            return processarUrl(ocorrenciaRepository.save(oc));
         }
         return null;
     }
@@ -233,16 +216,17 @@ public class OcorrenciaService {
             if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
             if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
             
-            if (request.getComentarios() != null) {
-                // Atualiza a lista de comentários (Hibernate cuidará do OneToMany se os IDs baterem)
-                // Para simplificar, limpamos e adicionamos (considerando que o app manda a lista completa)
-                oc.getComentarios().clear();
-                oc.getComentarios().addAll(request.getComentarios());
-            }
-            
-            return ocorrenciaRepository.save(oc);
+            return processarUrl(ocorrenciaRepository.save(oc));
         }
         return null;
+    }
+
+    private Ocorrencia processarUrl(Ocorrencia oc) {
+        if (oc == null) return null;
+        if (oc.getCaminhoFoto() != null && !oc.getCaminhoFoto().startsWith("http")) {
+            oc.setCaminhoFoto(minioService.getPresignedUrl(oc.getCaminhoFoto()));
+        }
+        return oc;
     }
 
     @Transactional(readOnly = true)
@@ -288,9 +272,7 @@ public class OcorrenciaService {
     private Page<Ocorrencia> processarUrls(Page<Ocorrencia> page) {
         // Substitui a key do objeto pela Presigned URL gerada na hora (valida por 1h)
         for (Ocorrencia oc : page.getContent()) {
-            if (oc.getCaminhoFoto() != null && !oc.getCaminhoFoto().startsWith("http")) {
-                oc.setCaminhoFoto(minioService.getPresignedUrl(oc.getCaminhoFoto()));
-            }
+            processarUrl(oc);
         }
         return page;
     }

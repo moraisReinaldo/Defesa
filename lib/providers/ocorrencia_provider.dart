@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../models/ocorrencia.dart';
-import '../models/comentario.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 
@@ -208,34 +207,7 @@ class OcorrenciaProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> adicionarComentario(String ocorrenciaId, Comentario comentario) async {
-    final ocorrencia = _ocorrencias.firstWhere((o) => o.id == ocorrenciaId);
-    final comentariosAtualizados = List<Comentario>.from(ocorrencia.comentarios)..add(comentario);
-    final atualizada = ocorrencia.copyWith(comentarios: comentariosAtualizados);
-    
-    // Sincronizar com o servidor
-    try {
-      final vindoDaApi = await _apiService.atualizarOcorrencia(atualizada);
-      if (vindoDaApi != null) {
-        final index = _ocorrencias.indexWhere((o) => o.id == ocorrenciaId);
-        if (index != -1) {
-          _ocorrencias[index] = vindoDaApi;
-          await _storageService.atualizarOcorrencia(vindoDaApi);
-          notifyListeners();
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) print("Erro ao salvar comentário na API: $e");
-      // Fallback local se estiver offline
-      await _storageService.atualizarOcorrencia(atualizada);
-      final index = _ocorrencias.indexWhere((o) => o.id == ocorrenciaId);
-      if (index != -1) {
-        _ocorrencias[index] = atualizada;
-        notifyListeners();
-      }
-    }
-  }
-
+  // Removido histórico de comentários
   List<Ocorrencia> obterOcorrenciasDoUsuario(String usuarioId) {
     return _ocorrencias.where((o) => o.usuarioId == usuarioId).toList();
   }

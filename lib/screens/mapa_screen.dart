@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
-import '../models/comentario.dart';
 import '../models/ponto_interesse.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
@@ -242,34 +241,7 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    _buildSectionCard(
-                      icon: Icons.chat_bubble_rounded,
-                      title: 'Comentários',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (ocorrencia.comentarios.isEmpty)
-                            const Text('Nenhum comentário ainda.', style: TextStyle(color: AppColors.textLight, fontSize: 13, fontStyle: FontStyle.italic))
-                          else
-                            ...ocorrencia.comentarios.map((c) => _buildComentarioItem(c)),
-
-                          if (usuarioProvider.isAdmin) ...[
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _comentarioController,
-                              decoration: InputDecoration(
-                                hintText: 'Adicionar comentário...',
-                                filled: true,
-                                fillColor: AppColors.backgroundOffWhite,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                                suffixIcon: IconButton(icon: const Icon(Icons.send_rounded, color: AppColors.primaryTeal), onPressed: () => _adicionarComentario(ocorrencia)),
-                              ),
-                              maxLines: 2,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
+                    const SizedBox(height: 12),
 
                     if (usuarioProvider.isAdmin)
                       _buildSectionCard(
@@ -304,10 +276,6 @@ class _MapaScreenState extends State<MapaScreen> {
                                     
                                     try {
                                       await context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrenciaAtualizada);
-                                      if (selected && context.mounted) {
-                                        final comentario = Comentario(texto: 'Agente ${agente.nome} associado', usuarioNome: 'Sistema');
-                                        context.read<OcorrenciaProvider>().adicionarComentario(o.id, comentario);
-                                      }
                                     } catch (e) {
                                       if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
@@ -336,25 +304,6 @@ class _MapaScreenState extends State<MapaScreen> {
                             const SizedBox(width: 8),
                             Expanded(child: ElevatedButton.icon(onPressed: () async { await context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.cancel_rounded), label: const Text('RECUSAR'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red))),
                           ],
-                        ),
-                      ),
-
-                    // Campo de Parecer/Descrição da Situação (Apenas para Agentes Designados ou Admins)
-                    if (podeAgir && 
-                        ocorrencia.status != OcorrenciaStatus.resolvida &&
-                        ocorrencia.status != OcorrenciaStatus.pendenteAprovacao)
-                      _buildSectionCard(
-                        icon: Icons.assignment_rounded,
-                        title: 'Relatório da Situação',
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Descreva a situação atual...',
-                            filled: true,
-                            fillColor: AppColors.backgroundOffWhite,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                          ),
-                          maxLines: 3,
-                          onChanged: (val) => _comentarioController.text = val, // Reaproveitando controller para simplicidade ou use um novo
                         ),
                       ),
 
@@ -469,29 +418,6 @@ class _MapaScreenState extends State<MapaScreen> {
     return Row(children: [Icon(icon, size: 15, color: AppColors.textLight), const SizedBox(width: 8), Text('$label: ', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)), Expanded(child: Text(value, style: const TextStyle(fontSize: 13)))]);
   }
 
-  Widget _buildComentarioItem(Comentario comentario) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.backgroundOffWhite, borderRadius: BorderRadius.circular(14)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(radius: 14, child: Text(comentario.usuarioNome.isNotEmpty ? comentario.usuarioNome[0].toUpperCase() : '?')),
-              const SizedBox(width: 8),
-              Expanded(child: Text(comentario.usuarioNome, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-              Text(_formatarData(comentario.dataHora), style: const TextStyle(fontSize: 11, color: AppColors.textLight)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(comentario.texto, style: const TextStyle(fontSize: 13)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildActionChip({required IconData icon, required String label, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
@@ -503,13 +429,6 @@ class _MapaScreenState extends State<MapaScreen> {
     );
   }
 
-  void _adicionarComentario(Ocorrencia ocorrencia) {
-    final user = context.read<UsuarioProvider>().usuarioLogado;
-    if (_comentarioController.text.trim().isEmpty) return;
-    context.read<OcorrenciaProvider>().adicionarComentario(ocorrencia.id, Comentario(texto: _comentarioController.text.trim(), usuarioNome: user?.nome ?? 'Admin', usuarioId: user?.id));
-    _comentarioController.clear();
-    Navigator.pop(context);
-  }
 
   void _alterarStatusOcorrencia(Ocorrencia ocorrencia) {
     if (ocorrencia.status == OcorrenciaStatus.resolvida) {

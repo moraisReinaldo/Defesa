@@ -1,5 +1,3 @@
-import 'package:uuid/uuid.dart';
-
 class PontoInteresse {
   final String id;
   final String tipo;
@@ -10,18 +8,18 @@ class PontoInteresse {
   final String? criadoPor;
 
   PontoInteresse({
-    String? id,
+    this.id = '',
     required this.tipo,
     required this.descricao,
     required this.latitude,
     required this.longitude,
     this.cidade,
     this.criadoPor,
-  }) : id = id ??  const Uuid().v4();
+  });
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      if (id.isNotEmpty) 'id': id,
       'tipo': tipo,
       'descricao': descricao,
       'latitude': latitude,

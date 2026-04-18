@@ -1,8 +1,6 @@
 package com.defesacivil.backend.domain;
 
 import jakarta.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "ocorrencias")
@@ -27,10 +25,6 @@ public class Ocorrencia {
     private boolean agenteNoLocal; // Novo: marcação de chegada
     private String dataChegadaAgente; // Novo: data da chegada
     private String descricaoSituacao; // Novo: Parecer técnico/situação atual
-
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JoinColumn(name = "ocorrencia_id")
-    private List<Comentario> comentarios = new ArrayList<>();
 
     public Ocorrencia() {}
 
@@ -66,6 +60,4 @@ public class Ocorrencia {
     public void setDataChegadaAgente(String dataChegadaAgente) { this.dataChegadaAgente = dataChegadaAgente; }
     public String getDescricaoSituacao() { return descricaoSituacao; }
     public void setDescricaoSituacao(String descricaoSituacao) { this.descricaoSituacao = descricaoSituacao; }
-    public List<Comentario> getComentarios() { return comentarios; }
-    public void setComentarios(List<Comentario> comentarios) { this.comentarios = comentarios; }
 }
