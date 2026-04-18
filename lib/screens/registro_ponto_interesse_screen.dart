@@ -24,9 +24,9 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   bool _buscandoCidade = true;
   final _geocodingService = GeocodingService();
   
-  final List<Map<String, String>> _cidadesSuportadas = [];
+  List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeSelecionada; // Armazena o CÓDIGO
-  final bool _carregandoCidades = true;
+  bool _carregandoCidades = true;
 
   final List<Map<String, dynamic>> _tipos = [
     {'valor': 'PONTO_COLETA_AGUA', 'label': 'Coleta de Água', 'icon': Icons.water_drop_rounded, 'color': Colors.blue},
@@ -40,6 +40,16 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   void initState() {
     super.initState();
     _detectarCidade();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _carregarCidades());
+  }
+
+  void _carregarCidades() {
+    if (!mounted) return;
+    final prov = context.read<UsuarioProvider>();
+    setState(() {
+      _cidadesSuportadas = List<Map<String, String>>.from(prov.cidadesSuportadas);
+      _carregandoCidades = false;
+    });
   }
 
   Future<void> _detectarCidade() async {
@@ -121,7 +131,7 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
                  const LinearProgressIndicator()
               else
                 DropdownButtonFormField<String>(
-                  initialValue: _cidadeSelecionada,
+                  value: _cidadeSelecionada,
                   hint: const Text('Selecione a cidade'),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
@@ -214,7 +224,7 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
         if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
              SnackBar(
-               content: Text('Saindo de "$nomeCidadeAdmin": Ponto de apoio registrado como munícipe em "$nomeCidadeDestino".'),
+               content: Text('Saindo de "$nomeCidadeAdmin": Ponto de interesse registrado como munícipe em "$nomeCidadeDestino".'),
                backgroundColor: AppColors.accentAmber,
                duration: const Duration(seconds: 4),
              ),

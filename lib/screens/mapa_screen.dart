@@ -544,7 +544,7 @@ class _MapaScreenState extends State<MapaScreen> {
                     heroTag: 'fab_poi',
                     onPressed: () => _confirmarNovoPontoInteresse(_mapController.center),
                     icon: const Icon(Icons.add_location_alt_rounded),
-                    label: const Text('Ponto de Apoio'),
+                    label: const Text('Ponto de Interesse'),
                     backgroundColor: Colors.orange,
                   ),
                   const SizedBox(height: 12),
@@ -671,7 +671,7 @@ class _MapaScreenState extends State<MapaScreen> {
                     Navigator.pop(context); 
                   }, 
                   icon: const Icon(Icons.delete_rounded),
-                  label: const Text('Remover Ponto de Apoio'),
+                  label: const Text('Remover Ponto de Interesse'),
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.statusActive, foregroundColor: Colors.white),
                 ),
               ),
