@@ -17,7 +17,9 @@ public class NotificationService {
 
     public void sendPushNotification(String token, String title, String body) {
         if (token == null || token.isEmpty()) return;
-        // TODO: Integrar com provedor de push (ex: OneSignal, FCM HTTP v1)
-        log.info("[Push - stub] Para token={} | título='{}' | corpo='{}'", token, title, body);
+        
+        // STUB: Em produção, implementar chamada ao FCM HTTP v1 ou OneSignal
+        log.info("[Push] Simulação para token: {} | Título: {} | Corpo: {}", 
+                 token.substring(0, Math.min(token.length(), 8)) + "...", title, body);
     }
 }

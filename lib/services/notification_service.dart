@@ -17,7 +17,7 @@ class NotificationService {
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidSettings);
 
-    await _localNotifications.initialize(initSettings);
+    await _localNotifications.initialize(settings: initSettings);
 
     // Criar canal de alta importância para Android 8+
     const channel = AndroidNotificationChannel(
@@ -49,7 +49,12 @@ class NotificationService {
       priority: Priority.high,
     );
     const details = NotificationDetails(android: androidDetails);
-    await _localNotifications.show(id, titulo, corpo, details);
+    await _localNotifications.show(
+      id: id,
+      title: titulo,
+      body: corpo,
+      notificationDetails: details,
+    );
   }
 
   /// Token para push remoto — stub enquanto FCM não for reintegrado.

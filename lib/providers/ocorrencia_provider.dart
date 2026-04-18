@@ -8,10 +8,16 @@ class OcorrenciaProvider extends ChangeNotifier {
   final StorageService _storageService;
   final ApiService _apiService;
   List<Ocorrencia> _ocorrencias = [];
+  int _paginaAtual = 0;
+  bool _temMais = true;
+  bool _carregandoMais = false;
+  final int _pageSize = 20;
 
   OcorrenciaProvider(this._storageService, this._apiService);
 
   List<Ocorrencia> get ocorrencias => _ocorrencias;
+  bool get temMais => _temMais;
+  bool get carregandoMais => _carregandoMais;
 
   List<Ocorrencia> get ocorrenciasAtivas =>
       _ocorrencias.where((o) => 
@@ -24,8 +30,11 @@ class OcorrenciaProvider extends ChangeNotifier {
   List<Ocorrencia> get ocorrenciasResolvidas =>
       _ocorrencias.where((o) => o.status == OcorrenciaStatus.resolvida).toList();
 
-  Future<void> carregarOcorrencias({String? cidade}) async {
-    // Isolamento Geográfico: Se não houver cidade, não mostramos nada por segurança.
+  Future<void> carregarOcorrencias({String? cidade, String? userId}) async {
+    _paginaAtual = 0;
+    _temMais = true;
+    _carregandoMais = false;
+    
     if (cidade == null || cidade.isEmpty) {
       _ocorrencias = [];
       notifyListeners();
@@ -33,21 +42,63 @@ class OcorrenciaProvider extends ChangeNotifier {
     }
 
     try {
-      final vindoDaApi = await _apiService.listarOcorrencias(cidade: cidade);
+      final vindoDaApi = await _apiService.listarOcorrencias(
+        cidade: cidade, 
+        page: _paginaAtual, 
+        size: _pageSize
+      );
       
-      // Filtro Rigoroso no Front-end: 
-      // Ignora qualquer item que possa ter vindo de outra cidade por erro/permissividade do backend.
-      _ocorrencias = vindoDaApi.where((o) => o.cidade == cidade).toList();
+      _ocorrencias = vindoDaApi.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
+      _temMais = vindoDaApi.length >= _pageSize;
+
+      // Sincronizar com storage local para suporte offline
+      for (var oc in _ocorrencias) {
+        await _storageService.salvarOcorrencia(oc);
+      }
       
       if (_ocorrencias.isEmpty) {
         final local = await _storageService.obterOcorrencias();
-        _ocorrencias = local.where((o) => o.cidade == cidade).toList();
+        _ocorrencias = local.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
       }
     } catch (e) {
       final local = await _storageService.obterOcorrencias();
-      _ocorrencias = local.where((o) => o.cidade == cidade).toList();
+      _ocorrencias = local.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
     }
     notifyListeners();
+  }
+
+  Future<void> carregarMaisOcorrencias({String? cidade, String? userId}) async {
+    if (!_temMais || _carregandoMais) return;
+    
+    _carregandoMais = true;
+    notifyListeners();
+
+    try {
+      _paginaAtual++;
+      final vindoDaApi = await _apiService.listarOcorrencias(
+        cidade: cidade, 
+        page: _paginaAtual, 
+        size: _pageSize
+      );
+      
+      final novos = vindoDaApi.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
+      
+      // Evitar duplicatas
+      final idsExistentes = _ocorrencias.map((o) => o.id).toSet();
+      final filtrados = novos.where((o) => !idsExistentes.contains(o.id)).toList();
+      
+      _ocorrencias.addAll(filtrados);
+      _temMais = vindoDaApi.length >= _pageSize;
+
+      for (var oc in filtrados) {
+        await _storageService.salvarOcorrencia(oc);
+      }
+    } catch (e) {
+      _temMais = false;
+    } finally {
+      _carregandoMais = false;
+      notifyListeners();
+    }
   }
 
   Future<void> adicionarOcorrencia(Ocorrencia ocorrencia) async {

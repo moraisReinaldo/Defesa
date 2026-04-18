@@ -84,4 +84,13 @@ class AuthService {
       throw _client.handleDioError(e);
     }
   }
+
+  Future<Usuario?> atualizarUsuario(String id, UsuarioRequest req) async {
+    try {
+      final res = await _client.dio.put('/usuarios/$id', data: req.toJson());
+      return Usuario.fromJson(res.data);
+    } on DioException catch (e) {
+      throw _client.handleDioError(e);
+    }
+  }
 }

@@ -7,6 +7,8 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class OcorrenciaService {
 
     private final OcorrenciaRepository ocorrenciaRepository;
@@ -215,40 +218,53 @@ public class OcorrenciaService {
     }
 
     @Transactional(readOnly = true)
-    public List<Ocorrencia> buscarPorCidade(String cidade) {
-        // Enforçar filtro por cidade para usuários não-administrativos via SecurityContext
+    public Page<Ocorrencia> buscarPorCidade(String cidade, Pageable pageable) {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         
-        List<Ocorrencia> result;
+        String currentUserId = null;
+        boolean isAdmin = false;
+        boolean isAgente = false;
 
-        if (auth != null && auth.isAuthenticated() && !auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"))) {
-            // Se for um cidadão ou agente autenticado, buscar os dados dele para saber a cidade real
+        if (auth != null && auth.isAuthenticated()) {
+            isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+            isAgente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENTE"));
+            
             Optional<Usuario> usuario = usuarioRepository.findByEmail(auth.getName());
             if (usuario.isPresent()) {
-                String cidadeUsuario = usuario.get().getCidade();
-                if (cidadeUsuario != null && !cidadeUsuario.isBlank()) {
-                    result = ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeUsuario);
-                    return processarUrls(result);
+                currentUserId = usuario.get().getId();
+                // Se o usuário não passou cidade, usa a dele
+                if (cidade == null || cidade.trim().isEmpty()) {
+                    cidade = usuario.get().getCidade();
                 }
             }
         }
 
-        if (cidade == null || cidade.trim().isEmpty()) {
-            result = ocorrenciaRepository.findAll();
-        } else {
-            result = ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade);
+        // 1. ADMIN: Vê tudo sem filtros
+        if (isAdmin) {
+            if (cidade == null || cidade.trim().isEmpty()) {
+                return processarUrls(ocorrenciaRepository.findAll(pageable));
+            }
+            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
         }
-        return processarUrls(result);
+
+        // 2. AGENTE: Vê tudo na sua cidade (incluindo pendentes)
+        if (isAgente && cidade != null) {
+            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
+        }
+
+        // 3. CIDADÃO / OUTROS: 
+        // Vê ocorrências APROVADAS na cidade OU qualquer ocorrência criada por ele mesmo (independente de cidade/status)
+        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidade, currentUserId, pageable));
     }
 
-    private List<Ocorrencia> processarUrls(List<Ocorrencia> ocorrencias) {
+    private Page<Ocorrencia> processarUrls(Page<Ocorrencia> page) {
         // Substitui a key do objeto pela Presigned URL gerada na hora (valida por 1h)
-        for (Ocorrencia oc : ocorrencias) {
+        for (Ocorrencia oc : page.getContent()) {
             if (oc.getCaminhoFoto() != null && !oc.getCaminhoFoto().startsWith("http")) {
                 oc.setCaminhoFoto(minioService.getPresignedUrl(oc.getCaminhoFoto()));
             }
         }
-        return ocorrencias;
+        return page;
     }
 
     // ========== SEGURANÇA ==========

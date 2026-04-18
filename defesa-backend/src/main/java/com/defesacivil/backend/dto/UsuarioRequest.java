@@ -25,6 +25,7 @@ public class UsuarioRequest {
     private String role; // CIDADAO, AGENTE, ADMINISTRADOR
 
     private boolean concordaLGPD;
+    private String fcmToken;
 
     // Getters and Setters
     public String getNome() { return nome; }
@@ -41,4 +42,6 @@ public class UsuarioRequest {
     public void setRole(String role) { this.role = role; }
     public boolean isConcordaLGPD() { return concordaLGPD; }
     public void setConcordaLGPD(boolean concordaLGPD) { this.concordaLGPD = concordaLGPD; }
+    public String getFcmToken() { return fcmToken; }
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
 }

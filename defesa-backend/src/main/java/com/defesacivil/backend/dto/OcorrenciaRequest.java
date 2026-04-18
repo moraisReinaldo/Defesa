@@ -1,12 +1,24 @@
 package com.defesacivil.backend.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class OcorrenciaRequest {
+    @NotBlank(message = "O tipo da ocorrência é obrigatório")
     private String tipo;
+    
+    @NotBlank(message = "A descrição é obrigatória")
     private String descricao;
-    private double latitude;
-    private double longitude;
+    
+    @NotNull(message = "A latitude é obrigatória")
+    private Double latitude;
+    
+    @NotNull(message = "A longitude é obrigatória")
+    private Double longitude;
+    
+    @NotBlank(message = "A cidade é obrigatória")
     private String cidade;
+
     private String caminhoFoto; // pode ser uma URL ou Base64 (simplificado)
     private String usuarioId;
     private String dataHora;
@@ -18,10 +30,10 @@ public class OcorrenciaRequest {
     public void setTipo(String tipo) { this.tipo = tipo; }
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
-    public double getLatitude() { return latitude; }
-    public void setLatitude(double latitude) { this.latitude = latitude; }
-    public double getLongitude() { return longitude; }
-    public void setLongitude(double longitude) { this.longitude = longitude; }
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
     public String getCidade() { return cidade; }
     public void setCidade(String cidade) { this.cidade = cidade; }
     public String getCaminhoFoto() { return caminhoFoto; }

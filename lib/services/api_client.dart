@@ -11,6 +11,17 @@ class ApiClient {
     defaultValue: 'https://ware-particularly-taxi-atlantic.trycloudflare.com/api',
   );
 
+  static const List<Map<String, String>> fallbackCidades = [
+    {'nome': 'Joanópolis', 'codigo': 'JOA'},
+    {'nome': 'Piracaia', 'codigo': 'PIR'},
+    {'nome': 'Bragança Paulista', 'codigo': 'BRA'},
+    {'nome': 'Vargem', 'codigo': 'VAR'},
+    {'nome': 'Atibaia', 'codigo': 'ATI'},
+    {'nome': 'Nazaré Paulista', 'codigo': 'NAZ'},
+    {'nome': 'Bom Jesus dos Perdões', 'codigo': 'BJP'},
+    {'nome': 'Igaratá', 'codigo': 'IGA'},
+  ];
+
   static const Duration _timeout = Duration(seconds: 60);
   static const Duration _uploadTimeout = Duration(seconds: 90);
 
@@ -44,7 +55,7 @@ class ApiClient {
         if (e.response?.statusCode == 401) {
           await _storageService.limparSessao();
         }
-        if (kDebugMode) print('🚨 [ApiClient] ${e.requestOptions.path}: ${e.message}');
+        if (kDebugMode) debugPrint('🚨 [ApiClient] ${e.requestOptions.path}: ${e.message}');
         handler.next(e);
       },
     ));
@@ -53,8 +64,20 @@ class ApiClient {
       dio.interceptors.add(LogInterceptor(
         requestBody: false,
         responseBody: false,
-        logPrint: (o) => print('🌐 [Dio] $o'),
+        logPrint: (o) => debugPrint('🌐 [Dio] $o'),
       ));
+    }
+  }
+
+  Future<List<Map<String, String>>> listarCidades() async {
+    try {
+      final response = await dio.get('/cidades', options: Options(extra: {'secure': false}));
+      if (response.data is List) {
+        return (response.data as List).map((c) => Map<String, String>.from(c)).toList();
+      }
+      return fallbackCidades;
+    } catch (e) {
+      return fallbackCidades;
     }
   }
 

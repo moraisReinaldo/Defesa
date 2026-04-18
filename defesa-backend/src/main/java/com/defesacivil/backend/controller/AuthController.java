@@ -25,7 +25,7 @@ public class AuthController {
     private JwtService jwtService;
 
     @PostMapping("/auth/cadastro")
-    public ResponseEntity<?> cadastrar(@RequestBody UsuarioRequest request) {
+    public ResponseEntity<?> cadastrar(@jakarta.validation.Valid @RequestBody UsuarioRequest request) {
         try {
             Usuario usuarioSalvo = usuarioService.cadastrarUsuario(request);
             

@@ -10,11 +10,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class UsuarioService {
 
     private static final Logger log = LoggerFactory.getLogger(UsuarioService.class);
@@ -136,5 +138,35 @@ public class UsuarioService {
             return true;
         }
         return false;
+    }
+
+    public Usuario atualizarUsuario(String id, UsuarioRequest request) {
+        Usuario usuario = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+
+        // Apenas o próprio usuário ou um admin pode editar
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        boolean isProprio = auth != null && auth.getName().equals(usuario.getEmail());
+
+        if (!isAdmin && !isProprio) {
+            throw new SecurityException("Você não tem permissão para editar este perfil.");
+        }
+
+        if (request.getNome() != null) usuario.setNome(request.getNome());
+        if (request.getTelefone() != null) usuario.setTelefone(request.getTelefone());
+        if (request.getCidade() != null) usuario.setCidade(request.getCidade().trim().toUpperCase());
+        if (request.getFcmToken() != null) usuario.setFcmToken(request.getFcmToken());
+        
+        // Se um Admin estiver editando, ele pode mudar a role
+        if (isAdmin && request.getRole() != null) {
+            usuario.setRole(request.getRole().toUpperCase());
+        }
+
+        if (request.getSenha() != null && !request.getSenha().isBlank()) {
+            usuario.setSenha(passwordEncoder.encode(request.getSenha()));
+        }
+
+        return repository.save(usuario);
     }
 }

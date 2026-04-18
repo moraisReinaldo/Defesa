@@ -24,6 +24,34 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   final TextEditingController _comentarioController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final provider = context.read<OcorrenciaProvider>();
+      final usuario = context.read<UsuarioProvider>();
+      if (provider.temMais && !provider.carregandoMais) {
+        provider.carregarMaisOcorrencias(
+          cidade: usuario.usuarioLogado?.cidade,
+          userId: usuario.usuarioLogado?.id,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _comentarioController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   bool _selectionMode = false;
   final Set<String> _selecionadas = {};
@@ -209,10 +237,13 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 return RefreshIndicator(
                   onRefresh: () => provider.carregarOcorrencias(
                     cidade: context.read<UsuarioProvider>().usuarioLogado?.cidade,
+                    userId: context.read<UsuarioProvider>().usuarioLogado?.id,
                   ),
                   child: ListView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    children: agrupado.entries.expand((entry) {
+                    children: [
+                      ...agrupado.entries.expand((entry) {
                       return [
                         // Data header
                         Padding(
@@ -274,7 +305,23 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                 ))
                             ,
                       ];
-                    }).toList(),
+                    }),
+                    if (provider.carregandoMais)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator(color: AppColors.primaryTeal)),
+                      ),
+                    if (!provider.temMais && provider.ocorrencias.length > 10)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(
+                          child: Text(
+                            "Você chegou ao fim!",
+                            style: TextStyle(color: AppColors.textLight, fontSize: 12),
+                          ),
+                        ),
+                      ),
+                  ],
                   ),
                 );
               },
@@ -434,7 +481,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     if (usuarioProvider.estaLogado) {
       final cidadeUsuario = usuarioProvider.usuarioLogado?.cidade;
       if (cidadeUsuario != null && cidadeUsuario.isNotEmpty) {
-        ocorrencias = ocorrencias.where((o) => o.cidade == cidadeUsuario).toList();
+        ocorrencias = ocorrencias.where((o) => o.cidade == cidadeUsuario || o.usuarioId == usuarioProvider.usuarioLogado?.id).toList();
       }
     }
 

@@ -56,7 +56,7 @@ class _MapaScreenState extends State<MapaScreen> {
     
     // Só carregamos se soubermos a cidade (Isolamento Geográfico Estrito)
     if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
-      await ocorrenciaProv.carregarOcorrencias(cidade: cidadeFiltro);
+      await ocorrenciaProv.carregarOcorrencias(cidade: cidadeFiltro, userId: usuarioProv.usuarioLogado?.id);
       if (!mounted) return;
       await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
     } else {

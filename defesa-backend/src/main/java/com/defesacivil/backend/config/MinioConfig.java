@@ -19,9 +19,17 @@ public class MinioConfig {
 
     @Bean
     public MinioClient minioClient() {
+        // Configurando timeouts para evitar que threads fiquem presas se o MinIO estiver lento
+        okhttp3.OkHttpClient httpClient = new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+
         return MinioClient.builder()
                 .endpoint(endpoint)
                 .credentials(accessKey, secretKey)
+                .httpClient(httpClient)
                 .build();
     }
 }

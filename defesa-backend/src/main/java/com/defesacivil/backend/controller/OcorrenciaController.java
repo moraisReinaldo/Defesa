@@ -3,13 +3,14 @@ package com.defesacivil.backend.controller;
 import com.defesacivil.backend.domain.Ocorrencia;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.service.OcorrenciaService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/ocorrencias")
@@ -19,83 +20,49 @@ public class OcorrenciaController {
     private OcorrenciaService ocorrenciaService;
 
     @PostMapping
-    public ResponseEntity<?> criar(@RequestBody OcorrenciaRequest request) {
-        try {
-            Ocorrencia salva = ocorrenciaService.registrarOcorrencia(request);
-            return ResponseEntity.ok(salva);
-        } catch (SecurityException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(403).body(response);
-        } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Erro ao processar requisição");
-            return ResponseEntity.badRequest().body(response);
-        }
+    public ResponseEntity<Ocorrencia> criar(@Valid @RequestBody OcorrenciaRequest request) {
+        Ocorrencia salva = ocorrenciaService.registrarOcorrencia(request);
+        return ResponseEntity.ok(salva);
     }
 
     @PostMapping("/{id}/aprovar")
-    public ResponseEntity<?> aprovar(
+    public ResponseEntity<Ocorrencia> aprovar(
             @PathVariable String id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        try {
-            Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id, userId);
-            return aprovada != null ? ResponseEntity.ok(aprovada) : ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(403).body(response);
-        }
+        Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id, userId);
+        return aprovada != null ? ResponseEntity.ok(aprovada) : ResponseEntity.notFound().build();
     }
 
     @PostMapping("/{id}/chegada")
-    public ResponseEntity<?> registrarChegada(
+    public ResponseEntity<Ocorrencia> registrarChegada(
             @PathVariable String id,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestBody(required = false) Map<String, String> body) {
-        try {
-            String parecer = (body != null) ? body.get("parecer") : null;
-            Ocorrencia atualizada = ocorrenciaService.registrarChegadaAgente(id, userId, parecer);
-            return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(403).body(response);
-        }
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String parecer = (body != null) ? body.get("parecer") : null;
+        Ocorrencia atualizada = ocorrenciaService.registrarChegadaAgente(id, userId, parecer);
+        return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
     }
 
     @PostMapping("/{id}/resolver")
-    public ResponseEntity<?> resolver(
+    public ResponseEntity<Ocorrencia> resolver(
             @PathVariable String id,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestBody(required = false) Map<String, String> body) {
-        try {
-            String parecer = (body != null) ? body.get("parecer") : null;
-            Ocorrencia atualizada = ocorrenciaService.resolverOcorrencia(id, userId, parecer);
-            return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(403).body(response);
-        }
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String parecer = (body != null) ? body.get("parecer") : null;
+        Ocorrencia atualizada = ocorrenciaService.resolverOcorrencia(id, userId, parecer);
+        return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
     }
 
     @PostMapping("/{id}/reativar")
-    public ResponseEntity<?> reativar(
+    public ResponseEntity<Ocorrencia> reativar(
             @PathVariable String id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        try {
-            Ocorrencia atualizada = ocorrenciaService.reativarOcorrencia(id, userId);
-            return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
-        } catch (SecurityException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(403).body(response);
-        }
+        Ocorrencia atualizada = ocorrenciaService.reativarOcorrencia(id, userId);
+        return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<?> atualizar(
+    public ResponseEntity<Ocorrencia> atualizar(
             @PathVariable String id,
             @RequestBody OcorrenciaRequest request) {
         Ocorrencia atualizada = ocorrenciaService.atualizarOcorrencia(id, request);
@@ -103,27 +70,20 @@ public class OcorrenciaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Ocorrencia>> listarHistorico(@RequestParam(required = false) String cidade) {
-        return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade));
+    public ResponseEntity<Page<Ocorrencia>> listarHistorico(
+            @RequestParam(required = false) String cidade,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dataHora").descending());
+        return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade, pageable));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deletar(
+    public ResponseEntity<Void> deletar(
             @PathVariable String id,
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        try {
-            boolean deletado = ocorrenciaService.deletarOcorrencia(id, userId);
-            if (deletado) {
-                return ResponseEntity.ok().build();
-            } else {
-                return ResponseEntity.notFound().build();
-            }
-        } catch (SecurityException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(403).body(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+        boolean deletado = ocorrenciaService.deletarOcorrencia(id, userId);
+        return deletado ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 }

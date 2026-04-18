@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../models/ocorrencia.dart';
 import 'api_client.dart';
@@ -9,15 +10,31 @@ class OcorrenciaService {
 
   OcorrenciaService(this._client);
 
-  Future<List<Ocorrencia>> listarOcorrencias({String? cidade}) async {
+  Future<List<Ocorrencia>> listarOcorrencias({String? cidade, int page = 0, int size = 50}) async {
     try {
+      final Map<String, dynamic> params = {'page': page, 'size': size};
+      if (cidade != null && cidade.isNotEmpty) params['cidade'] = cidade;
+
       final response = await _client.dio.get(
         '/ocorrencias',
-        queryParameters: cidade != null && cidade.isNotEmpty ? {'cidade': cidade} : null,
+        queryParameters: params,
       );
-      final list = response.data as List;
-      return list.map((o) => Ocorrencia.fromJson(o)).toList();
-    } catch (_) {
+      
+      // O Spring Boot Page retorna os dados dentro de 'content'
+      if (response.data is Map && response.data['content'] != null) {
+        final list = response.data['content'] as List;
+        return list.map((o) => Ocorrencia.fromJson(o)).toList();
+      }
+      
+      // Fallback para o formato antigo (List) para evitar quebra se o backend mudar
+      if (response.data is List) {
+        final list = response.data as List;
+        return list.map((o) => Ocorrencia.fromJson(o)).toList();
+      }
+      
+      return [];
+    } catch (e) {
+      debugPrint('Erro ao listar ocorrências: $e');
       return [];
     }
   }

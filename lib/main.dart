@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
           create: (_) => UsuarioProvider(storageService, apiService),
         ),
         ChangeNotifierProvider(
-          create: (_) => OcorrenciaProvider(storageService, apiService)..carregarOcorrencias(),
+          create: (_) => OcorrenciaProvider(storageService, apiService),
         ),
         ChangeNotifierProvider(
           create: (_) => PontoInteresseProvider(apiService),

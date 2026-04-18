@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import '../models/ocorrencia.dart';
 import '../models/ponto_interesse.dart';
 import '../models/usuario.dart';
@@ -35,9 +34,11 @@ class ApiService {
   Future<dynamic> promoverParaAgente(String email) => _auth.promoverParaAgente(email);
   Future<List<Usuario>> listarAgentes({String? cidade}) => _auth.listarAgentes(cidade: cidade);
   Future<void> deletarUsuario(String id) => _auth.deletarUsuario(id);
+  Future<Usuario?> atualizarUsuario(String id, UsuarioRequest req) => _auth.atualizarUsuario(id, req);
 
   // ========== OCORRÊNCIAS ==========
-  Future<List<Ocorrencia>> listarOcorrencias({String? cidade}) => _ocorrencia.listarOcorrencias(cidade: cidade);
+  Future<List<Ocorrencia>> listarOcorrencias({String? cidade, int page = 0, int size = 50}) => 
+      _ocorrencia.listarOcorrencias(cidade: cidade, page: page, size: size);
   Future<Ocorrencia?> criarOcorrencia(Ocorrencia ocorrencia) => _ocorrencia.criarOcorrencia(ocorrencia);
   Future<Ocorrencia?> aprovarOcorrencia(String id) => _ocorrencia.aprovarOcorrencia(id);
   Future<Ocorrencia?> registrarChegadaAgente(String id, {String? parecer}) => _ocorrencia.registrarChegadaAgente(id, parecer: parecer);
@@ -65,6 +66,7 @@ class UsuarioRequest {
   final String cidade;
   final bool concordaLGPD;
   final String status;
+  final String? fcmToken;
 
   UsuarioRequest({
     required this.nome,
@@ -75,6 +77,7 @@ class UsuarioRequest {
     required this.cidade,
     required this.concordaLGPD,
     this.status = 'ATIVO',
+    this.fcmToken,
   });
 
   Map<String, dynamic> toJson() {
@@ -87,6 +90,7 @@ class UsuarioRequest {
       'cidade': cidade,
       'concordaLGPD': concordaLGPD,
       'status': status,
+      if (fcmToken != null) 'fcmToken': fcmToken,
     };
   }
 }

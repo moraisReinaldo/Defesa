@@ -85,14 +85,20 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Em produção, substitua "*" pelo domínio do app Flutter:
-        // Ex: configuration.setAllowedOriginPatterns(List.of("https://ware-particularly-taxi-atlantic.trycloudflare.com"));
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        
+        // Ler do environment para flexibilidade
+        String allowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
+        if (allowedOrigins == null || allowedOrigins.isEmpty()) {
+            // Em desenvolvimento, permite todas as origens
+            configuration.setAllowedOriginPatterns(List.of("*"));
+        } else {
+            // Em produção, usa as origens configuradas no ambiente
+            configuration.setAllowedOriginPatterns(List.of(allowedOrigins.split(",")));
+        }
+        
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-User-Id"));
-        // Nota: allowCredentials(true) é incompatível com origem wildcard "*"
-        // Em produção com origem específica, habilite: configuration.setAllowCredentials(true);
-        configuration.setAllowCredentials(false);
+        configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

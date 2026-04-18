@@ -1,8 +1,9 @@
 package com.defesacivil.backend.security;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,13 +14,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
+    private final Cache<String, Bucket> cache = Caffeine.newBuilder()
+            .expireAfterAccess(1, TimeUnit.HOURS)
+            .maximumSize(10000) // Proteção contra DDoS de IPs únicos massivos
+            .build();
 
     private Bucket createNewBucket() {
         // Limite de 100 requisições por minuto por IP
@@ -37,7 +40,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String ip = request.getRemoteAddr();
         // Em produção atrás de proxy, considere usar request.getHeader("X-Forwarded-For")
         
-        Bucket bucket = cache.computeIfAbsent(ip, k -> createNewBucket());
+        Bucket bucket = cache.get(ip, k -> createNewBucket());
 
         if (bucket.tryConsume(1)) {
             filterChain.doFilter(request, response);

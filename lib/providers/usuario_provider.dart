@@ -142,8 +142,33 @@ class UsuarioProvider extends ChangeNotifier {
     required String telefone,
     String? cidade,
   }) async {
-    // TODO: Implementar PUT /api/usuarios/{id} no backend
-    return true; 
+    if (_usuarioLogado == null) return false;
+    _setLoading(true);
+    try {
+      final req = UsuarioRequest(
+        nome: nome,
+        email: _usuarioLogado!.email,
+        senha: '', // O backend não deve exigir senha se não for alterada, ou podemos enviar opcional
+        telefone: telefone,
+        role: _usuarioLogado!.role.name.toUpperCase(),
+        cidade: cidade ?? _usuarioLogado!.cidade ?? '',
+        concordaLGPD: true,
+      );
+
+      final atualizado = await _apiService.atualizarUsuario(_usuarioLogado!.id, req);
+      if (atualizado != null) {
+        _usuarioLogado = atualizado;
+        await _storageService.salvarUsuarioLogado(atualizado);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao atualizar perfil: $e');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
   }
 
   Future<void> deletarUsuario(String id) async {

@@ -18,6 +18,7 @@ public class Usuario {
     private String nome;
     private String email;
     private String telefone;
+    @JsonIgnore
     private String senha;
     private String cidade;
     private String especialidade;
