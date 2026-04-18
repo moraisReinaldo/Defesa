@@ -27,7 +27,6 @@ class AuthService {
       final response = await _client.dio.post(
         '/auth/cadastro',
         data: req.toJson(),
-        options: Options(extra: {'secure': false}),
       );
       final data = response.data;
       if (data is Map<String, dynamic>) {
