@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,27 +24,18 @@ void main() async {
 
   final apiService = ApiService(storageService);
 
+  final notificationService = NotificationService();
   try {
-    await Firebase.initializeApp();
-    if (kDebugMode) print("Firebase inicializado com sucesso!");
-    
-    final notificationService = NotificationService();
     await notificationService.init();
-
-    runApp(MyApp(
-      storageService: storageService,
-      apiService: apiService,
-      notificationService: notificationService,
-    ));
   } catch (e) {
-    if (kDebugMode) print("ERRO CRÍTICO na inicialização: $e");
-    // Mesmo com erro, tentamos rodar o app para não travar na splash
-    runApp(MaterialApp(
-      home: Scaffold(
-        body: Center(child: Text("Erro ao carregar serviços: $e")),
-      ),
-    ));
+    if (kDebugMode) print('⚠️ Notificações não inicializadas: $e');
   }
+
+  runApp(MyApp(
+    storageService: storageService,
+    apiService: apiService,
+    notificationService: notificationService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
