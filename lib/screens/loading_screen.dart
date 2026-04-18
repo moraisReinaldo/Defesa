@@ -20,16 +20,6 @@ class _LoadingScreenState extends State<LoadingScreen> {
   void initState() {
     super.initState();
     
-    // Mostra mensagem amigável caso o servidor demore a ligar (Render free tier cold start)
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted && !context.read<UsuarioProvider>().estaInicializado) {
-        setState(() {
-          _mensagem = 'Ligando o servidor...';
-          _subMensagem = 'O servidor gratuito pode demorar até 50s para despertar. Aguarde!';
-        });
-      }
-    });
-
     // Sequência de Inicialização Crítica e Bloqueante
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userProv = context.read<UsuarioProvider>();

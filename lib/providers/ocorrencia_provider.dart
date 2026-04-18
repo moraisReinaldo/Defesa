@@ -213,11 +213,26 @@ class OcorrenciaProvider extends ChangeNotifier {
     final comentariosAtualizados = List<Comentario>.from(ocorrencia.comentarios)..add(comentario);
     final atualizada = ocorrencia.copyWith(comentarios: comentariosAtualizados);
     
-    await _storageService.atualizarOcorrencia(atualizada);
-    final index = _ocorrencias.indexWhere((o) => o.id == ocorrenciaId);
-    if (index != -1) {
-      _ocorrencias[index] = atualizada;
-      notifyListeners();
+    // Sincronizar com o servidor
+    try {
+      final vindoDaApi = await _apiService.atualizarOcorrencia(atualizada);
+      if (vindoDaApi != null) {
+        final index = _ocorrencias.indexWhere((o) => o.id == ocorrenciaId);
+        if (index != -1) {
+          _ocorrencias[index] = vindoDaApi;
+          await _storageService.atualizarOcorrencia(vindoDaApi);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print("Erro ao salvar comentário na API: $e");
+      // Fallback local se estiver offline
+      await _storageService.atualizarOcorrencia(atualizada);
+      final index = _ocorrencias.indexWhere((o) => o.id == ocorrenciaId);
+      if (index != -1) {
+        _ocorrencias[index] = atualizada;
+        notifyListeners();
+      }
     }
   }
 

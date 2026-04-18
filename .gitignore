@@ -1,3 +1,10 @@
+# Flutter artifacts
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+
 # Dependencies
 **/node_modules
 .pnpm-store/

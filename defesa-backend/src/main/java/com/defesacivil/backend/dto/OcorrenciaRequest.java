@@ -1,7 +1,9 @@
 package com.defesacivil.backend.dto;
 
+import com.defesacivil.backend.domain.Comentario;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.List;
 
 public class OcorrenciaRequest {
     @NotBlank(message = "O tipo da ocorrência é obrigatório")
@@ -19,13 +21,16 @@ public class OcorrenciaRequest {
     @NotBlank(message = "A cidade é obrigatória")
     private String cidade;
 
-    private String caminhoFoto; // pode ser uma URL ou Base64 (simplificado)
+    private String caminhoFoto;
     private String usuarioId;
     private String dataHora;
     private boolean criadoPorAgente;
     private String agentes;
     private String status;
+    private String descricaoSituacao;
+    private List<Comentario> comentarios;
 
+    // Getters and Setters
     public String getTipo() { return tipo; }
     public void setTipo(String tipo) { this.tipo = tipo; }
     public String getDescricao() { return descricao; }
@@ -48,4 +53,8 @@ public class OcorrenciaRequest {
     public void setAgentes(String agentes) { this.agentes = agentes; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getDescricaoSituacao() { return descricaoSituacao; }
+    public void setDescricaoSituacao(String descricaoSituacao) { this.descricaoSituacao = descricaoSituacao; }
+    public List<Comentario> getComentarios() { return comentarios; }
+    public void setComentarios(List<Comentario> comentarios) { this.comentarios = comentarios; }
 }

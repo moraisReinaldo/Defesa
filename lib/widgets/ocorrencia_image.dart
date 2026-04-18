@@ -27,9 +27,10 @@ class OcorrenciaImage extends StatelessWidget {
 
     String path = caminho!;
     
-    // Se não for Base64, nem URL absoluta HTTP, nem caminho local absoluto (começando com /)
+    // Se não for Base64, nem URL absoluta HTTP, nem caminho local absoluto (começando com / ou Drive do Windows como C:)
     // Então assumimos que é um caminho relativo vindo do servidor (ex: uploads/foto.jpg)
-    if (!path.startsWith('data:') && !path.startsWith('http') && !path.startsWith('/')) {
+    bool isAbsoluteLocal = path.startsWith('/') || RegExp(r'^[a-zA-Z]:\\').hasMatch(path);
+    if (!path.startsWith('data:') && !path.startsWith('http') && !isAbsoluteLocal) {
       final root = ApiService.getServerRoot();
       path = '$root/$path';
     }

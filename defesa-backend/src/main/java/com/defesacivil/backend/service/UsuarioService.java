@@ -56,10 +56,16 @@ public class UsuarioService {
 
         // --- SEGURANÇA: Prevenir Role Injection ---
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        
+        log.info("[Cadastro] Usuário autenticado: {}, Authorities: {}", 
+                 (auth != null ? auth.getName() : "ANÔNIMO"),
+                 (auth != null ? auth.getAuthorities() : "[]"));
+
         boolean isSolicianteAdmin = auth != null && auth.isAuthenticated() && 
             auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
 
         if (!isSolicianteAdmin) {
+            log.warn("[Cadastro] Tentativa de cadastro restrito por não-admin. Role solicitada: {}", roleReq);
             // Se não for um admin logado criando o usuário, restringimos as opções
             if (roleReq == Role.AGENTE) {
                 throw new RuntimeException("Apenas administradores podem cadastrar novos agentes.");

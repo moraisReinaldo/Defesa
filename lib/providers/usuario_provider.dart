@@ -67,20 +67,21 @@ class UsuarioProvider extends ChangeNotifier {
   /// Determina a cidade atual via GPS para usuários não logados.
   Future<void> determinarCidadePorGps() async {
     try {
+      // 1. Obter coordenadas com timeout agressivo
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low, // Baixa precisão bastar para cidade
-        timeLimit: const Duration(seconds: 5),
+        desiredAccuracy: LocationAccuracy.low, 
+        timeLimit: const Duration(seconds: 4),
       );
 
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
+      // 2. Tentar geocoding com timeout manual (pois a lib geocoding não tem nativo)
+      final placemarks = await Future.any([
+        placemarkFromCoordinates(position.latitude, position.longitude),
+        Future.delayed(const Duration(seconds: 3)).then((_) => <Placemark>[])
+      ]);
 
       if (placemarks.isNotEmpty) {
         String? cidadeGps = placemarks.first.subAdministrativeArea ?? placemarks.first.locality;
         if (cidadeGps != null && cidadeGps.isNotEmpty) {
-          // Mapear nome para código técnico
           final correspondente = _cidadesSuportadas.firstWhere(
             (c) => c['nome']?.toLowerCase() == cidadeGps.toLowerCase() || 
                    cidadeGps.toLowerCase().contains(c['nome']!.toLowerCase()),
@@ -89,13 +90,12 @@ class UsuarioProvider extends ChangeNotifier {
           
           if (correspondente.isNotEmpty) {
             _cidadeDetectadaGps = correspondente['codigo'];
-            if (kDebugMode) print('📍 GPS detectou cidade: $cidadeGps -> $_cidadeDetectadaGps');
             notifyListeners();
           }
         }
       }
     } catch (e) {
-      if (kDebugMode) print('⚠️ Falha ao detectar cidade via GPS: $e');
+      if (kDebugMode) print('⚠️ GPS timeout ou erro: $e');
     }
   }
 

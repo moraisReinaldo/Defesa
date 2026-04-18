@@ -134,9 +134,11 @@ public class OcorrenciaService {
             oc.setAgenteNoLocal(true);
             oc.setDataChegadaAgente(LocalDateTime.now().toString());
             oc.setStatus(OcorrenciaStatus.TRABALHANDO_ATUALMENTE.name());
+            
             if (parecer != null && !parecer.isBlank()) {
-                oc.setDescricaoSituacao(sanitizeInput(parecer));
+                adicionarComentario(oc, parecer, agenteUserId);
             }
+            
             return ocorrenciaRepository.save(oc);
         }
         return null;
@@ -152,8 +154,9 @@ public class OcorrenciaService {
         if (oc != null) {
             oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
             oc.setDataResolucao(LocalDateTime.now().toString());
+            
             if (parecer != null && !parecer.isBlank()) {
-                oc.setDescricaoSituacao(sanitizeInput(parecer));
+                adicionarComentario(oc, parecer, userId);
             }
             
             Ocorrencia salva = ocorrenciaRepository.save(oc);
@@ -172,6 +175,23 @@ public class OcorrenciaService {
             return salva;
         }
         return null;
+    }
+
+    private void adicionarComentario(Ocorrencia oc, String texto, String userId) {
+        if (texto == null || texto.isBlank()) return;
+        
+        Comentario com = new Comentario();
+        com.setTexto(sanitizeInput(texto));
+        com.setUsuarioId(userId);
+        com.setDataHora(LocalDateTime.now().toString());
+        
+        // Buscar nome do usuário para o histórico
+        if (userId != null) {
+            usuarioRepository.findById(userId).ifPresent(u -> com.setUsuarioNome(u.getNome()));
+        }
+        
+        oc.getComentarios().add(com);
+        oc.setDescricaoSituacao(com.getTexto()); // Último parecer vira a situação atual
     }
 
     public Ocorrencia reativarOcorrencia(String id, String userId) {
@@ -211,6 +231,14 @@ public class OcorrenciaService {
             if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
             if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
             if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
+            if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
+            
+            if (request.getComentarios() != null) {
+                // Atualiza a lista de comentários (Hibernate cuidará do OneToMany se os IDs baterem)
+                // Para simplificar, limpamos e adicionamos (considerando que o app manda a lista completa)
+                oc.getComentarios().clear();
+                oc.getComentarios().addAll(request.getComentarios());
+            }
             
             return ocorrenciaRepository.save(oc);
         }

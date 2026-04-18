@@ -425,15 +425,12 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                     filled: true,
                     fillColor: AppColors.surfaceCard,
                   ),
-                  validator: (valor) {
-                    if (valor == null || valor.isEmpty) {
-                      return "Digite uma descrição";
-                    }
-                    if (valor.length < 10) {
-                      return "Mínimo 10 caracteres";
-                    }
-                    return null;
-                  },
+                    validator: (valor) {
+                      if (valor == null || valor.isEmpty) {
+                        return "Digite uma descrição";
+                      }
+                      return null;
+                    },
                 ),
               ),
 
