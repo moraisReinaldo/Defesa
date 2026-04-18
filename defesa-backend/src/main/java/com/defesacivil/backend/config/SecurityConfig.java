@@ -1,6 +1,7 @@
 package com.defesacivil.backend.config;
 
 import com.defesacivil.backend.security.JwtAuthenticationFilter;
+import com.defesacivil.backend.security.RateLimitingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,9 +25,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, RateLimitingFilter rateLimitingFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     @Bean
@@ -67,6 +70,8 @@ public class SecurityConfig {
                 // Qualquer usuário autenticado pode ver ocorrências e criar
                 .anyRequest().authenticated()
             )
+            // Rate limiting aplicado antes do JWT
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -80,14 +85,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Origens permitidas — sem wildcard "*" em produção
-        configuration.setAllowedOriginPatterns(List.of(
-            "https://defesacivil.onrender.com", 
-            "http://localhost:*"
-        ));
+        // Em produção, substitua "*" pelo domínio do app Flutter:
+        // Ex: configuration.setAllowedOriginPatterns(List.of("https://ware-particularly-taxi-atlantic.trycloudflare.com"));
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-User-Id"));
-        configuration.setAllowCredentials(true);
+        // Nota: allowCredentials(true) é incompatível com origem wildcard "*"
+        // Em produção com origem específica, habilite: configuration.setAllowCredentials(true);
+        configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

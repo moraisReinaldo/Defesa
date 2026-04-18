@@ -8,6 +8,7 @@ import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,16 +20,16 @@ public class OcorrenciaService {
     private final OcorrenciaRepository ocorrenciaRepository;
     private final UsuarioRepository usuarioRepository;
     private final NotificationService notificationService;
-    private final FirebaseStorageService storageService;
+    private final MinioService minioService;
 
     public OcorrenciaService(OcorrenciaRepository ocorrenciaRepository,
                              UsuarioRepository usuarioRepository,
                              NotificationService notificationService,
-                             FirebaseStorageService storageService) {
+                             MinioService minioService) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.usuarioRepository = usuarioRepository;
         this.notificationService = notificationService;
-        this.storageService = storageService;
+        this.minioService = minioService;
     }
 
     public Ocorrencia registrarOcorrencia(OcorrenciaRequest request) {
@@ -50,12 +51,12 @@ public class OcorrenciaService {
         oc.setUsuarioId(request.getUsuarioId());
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
 
-        // Se for Base64, subir para o Firebase Storage para economizar espaço no Firestore
+        // Se for Base64, subir para o MinIO para não salvar tudo no banco
         String foto = request.getCaminhoFoto();
         if (foto != null && foto.startsWith("data:image")) {
-            String urlPublica = storageService.uploadBase64Image(foto, "ocorrencias");
-            if (urlPublica != null) {
-                oc.setCaminhoFoto(urlPublica);
+            String objectKey = minioService.uploadBase64Image(foto, "ocorrencias");
+            if (objectKey != null) {
+                oc.setCaminhoFoto(objectKey);
             } else {
                 oc.setCaminhoFoto(foto); // fallback se falhar
             }
@@ -213,25 +214,41 @@ public class OcorrenciaService {
         return null;
     }
 
+    @Transactional(readOnly = true)
     public List<Ocorrencia> buscarPorCidade(String cidade) {
         // Enforçar filtro por cidade para usuários não-administrativos via SecurityContext
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         
+        List<Ocorrencia> result;
+
         if (auth != null && auth.isAuthenticated() && !auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"))) {
             // Se for um cidadão ou agente autenticado, buscar os dados dele para saber a cidade real
             Optional<Usuario> usuario = usuarioRepository.findByEmail(auth.getName());
             if (usuario.isPresent()) {
                 String cidadeUsuario = usuario.get().getCidade();
                 if (cidadeUsuario != null && !cidadeUsuario.isBlank()) {
-                    return ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeUsuario);
+                    result = ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeUsuario);
+                    return processarUrls(result);
                 }
             }
         }
 
         if (cidade == null || cidade.trim().isEmpty()) {
-            return ocorrenciaRepository.findAll();
+            result = ocorrenciaRepository.findAll();
+        } else {
+            result = ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade);
         }
-        return ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade);
+        return processarUrls(result);
+    }
+
+    private List<Ocorrencia> processarUrls(List<Ocorrencia> ocorrencias) {
+        // Substitui a key do objeto pela Presigned URL gerada na hora (valida por 1h)
+        for (Ocorrencia oc : ocorrencias) {
+            if (oc.getCaminhoFoto() != null && !oc.getCaminhoFoto().startsWith("http")) {
+                oc.setCaminhoFoto(minioService.getPresignedUrl(oc.getCaminhoFoto()));
+            }
+        }
+        return ocorrencias;
     }
 
     // ========== SEGURANÇA ==========

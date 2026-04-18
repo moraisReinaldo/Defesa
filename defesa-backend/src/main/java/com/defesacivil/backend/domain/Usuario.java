@@ -1,11 +1,20 @@
 package com.defesacivil.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "usuarios")
 public class Usuario {
 
-    private String id; // Em Firestore costuma ser String
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
     private String nome;
     private String email;
     private String telefone;

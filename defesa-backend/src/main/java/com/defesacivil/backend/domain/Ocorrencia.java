@@ -1,9 +1,21 @@
 package com.defesacivil.backend.domain;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "ocorrencias")
 public class Ocorrencia {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
     private String tipo;
+    @Column(columnDefinition = "TEXT")
     private String descricao;
     private double latitude;
     private double longitude;
