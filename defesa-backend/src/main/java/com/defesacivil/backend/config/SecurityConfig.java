@@ -51,17 +51,16 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/login").permitAll()
                 .requestMatchers("/api/cidades").permitAll()
 
-                // Listagem pública de ocorrências e POIs (GET) — serviço filtra internamente por role
+                // Listagem pública (GET)
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // ===== ROTAS DE ADMINISTRADOR =====
-                .requestMatchers(HttpMethod.POST,   "/api/marcacoes").hasRole("ADMINISTRADOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/marcacoes/{id}").hasRole("ADMINISTRADOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/{id}").hasRole("ADMINISTRADOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/{id}").hasRole("ADMINISTRADOR")
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
                 .requestMatchers("/api/ocorrencias/{id}/aprovar").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasRole("ADMINISTRADOR")
 
                 // ===== ROTAS DE AGENTE E ADMINISTRADOR =====
                 .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")

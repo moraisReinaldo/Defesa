@@ -23,7 +23,7 @@ public interface OcorrenciaRepository extends JpaRepository<Ocorrencia, String> 
      * Também filtra por cidade para as ocorrências do criador, evitando expor dados cross-city.
      */
     @Query("SELECT o FROM Ocorrencia o WHERE " +
-           "(LOWER(o.cidade) = LOWER(:cidade) AND o.status <> 'PENDENTE_APROVACAO') " +
+           "(LOWER(o.cidade) = LOWER(:cidade) AND (o.status IS NULL OR o.status NOT IN ('PENDENTE_APROVACAO'))) " +
            "OR (:usuarioId IS NOT NULL AND o.usuarioId = :usuarioId AND LOWER(o.cidade) = LOWER(:cidade)) " +
            "ORDER BY o.dataHora DESC")
     Page<Ocorrencia> findPublicByCidadeOrCreator(

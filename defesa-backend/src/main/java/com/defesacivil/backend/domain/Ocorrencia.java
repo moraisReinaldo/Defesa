@@ -15,15 +15,18 @@ public class Ocorrencia {
     private double latitude;
     private double longitude;
     private String cidade;
+    @Column(columnDefinition = "TEXT")
     private String caminhoFoto;
     private String dataHora;
     private String usuarioId;
     private String status; // status de aprovação (armazenado como String)
     private String dataResolucao;
+    @Column(columnDefinition = "TEXT")
     private String agentes;
     private boolean criadoPorAgente; // Novo: define se precisa de aprovação
     private boolean agenteNoLocal; // Novo: marcação de chegada
     private String dataChegadaAgente; // Novo: data da chegada
+    @Column(columnDefinition = "TEXT")
     private String descricaoSituacao; // Novo: Parecer técnico/situação atual
 
     public Ocorrencia() {}
