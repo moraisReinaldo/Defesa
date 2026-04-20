@@ -23,7 +23,7 @@ public class PontoInteresseController {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PontoInteresseController.class);
 
     @PostMapping
-    public PontoInteresse criar(@RequestBody PontoInteresse ponto) {
+    public PontoInteresse criar(@jakarta.validation.Valid @RequestBody PontoInteresse ponto) {
         log.info("Recebendo requisição para criar Ponto de Interesse: {}", ponto.getDescricao());
         try {
             PontoInteresse salvo = service.salvar(ponto);

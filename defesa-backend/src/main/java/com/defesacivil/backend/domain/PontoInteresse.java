@@ -31,7 +31,7 @@ public class PontoInteresse {
     @jakarta.persistence.Column(name = "cidade")
     private String cidade;
 
-    @jakarta.persistence.Column(name = "criado_por")
+    @jakarta.persistence.Column(name = "criado_por", nullable = true)
     private String criadoPor;
 
     public PontoInteresse() {}

@@ -83,12 +83,14 @@ class ApiClient {
 
   Exception handleDioError(DioException e) {
     final data = e.response?.data;
-    String msg = 'Erro ao conectar com o servidor.';
+    final statusCode = e.response?.statusCode;
+    String msg = 'Erro ao conectar com o servidor${statusCode != null ? ' (Status: $statusCode)' : ''}.';
+    
     if (data is Map && data['message'] != null) {
       msg = data['message'].toString();
     } else if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      msg = 'O servidor demorou para responder. Tente novamente.';
+      msg = 'O servidor demorou para responder (Timeout).';
     } else if (e.type == DioExceptionType.connectionError) {
       msg = 'Sem conexão com o servidor. Verifique sua internet.';
     }

@@ -48,25 +48,28 @@ public class SecurityConfig {
                 // Endpoints públicos e Health Checks
                 .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
                 .requestMatchers("/api/auth/**", "/api/usuarios/login").permitAll()
-                .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
-                .requestMatchers("/api/ocorrencias").permitAll()
-                // Apenas Administradores podem promover usuários a agentes
-                .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
-                // Apenas Agentes e Admins podem listar outros agentes
-                .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                // Apenas Administradores podem aprovar ocorrências
-                .requestMatchers("/api/ocorrencias/*/aprovar").hasRole("ADMINISTRADOR")
-                // Agentes e Admins podem registrar chegada
-                .requestMatchers("/api/ocorrencias/*/chegada").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                // Agentes e Admins podem resolver/reativar
-                .requestMatchers("/api/ocorrencias/*/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                .requestMatchers("/api/ocorrencias/*/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                // DELETE explícito — apenas Administradores
-                .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/*").hasRole("ADMINISTRADOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/*").hasRole("ADMINISTRADOR")
-                // Pontos de interesse — criar e deletar apenas Administradores
+                
+                // Pontos de interesse — RESTRITO POST/DELETE para Administradores
                 .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/pontos-interesse/*").hasRole("ADMINISTRADOR")
+                
+                // Cidades e Listagem de Pontos — Público (GET)
+                .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
+                .requestMatchers("/api/ocorrencias").permitAll()
+                
+                // Apenas Administradores podem promover usuários a agentes e deletar
+                .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/*").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/*").hasRole("ADMINISTRADOR")
+
+                // Apenas Agentes e Admins podem listar outros agentes
+                .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                
+                // Gestão de Ocorrências (Aprovar, Chegada, Resolver, Reativar)
+                .requestMatchers("/api/ocorrencias/*/aprovar").hasRole("ADMINISTRADOR")
+                .requestMatchers("/api/ocorrencias/*/chegada").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers("/api/ocorrencias/*/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers("/api/ocorrencias/*/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
                 // Qualquer usuário autenticado pode ver ocorrências e criar
                 .anyRequest().authenticated()
             )
