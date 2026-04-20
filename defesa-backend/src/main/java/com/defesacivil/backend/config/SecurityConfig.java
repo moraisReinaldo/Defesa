@@ -50,11 +50,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/usuarios/login").permitAll()
                 .requestMatchers("/api/cidades").permitAll()
-
-                // Listagem pública (GET)
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // ===== REGISTRO DE OCORRÊNCIA (Público) =====
+                .requestMatchers(HttpMethod.POST, "/api/ocorrencias").permitAll()
 
                 // ===== ROTAS DE ADMINISTRADOR =====
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
@@ -68,7 +69,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/ocorrencias/{id}/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
                 .requestMatchers("/api/ocorrencias/{id}/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
 
-                // ===== QUALQUER USUÁRIO AUTENTICADO =====
+                // ===== DEMAIS ROTAS (Perfil, Edição, etc.) =====
                 .anyRequest().authenticated()
             )
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
