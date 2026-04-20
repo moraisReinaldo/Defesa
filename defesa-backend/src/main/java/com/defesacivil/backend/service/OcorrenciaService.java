@@ -89,6 +89,10 @@ public class OcorrenciaService {
         oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
         oc.setUsuarioId(request.getUsuarioId());
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
+        // Criador (agente/admin) já vem pré-escalado pelo app
+        if (request.getAgentes() != null && !request.getAgentes().isBlank()) {
+            oc.setAgentes(sanitizeInput(request.getAgentes()));
+        }
 
         // Upload de foto Base64 para MinIO
         String foto = request.getCaminhoFoto();

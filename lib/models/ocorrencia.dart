@@ -25,6 +25,8 @@ class Ocorrencia {
   final bool agenteNoLocal;
   final DateTime? dataChegadaAgente;
   final String? descricaoSituacao;
+  /// true = salvo apenas localmente, não sincronizado com o servidor
+  final bool isLocal;
 
   Ocorrencia({
     String? id,
@@ -43,6 +45,7 @@ class Ocorrencia {
     this.agenteNoLocal = false,
     this.dataChegadaAgente,
     this.descricaoSituacao,
+    this.isLocal = false,
   })  : id = id ?? const Uuid().v4(),
         dataHora = dataHora ?? DateTime.now();
 
@@ -128,6 +131,7 @@ class Ocorrencia {
     bool? agenteNoLocal,
     DateTime? dataChegadaAgente,
     String? descricaoSituacao,
+    bool? isLocal,
   }) {
     return Ocorrencia(
       id: id ?? this.id,
@@ -146,6 +150,7 @@ class Ocorrencia {
       agenteNoLocal: agenteNoLocal ?? this.agenteNoLocal,
       dataChegadaAgente: dataChegadaAgente ?? this.dataChegadaAgente,
       descricaoSituacao: descricaoSituacao ?? this.descricaoSituacao,
+      isLocal: isLocal ?? this.isLocal,
     );
   }
 }
