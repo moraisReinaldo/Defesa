@@ -54,6 +54,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
+                log.info("🔐 Autenticando usuário: {} com role: {}", userEmail, role);
+                
                 // Se o token é válido, criamos a autenticação no contexto do Spring Security
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userEmail,
