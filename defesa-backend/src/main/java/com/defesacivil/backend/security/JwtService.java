@@ -26,8 +26,9 @@ public class JwtService {
     @PostConstruct
     public void init() {
         if (secret == null || secret.isEmpty() || secret.length() < 32) {
-            // Em desenvolvimento, gera uma chave segura se não houver no env
-            this.signingKey = Jwts.SIG.HS256.key().build();
+            // Usa uma chave fixa de desenvolvimento para não invalidar tokens ao reiniciar o servidor
+            String devSecret = "DefesaCivilBackendSecretKeyForDevEnv!2026";
+            this.signingKey = Keys.hmacShaKeyFor(devSecret.getBytes());
         } else {
             this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
         }

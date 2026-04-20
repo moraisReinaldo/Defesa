@@ -37,11 +37,9 @@ class PontoInteresseProvider extends ChangeNotifier {
 
   Future<void> deletarPonto(String id) async {
     try {
-      final sucesso = await _apiService.deletarPontoInteresse(id);
-      if (sucesso) {
-        _pontos.removeWhere((p) => p.id == id);
-        notifyListeners();
-      }
+      await _apiService.deletarPontoInteresse(id);
+      _pontos.removeWhere((p) => p.id == id);
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('Erro ao deletar ponto de interesse: $e');
     }

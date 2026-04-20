@@ -164,7 +164,7 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
                else
                  // Para Cidadão: Dropdown liberado
                  DropdownButtonFormField<String>(
-                   value: _cidadeSelecionada,
+                   initialValue: _cidadeSelecionada,
                    hint: const Text('Selecione a cidade'),
                    decoration: InputDecoration(
                      prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),

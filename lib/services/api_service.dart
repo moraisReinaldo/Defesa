@@ -50,7 +50,7 @@ class ApiService {
   // ========== PONTOS DE INTERESSE ==========
   Future<List<PontoInteresse>> listarPontosInteresse({String? cidade}) => _ponto.listarPontosInteresse(cidade: cidade);
   Future<PontoInteresse?> criarPontoInteresse(PontoInteresse ponto) => _ponto.criarPontoInteresse(ponto);
-  Future<bool> deletarPontoInteresse(String id) => _ponto.deletarPontoInteresse(id);
+  Future<void> deletarPontoInteresse(String id) => _ponto.deletarPontoInteresse(id);
 
   // ========== CIDADES ==========
   static const List<Map<String, String>> fallbackCidades = ApiClient.fallbackCidades;
