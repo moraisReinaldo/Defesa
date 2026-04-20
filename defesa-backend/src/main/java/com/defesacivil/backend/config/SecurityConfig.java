@@ -49,11 +49,12 @@ public class SecurityConfig {
                 .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
                 .requestMatchers("/api/auth/**", "/api/usuarios/login").permitAll()
                 
-                // TESTE: Permitindo POST público para isolar o erro 403
-                .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").permitAll()
+                // Pontos de interesse — RESTRITO POST/DELETE para Administradores
+                .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/marcacoes/*").hasRole("ADMINISTRADOR")
                 
                 // Cidades e Listagem de Pontos — Público (GET)
-                .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
+                .requestMatchers("/api/cidades", "/api/marcacoes").permitAll()
                 .requestMatchers("/api/ocorrencias").permitAll()
                 
                 // Apenas Administradores podem promover usuários a agentes e deletar
@@ -99,7 +100,7 @@ public class SecurityConfig {
         }
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-User-Id"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

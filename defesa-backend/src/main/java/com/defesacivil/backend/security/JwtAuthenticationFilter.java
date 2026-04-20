@@ -54,13 +54,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                log.info("🔐 Autenticando usuário: {} com role: {}", userEmail, role);
+                String normalizedRole = (role != null) ? role.trim().toUpperCase() : "CIDADAO";
+                log.info("🔐 Autenticando usuário: {} com role original: '{}', normalizada: '{}'", userEmail, role, normalizedRole);
                 
                 // Se o token é válido, criamos a autenticação no contexto do Spring Security
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userEmail,
                         null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
+                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + normalizedRole))
                 );
                 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
