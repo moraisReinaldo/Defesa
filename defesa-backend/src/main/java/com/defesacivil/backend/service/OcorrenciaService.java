@@ -280,14 +280,17 @@ public class OcorrenciaService {
         
         // Se for Base64 (data:image) ou já for uma URL absoluta (http), não mexe
         if (foto.startsWith("data:") || foto.startsWith("http")) {
+            log.debug("📸 Imagem em Base64 ou URL absoluta detectada. Mantendo original.");
             return oc;
         }
         
         // Só gera URL assinada do MinIO se for um caminho de objeto (ex: ocorrencias/uuid.jpg)
         try {
-            oc.setCaminhoFoto(minioService.getPresignedUrl(foto));
+            String urlAssinada = minioService.getPresignedUrl(foto);
+            log.info("🔗 URL Gerada para Ocorrência {}: {}", oc.getId(), urlAssinada);
+            oc.setCaminhoFoto(urlAssinada);
         } catch (Exception e) {
-            log.warn("Erro ao gerar URL do MinIO para {}: {}", foto, e.getMessage());
+            log.warn("❌ Erro ao gerar URL do MinIO para {}: {}", foto, e.getMessage());
         }
         
         return oc;
