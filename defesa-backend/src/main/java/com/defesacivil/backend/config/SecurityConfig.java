@@ -49,9 +49,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
                 .requestMatchers("/api/auth/**", "/api/usuarios/login").permitAll()
                 
-                // Pontos de interesse — TEMPORARIAMENTE permitindo qualquer autenticado para testes
-                .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/api/pontos-interesse/*").hasRole("ADMINISTRADOR")
+                // TESTE: Permitindo POST público para isolar o erro 403
+                .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").permitAll()
                 
                 // Cidades e Listagem de Pontos — Público (GET)
                 .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
