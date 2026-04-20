@@ -274,10 +274,22 @@ public class OcorrenciaService {
     // ========== HELPERS INTERNOS ==========
 
     private Ocorrencia processarUrl(Ocorrencia oc) {
-        if (oc == null) return null;
-        if (oc.getCaminhoFoto() != null && !oc.getCaminhoFoto().startsWith("http")) {
-            oc.setCaminhoFoto(minioService.getPresignedUrl(oc.getCaminhoFoto()));
+        if (oc == null || oc.getCaminhoFoto() == null) return oc;
+        
+        String foto = oc.getCaminhoFoto();
+        
+        // Se for Base64 (data:image) ou já for uma URL absoluta (http), não mexe
+        if (foto.startsWith("data:") || foto.startsWith("http")) {
+            return oc;
         }
+        
+        // Só gera URL assinada do MinIO se for um caminho de objeto (ex: ocorrencias/uuid.jpg)
+        try {
+            oc.setCaminhoFoto(minioService.getPresignedUrl(foto));
+        } catch (Exception e) {
+            log.warn("Erro ao gerar URL do MinIO para {}: {}", foto, e.getMessage());
+        }
+        
         return oc;
     }
 
