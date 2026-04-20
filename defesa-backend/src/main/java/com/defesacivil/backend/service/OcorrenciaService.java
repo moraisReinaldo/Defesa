@@ -131,7 +131,7 @@ public class OcorrenciaService {
             }
         }
 
-        return ocorrenciaRepository.save(oc);
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
 
     /** Aprovar — SecurityConfig já garante que apenas ADMINISTRADOR chega aqui */
@@ -152,7 +152,7 @@ public class OcorrenciaService {
             );
         }
 
-        return salva;
+        return processarUrl(salva);
     }
 
     /** Registrar chegada — SecurityConfig garante AGENTE ou ADMINISTRADOR */
@@ -168,7 +168,7 @@ public class OcorrenciaService {
             oc.setDescricaoSituacao(sanitizeInput(parecer));
         }
 
-        return ocorrenciaRepository.save(oc);
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
 
     /** Resolver ocorrência — SecurityConfig garante AGENTE ou ADMINISTRADOR */
@@ -205,7 +205,7 @@ public class OcorrenciaService {
 
         oc.setStatus(OcorrenciaStatus.APROVADA.name());
         oc.setDataResolucao(null);
-        return ocorrenciaRepository.save(oc);
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
 
     /** Deletar — SecurityConfig garante ADMINISTRADOR */
@@ -228,7 +228,7 @@ public class OcorrenciaService {
         if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
 
-        return ocorrenciaRepository.save(oc);
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
 
     @Transactional(readOnly = true)
@@ -276,28 +276,43 @@ public class OcorrenciaService {
     private Ocorrencia processarUrl(Ocorrencia oc) {
         if (oc == null) return null;
         
+        // Criamos uma cópia para não correr risco de o Hibernate salvar a URL assinada no banco
+        Ocorrencia copia = new Ocorrencia();
+        copia.setId(oc.getId());
+        copia.setTipo(oc.getTipo());
+        copia.setDescricao(oc.getDescricao());
+        copia.setLatitude(oc.getLatitude());
+        copia.setLongitude(oc.getLongitude());
+        copia.setCidade(oc.getCidade());
+        copia.setDataHora(oc.getDataHora());
+        copia.setStatus(oc.getStatus());
+        copia.setUsuarioId(oc.getUsuarioId());
+        copia.setAgentes(oc.getAgentes());
+        copia.setAgenteNoLocal(oc.isAgenteNoLocal());
+        copia.setDataChegadaAgente(oc.getDataChegadaAgente());
+        copia.setDataResolucao(oc.getDataResolucao());
+        copia.setCriadoPorAgente(oc.isCriadoPorAgente());
+        copia.setDescricaoSituacao(oc.getDescricaoSituacao());
+        
         String foto = oc.getCaminhoFoto();
         if (foto == null || foto.isBlank()) {
-            log.info("ℹ️ Ocorrência {}: Sem foto para processar.", oc.getId());
-            return oc;
+            copia.setCaminhoFoto(null);
+            return copia;
         }
         
-        // Se for Base64 (data:image) ou já for uma URL absoluta (http), não mexe
         if (foto.startsWith("data:") || foto.startsWith("http")) {
-            log.info("📸 Ocorrência {}: Foto em Base64 ou URL absoluta. Tamanho: {} chars.", oc.getId(), foto.length());
-            return oc;
+            copia.setCaminhoFoto(foto);
+            return copia;
         }
         
-        // Só gera URL assinada do MinIO se for um caminho de objeto (ex: ocorrencias/uuid.jpg)
         try {
-            String urlAssinada = minioService.getPresignedUrl(foto);
-            log.info("🔗 Ocorrência {}: URL Gerada -> {}", oc.getId(), urlAssinada);
-            oc.setCaminhoFoto(urlAssinada);
+            copia.setCaminhoFoto(minioService.getPresignedUrl(foto));
         } catch (Exception e) {
-            log.warn("❌ Ocorrência {}: Erro ao gerar URL do MinIO para {}: {}", oc.getId(), foto, e.getMessage());
+            log.warn("❌ Erro ao gerar URL do MinIO para {}: {}", foto, e.getMessage());
+            copia.setCaminhoFoto(foto);
         }
         
-        return oc;
+        return copia;
     }
 
     private Page<Ocorrencia> processarUrls(Page<Ocorrencia> page) {

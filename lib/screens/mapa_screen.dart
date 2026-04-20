@@ -350,7 +350,8 @@ class _MapaScreenState extends State<MapaScreen> {
                           child: ElevatedButton.icon(
                           onPressed: () async { 
                             try {
-                              // Trava de Geolocalização: verificar se está perto (ex: 500m)
+                              // Trava de Geolocalização removida para facilitar testes
+                              /*
                               if (_posicaoAtual != null) {
                                 final distancia = await _localizacaoService.calcularDistancia(
                                   _posicaoAtual!.latitude, 
@@ -371,6 +372,7 @@ class _MapaScreenState extends State<MapaScreen> {
                                   return;
                                 }
                               }
+                              */
 
                               final parecer = _comentarioController.text.trim();
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 

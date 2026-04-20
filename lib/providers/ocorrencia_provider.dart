@@ -156,6 +156,7 @@ class OcorrenciaProvider extends ChangeNotifier {
         final index = _ocorrencias.indexWhere((o) => o.id == id);
         if (index != -1) {
           _ocorrencias[index] = atualizada;
+          await _storageService.salvarOcorrencia(atualizada);
           notifyListeners();
         }
       }
@@ -170,6 +171,7 @@ class OcorrenciaProvider extends ChangeNotifier {
       final index = _ocorrencias.indexWhere((o) => o.id == id);
       if (index != -1) {
         _ocorrencias[index] = vindoDaApi;
+        await _storageService.salvarOcorrencia(vindoDaApi);
         notifyListeners();
       }
     }

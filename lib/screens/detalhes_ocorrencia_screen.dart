@@ -315,13 +315,43 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       await context.read<OcorrenciaProvider>().adicionarOcorrencia(ocorrencia);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Ocorrência registrada com sucesso! ✅"),
-          backgroundColor: AppColors.statusResolved,
-        ),
-      );
-      Navigator.pop(context, true); // Retorna true para a tela 1
+      // Se o usuário não estiver logado, mostramos o aviso solicitado
+      if (!usuarioProvider.estaLogado) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: AppColors.accentAmber),
+                SizedBox(width: 10),
+                Text('Aviso Importante'),
+              ],
+            ),
+            content: const Text(
+              'Sua ocorrência foi registrada com sucesso!\n\n'
+              'Como você não está logado, esta ocorrência não aparecerá no seu histórico enquanto estiver pendente de aprovação. '
+              'Ela ficará visível para todos no mapa assim que for aprovada pela Defesa Civil.'
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal),
+                child: const Text('Entendido', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Ocorrência registrada com sucesso! ✅"),
+            backgroundColor: AppColors.statusResolved,
+          ),
+        );
+      }
+
+      if (mounted) Navigator.pop(context, true); // Retorna true para a tela 1
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
