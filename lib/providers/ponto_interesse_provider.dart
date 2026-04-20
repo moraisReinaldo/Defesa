@@ -31,7 +31,7 @@ class PontoInteresseProvider extends ChangeNotifier {
       return false;
     } catch (e) {
       if (kDebugMode) print('Erro ao adicionar ponto de interesse: $e');
-      return false;
+      rethrow; // Propaga para a UI capturar a mensagem de erro real
     }
   }
 

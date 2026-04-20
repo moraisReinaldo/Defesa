@@ -64,9 +64,9 @@ public class SecurityConfig {
                 // DELETE explícito — apenas Administradores
                 .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/*").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/usuarios/*").hasRole("ADMINISTRADOR")
-                // Pontos de interesse — criar qualquer autenticado, deletar apenas Agentes e Admins
-                .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/api/pontos-interesse/*").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                // Pontos de interesse — criar e deletar apenas Administradores
+                .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/pontos-interesse/*").hasRole("ADMINISTRADOR")
                 // Qualquer usuário autenticado pode ver ocorrências e criar
                 .anyRequest().authenticated()
             )
