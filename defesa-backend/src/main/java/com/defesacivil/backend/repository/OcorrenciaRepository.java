@@ -10,15 +10,24 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OcorrenciaRepository extends JpaRepository<Ocorrencia, String> {
-    
+
     Page<Ocorrencia> findByCidadeIgnoreCaseOrderByDataHoraDesc(String cidade, Pageable pageable);
 
+    /**
+     * Retorna ocorrências visíveis para cidadãos:
+     * - Ocorrências APROVADAS na cidade informada (visíveis publicamente)
+     * - OU qualquer ocorrência criada pelo próprio usuário (mesmo pendente, para ele acompanhar)
+     *
+     * CORREÇÃO: Usa (:usuarioId IS NULL OR o.usuarioId = :usuarioId) para tratar
+     * o caso onde o usuário não está autenticado sem gerar "WHERE usuarioId = null" inválido.
+     * Também filtra por cidade para as ocorrências do criador, evitando expor dados cross-city.
+     */
     @Query("SELECT o FROM Ocorrencia o WHERE " +
            "(LOWER(o.cidade) = LOWER(:cidade) AND o.status <> 'PENDENTE_APROVACAO') " +
-           "OR (o.usuarioId = :usuarioId) " +
+           "OR (:usuarioId IS NOT NULL AND o.usuarioId = :usuarioId AND LOWER(o.cidade) = LOWER(:cidade)) " +
            "ORDER BY o.dataHora DESC")
     Page<Ocorrencia> findPublicByCidadeOrCreator(
-            @Param("cidade") String cidade, 
+            @Param("cidade") String cidade,
             @Param("usuarioId") String usuarioId,
             Pageable pageable);
 }

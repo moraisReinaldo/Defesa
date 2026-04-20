@@ -7,8 +7,12 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +23,8 @@ import java.util.Optional;
 @Service
 @Transactional
 public class OcorrenciaService {
+
+    private static final Logger log = LoggerFactory.getLogger(OcorrenciaService.class);
 
     private final OcorrenciaRepository ocorrenciaRepository;
     private final UsuarioRepository usuarioRepository;
@@ -35,8 +41,38 @@ public class OcorrenciaService {
         this.minioService = minioService;
     }
 
+    // ========== HELPERS DE SEGURANÇA ==========
+
+    /**
+     * Extrai o email do usuário autenticado a partir do JWT no SecurityContext.
+     * Nunca confia em parâmetros externos como X-User-Id.
+     */
+    private String getAuthenticatedEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null && auth.isAuthenticated()) ? auth.getName() : null;
+    }
+
+    private boolean isAuthenticated() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName());
+    }
+
+    private boolean hasRole(String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_" + role));
+    }
+
+    private boolean hasAnyRole(String... roles) {
+        for (String role : roles) {
+            if (hasRole(role)) return true;
+        }
+        return false;
+    }
+
+    // ========== OPERAÇÕES ==========
+
     public Ocorrencia registrarOcorrencia(OcorrenciaRequest request) {
-        // Validação de input
         if (request.getTipo() == null || request.getTipo().isBlank()) {
             throw new IllegalArgumentException("Tipo da ocorrência é obrigatório");
         }
@@ -54,44 +90,39 @@ public class OcorrenciaService {
         oc.setUsuarioId(request.getUsuarioId());
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
 
-        // Se for Base64, subir para o MinIO para não salvar tudo no banco
+        // Upload de foto Base64 para MinIO
         String foto = request.getCaminhoFoto();
         if (foto != null && foto.startsWith("data:image")) {
             String objectKey = minioService.uploadBase64Image(foto, "ocorrencias");
-            if (objectKey != null) {
-                oc.setCaminhoFoto(objectKey);
-            } else {
-                oc.setCaminhoFoto(foto); // fallback se falhar
-            }
+            oc.setCaminhoFoto(objectKey != null ? objectKey : foto);
         } else {
             oc.setCaminhoFoto(foto);
         }
 
-        // Regra de Aprovação: Admins e Agentes são sempre aprovados
-        boolean autoAprovado = oc.isCriadoPorAgente();
-        
-        // Short-circuit: se já sabemos que é agente, não precisa buscar no banco
+        // Regra de auto-aprovação: Admins e Agentes são sempre aprovados automaticamente
+        boolean autoAprovado = oc.isCriadoPorAgente() || hasAnyRole("ADMINISTRADOR", "AGENTE");
+
+        // Fallback: verificar pelo usuarioId no banco se a flag não veio do app
         if (!autoAprovado && oc.getUsuarioId() != null) {
             Optional<Usuario> criador = usuarioRepository.findById(oc.getUsuarioId());
             if (criador.isPresent()) {
                 String role = criador.get().getRole();
-                if (Role.ADMINISTRADOR.name().equals(role) || Role.AGENTE.name().equals(role)) {
-                    autoAprovado = true;
-                }
+                autoAprovado = Role.ADMINISTRADOR.name().equals(role) || Role.AGENTE.name().equals(role);
             }
         }
 
         if (autoAprovado) {
             oc.setStatus(OcorrenciaStatus.APROVADA.name());
+            log.info("Ocorrência criada com auto-aprovação para usuário com privilégios.");
         } else {
             oc.setStatus(OcorrenciaStatus.PENDENTE_APROVACAO.name());
-            // Notificar todos os Administradores daquela cidade
+            // Notificar admins da cidade
             List<Usuario> admins = usuarioRepository.findByCidadeAndRole(oc.getCidade(), Role.ADMINISTRADOR.name());
             for (Usuario admin : admins) {
                 notificationService.sendPushNotification(
-                    admin.getFcmToken(), 
-                    "Nova Ocorrência Pendente", 
-                    "Uma nova ocorrência foi registrada em " + oc.getCidade() + " e aguarda sua aprovação."
+                    admin.getFcmToken(),
+                    "Nova Ocorrência Pendente",
+                    "Uma nova ocorrência aguarda aprovação em " + oc.getCidade() + "."
                 );
             }
         }
@@ -99,127 +130,144 @@ public class OcorrenciaService {
         return processarUrl(ocorrenciaRepository.save(oc));
     }
 
-    public Ocorrencia aprovarOcorrencia(String id, String adminUserId) {
-        // Verificação de role: apenas ADMINISTRADOR pode aprovar
-        verificarRole(adminUserId, Role.ADMINISTRADOR, "Apenas administradores podem aprovar ocorrências");
-
+    /** Aprovar — SecurityConfig já garante que apenas ADMINISTRADOR chega aqui */
+    public Ocorrencia aprovarOcorrencia(String id) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
-        if (oc != null) {
-            oc.setStatus(OcorrenciaStatus.APROVADA.name());
-            Ocorrencia salva = ocorrenciaRepository.save(oc);
-            
-            // Notificar o munícipe que criou (se houver usuarioId)
-            if (oc.getUsuarioId() != null) {
-                usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user -> {
-                    notificationService.sendPushNotification(
-                        user.getFcmToken(),
-                        "Ocorrência Aprovada!",
-                        "Sua ocorrência '" + oc.getTipo() + "' foi verificada e publicada."
-                    );
-                });
-            }
-            return processarUrl(salva);
+        if (oc == null) return null;
+
+        oc.setStatus(OcorrenciaStatus.APROVADA.name());
+        Ocorrencia salva = ocorrenciaRepository.save(oc);
+
+        if (oc.getUsuarioId() != null) {
+            usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
+                notificationService.sendPushNotification(
+                    user.getFcmToken(),
+                    "Ocorrência Aprovada!",
+                    "Sua ocorrência '" + oc.getTipo() + "' foi verificada e publicada."
+                )
+            );
         }
-        return null;
+
+        return processarUrl(salva);
     }
 
-    public Ocorrencia registrarChegadaAgente(String id, String agenteUserId, String parecer) {
-        // Verificação de role: apenas AGENTE ou ADMINISTRADOR pode registrar chegada
-        verificarRoleMultiple(agenteUserId, 
-            List.of(Role.AGENTE, Role.ADMINISTRADOR), 
-            "Apenas agentes ou administradores podem registrar chegada no local");
-
+    /** Registrar chegada — SecurityConfig garante AGENTE ou ADMINISTRADOR */
+    public Ocorrencia registrarChegadaAgente(String id, String parecer) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
-        if (oc != null) {
-            oc.setAgenteNoLocal(true);
-            oc.setDataChegadaAgente(LocalDateTime.now().toString());
-            oc.setStatus(OcorrenciaStatus.TRABALHANDO_ATUALMENTE.name());
-            
-            if (parecer != null && !parecer.isBlank()) {
-                oc.setDescricaoSituacao(sanitizeInput(parecer));
-            }
-            
-            return processarUrl(ocorrenciaRepository.save(oc));
+        if (oc == null) return null;
+
+        oc.setAgenteNoLocal(true);
+        oc.setDataChegadaAgente(LocalDateTime.now().toString());
+        oc.setStatus(OcorrenciaStatus.TRABALHANDO_ATUALMENTE.name());
+
+        if (parecer != null && !parecer.isBlank()) {
+            oc.setDescricaoSituacao(sanitizeInput(parecer));
         }
-        return null;
+
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
 
-    public Ocorrencia resolverOcorrencia(String id, String userId, String parecer) {
-        // Verificação de role: apenas AGENTE ou ADMINISTRADOR pode resolver
-        verificarRoleMultiple(userId, 
-            List.of(Role.AGENTE, Role.ADMINISTRADOR), 
-            "Apenas agentes ou administradores podem resolver ocorrências");
-
+    /** Resolver ocorrência — SecurityConfig garante AGENTE ou ADMINISTRADOR */
+    public Ocorrencia resolverOcorrencia(String id, String parecer) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
-        if (oc != null) {
-            oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
-            oc.setDataResolucao(LocalDateTime.now().toString());
-            
-            if (parecer != null && !parecer.isBlank()) {
-                oc.setDescricaoSituacao(sanitizeInput(parecer));
-            }
-            
-            Ocorrencia salva = ocorrenciaRepository.save(oc);
-            
-            // Notificar o munícipe
-            if (oc.getUsuarioId() != null) {
-                usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user -> {
-                    notificationService.sendPushNotification(
-                        user.getFcmToken(),
-                        "Caso Resolvido!",
-                        "A ocorrência em " + oc.getCidade() + " foi marcada como resolvida."
-                    );
-                });
-            }
-            
-            return processarUrl(salva);
+        if (oc == null) return null;
+
+        oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
+        oc.setDataResolucao(LocalDateTime.now().toString());
+
+        if (parecer != null && !parecer.isBlank()) {
+            oc.setDescricaoSituacao(sanitizeInput(parecer));
         }
-        return null;
+
+        Ocorrencia salva = ocorrenciaRepository.save(oc);
+
+        if (oc.getUsuarioId() != null) {
+            usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
+                notificationService.sendPushNotification(
+                    user.getFcmToken(),
+                    "Caso Resolvido!",
+                    "A ocorrência em " + oc.getCidade() + " foi marcada como resolvida."
+                )
+            );
+        }
+
+        return processarUrl(salva);
     }
 
-    public Ocorrencia reativarOcorrencia(String id, String userId) {
-        // Verificação de role: apenas AGENTE ou ADMINISTRADOR pode reativar
-        verificarRoleMultiple(userId,
-            List.of(Role.AGENTE, Role.ADMINISTRADOR),
-            "Apenas agentes ou administradores podem reativar ocorrências");
-
+    /** Reativar — SecurityConfig garante AGENTE ou ADMINISTRADOR */
+    public Ocorrencia reativarOcorrencia(String id) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
-        if (oc != null) {
-            oc.setStatus(OcorrenciaStatus.APROVADA.name());
-            oc.setDataResolucao(null);
-            return processarUrl(ocorrenciaRepository.save(oc));
-        }
-        return null;
+        if (oc == null) return null;
+
+        oc.setStatus(OcorrenciaStatus.APROVADA.name());
+        oc.setDataResolucao(null);
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
 
-    public boolean deletarOcorrencia(String id, String userId) {
-        // Verificação de role: apenas ADMINISTRADOR pode deletar
-        verificarRole(userId, Role.ADMINISTRADOR, "Apenas administradores podem deletar ocorrências");
-
-        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
-        if (oc != null && oc.getId() != null) {
-            ocorrenciaRepository.deleteById(oc.getId());
-            return true;
-        }
-        return false;
+    /** Deletar — SecurityConfig garante ADMINISTRADOR */
+    public boolean deletarOcorrencia(String id) {
+        if (!ocorrenciaRepository.existsById(id)) return false;
+        ocorrenciaRepository.deleteById(id);
+        return true;
     }
 
     public Ocorrencia atualizarOcorrencia(String id, OcorrenciaRequest request) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
-        if (oc != null) {
-            if (request.getTipo() != null) oc.setTipo(sanitizeInput(request.getTipo()));
-            if (request.getDescricao() != null) oc.setDescricao(sanitizeInput(request.getDescricao()));
-            if (request.getLatitude() != 0) oc.setLatitude(request.getLatitude());
-            if (request.getLongitude() != 0) oc.setLongitude(request.getLongitude());
-            if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
-            if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
-            if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
-            if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
-            
-            return processarUrl(ocorrenciaRepository.save(oc));
-        }
-        return null;
+        if (oc == null) return null;
+
+        if (request.getTipo() != null) oc.setTipo(sanitizeInput(request.getTipo()));
+        if (request.getDescricao() != null) oc.setDescricao(sanitizeInput(request.getDescricao()));
+        if (request.getLatitude() != 0) oc.setLatitude(request.getLatitude());
+        if (request.getLongitude() != 0) oc.setLongitude(request.getLongitude());
+        if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
+        if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
+        if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
+        if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
+
+        return processarUrl(ocorrenciaRepository.save(oc));
     }
+
+    @Transactional(readOnly = true)
+    public Page<Ocorrencia> buscarPorCidade(String cidade, Pageable pageable) {
+        boolean admin = hasRole("ADMINISTRADOR");
+        boolean agente = hasRole("AGENTE");
+
+        // Resolver cidade do usuário autenticado se não informada
+        if ((cidade == null || cidade.trim().isEmpty()) && isAuthenticated()) {
+            String email = getAuthenticatedEmail();
+            if (email != null) {
+                Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
+                if (usuario.isPresent() && usuario.get().getCidade() != null) {
+                    cidade = usuario.get().getCidade();
+                }
+            }
+        }
+
+        // ADMIN vê tudo na cidade (ou tudo se não filtrou)
+        if (admin) {
+            if (cidade == null || cidade.trim().isEmpty()) {
+                return processarUrls(ocorrenciaRepository.findAll(pageable));
+            }
+            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
+        }
+
+        // AGENTE vê tudo na sua cidade (incluindo pendentes)
+        if (agente && cidade != null) {
+            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
+        }
+
+        // CIDADÃO: vê aprovadas da cidade + suas próprias (qualquer status)
+        String currentUserId = null;
+        String email = getAuthenticatedEmail();
+        if (email != null) {
+            Optional<Usuario> u = usuarioRepository.findByEmail(email);
+            if (u.isPresent()) currentUserId = u.get().getId();
+        }
+
+        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidade, currentUserId, pageable));
+    }
+
+    // ========== HELPERS INTERNOS ==========
 
     private Ocorrencia processarUrl(Ocorrencia oc) {
         if (oc == null) return null;
@@ -229,86 +277,11 @@ public class OcorrenciaService {
         return oc;
     }
 
-    @Transactional(readOnly = true)
-    public Page<Ocorrencia> buscarPorCidade(String cidade, Pageable pageable) {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        
-        String currentUserId = null;
-        boolean isAdmin = false;
-        boolean isAgente = false;
-
-        if (auth != null && auth.isAuthenticated()) {
-            isAdmin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
-            isAgente = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_AGENTE"));
-            
-            Optional<Usuario> usuario = usuarioRepository.findByEmail(auth.getName());
-            if (usuario.isPresent()) {
-                currentUserId = usuario.get().getId();
-                // Se o usuário não passou cidade, usa a dele
-                if (cidade == null || cidade.trim().isEmpty()) {
-                    cidade = usuario.get().getCidade();
-                }
-            }
-        }
-
-        // 1. ADMIN: Vê tudo sem filtros
-        if (isAdmin) {
-            if (cidade == null || cidade.trim().isEmpty()) {
-                return processarUrls(ocorrenciaRepository.findAll(pageable));
-            }
-            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
-        }
-
-        // 2. AGENTE: Vê tudo na sua cidade (incluindo pendentes)
-        if (isAgente && cidade != null) {
-            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
-        }
-
-        // 3. CIDADÃO / OUTROS: 
-        // Vê ocorrências APROVADAS na cidade OU qualquer ocorrência criada por ele mesmo (independente de cidade/status)
-        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidade, currentUserId, pageable));
-    }
-
     private Page<Ocorrencia> processarUrls(Page<Ocorrencia> page) {
-        // Substitui a key do objeto pela Presigned URL gerada na hora (valida por 1h)
-        for (Ocorrencia oc : page.getContent()) {
-            processarUrl(oc);
-        }
+        page.getContent().forEach(this::processarUrl);
         return page;
     }
 
-    // ========== SEGURANÇA ==========
-
-    private void verificarRole(String userId, Role roleRequerida, String mensagem) {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new SecurityException("Acesso negado: Usuário não autenticado");
-        }
-        
-        boolean hasRole = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_" + roleRequerida.name()));
-        
-        if (!hasRole) {
-            throw new SecurityException(mensagem);
-        }
-    }
-
-    private void verificarRoleMultiple(String userId, List<Role> rolesPermitidas, String mensagem) {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new SecurityException("Acesso negado: Usuário não autenticado");
-        }
-
-        boolean hasAnyRole = auth.getAuthorities().stream()
-                .anyMatch(a -> rolesPermitidas.stream()
-                        .anyMatch(role -> a.getAuthority().equals("ROLE_" + role.name())));
-
-        if (!hasAnyRole) {
-            throw new SecurityException(mensagem);
-        }
-    }
-
-    /** Sanitizar input para prevenir XSS/injection */
     private String sanitizeInput(String input) {
         if (input == null) return null;
         return input.replaceAll("<", "&lt;")

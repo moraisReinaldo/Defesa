@@ -385,7 +385,7 @@ class _MapaScreenState extends State<MapaScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                       SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
                     ],
                   ),
               ),
@@ -395,7 +395,10 @@ class _MapaScreenState extends State<MapaScreen> {
           }
         ),
       ),
-    );
+    ).then((_) {
+      // Ao fechar o painel de detalhes, recarregar para refletir mudanças de status
+      if (mounted) _inicializarMapa();
+    });
   }
 
   Widget _buildSectionCard({required IconData icon, required String title, required Widget child}) {

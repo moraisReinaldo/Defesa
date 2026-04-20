@@ -8,6 +8,8 @@ import com.defesacivil.backend.repository.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,9 +27,9 @@ public class UsuarioService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
-    // Senha admin carregada de variável de ambiente/properties — NUNCA hardcoded
+    // Carregada de variável de ambiente — nunca hardcoded
     @Value("${app.admin.password:#{null}}")
-    private String adminPassword;
+    private String adminPasswordHash;
 
     public UsuarioService(UsuarioRepository repository,
                           EmailService emailService,
@@ -38,11 +40,9 @@ public class UsuarioService {
     }
 
     public Usuario cadastrarUsuario(UsuarioRequest request) {
-        Optional<Usuario> existente = repository.findByEmail(request.getEmail());
-        if (existente.isPresent()) {
+        if (repository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("E-mail já cadastrado!");
         }
-
         if (!request.isConcordaLGPD()) {
             throw new RuntimeException("É obrigatório concordar com os Termos de Privacidade (LGPD).");
         }
@@ -51,45 +51,33 @@ public class UsuarioService {
         try {
             roleReq = Role.valueOf(request.getRole().toUpperCase());
         } catch (Exception e) {
-            roleReq = Role.CIDADAO; // fallback
+            roleReq = Role.CIDADAO;
         }
 
-        // --- SEGURANÇA: Prevenir Role Injection ---
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        
-        log.info("[Cadastro] Usuário autenticado: {}, Authorities: {}", 
-                 (auth != null ? auth.getName() : "ANÔNIMO"),
-                 (auth != null ? auth.getAuthorities() : "[]"));
-
-        boolean isSolicianteAdmin = auth != null && auth.isAuthenticated() && 
+        // Prevenir Role Injection: apenas admins autenticados podem criar outros admins/agentes
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSolicitanteAdmin = auth != null && auth.isAuthenticated() &&
             auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
 
-        if (!isSolicianteAdmin) {
-            log.warn("[Cadastro] Tentativa de cadastro restrito por não-admin. Role solicitada: {}", roleReq);
-            // Se não for um admin logado criando o usuário, restringimos as opções
+        if (!isSolicitanteAdmin) {
             if (roleReq == Role.AGENTE) {
                 throw new RuntimeException("Apenas administradores podem cadastrar novos agentes.");
             }
-            // Só permitimos CIDADAO ou ADMINISTRADOR (que ficará PENDENTE)
             if (roleReq != Role.CIDADAO && roleReq != Role.ADMINISTRADOR) {
                 roleReq = Role.CIDADAO;
             }
         }
-        
-        // Admins já nascem ATIVOS se criados por outro Admin. 
-        // Se for auto-cadastro de Admin, fica PENDENTE.
-        Status statusInicial = (roleReq == Role.ADMINISTRADOR && !isSolicianteAdmin) ? Status.PENDENTE : Status.ATIVO;
+
+        // Auto-cadastro de Admin fica PENDENTE; admin criado por outro admin fica ATIVO
+        Status statusInicial = (roleReq == Role.ADMINISTRADOR && !isSolicitanteAdmin)
+            ? Status.PENDENTE : Status.ATIVO;
 
         Usuario usuario = new Usuario();
         usuario.setNome(request.getNome());
         usuario.setEmail(request.getEmail());
         usuario.setTelefone(request.getTelefone());
-        // Hash da senha com BCrypt — nunca armazenar em texto puro
         usuario.setSenha(passwordEncoder.encode(request.getSenha()));
-        
-        String cidadeNormalizada = request.getCidade() != null ? request.getCidade().trim().toUpperCase() : null;
-        usuario.setCidade(cidadeNormalizada);
-        
+        usuario.setCidade(request.getCidade() != null ? request.getCidade().trim().toUpperCase() : null);
         usuario.setRole(roleReq.name());
         usuario.setStatus(statusInicial.name());
 
@@ -103,24 +91,29 @@ public class UsuarioService {
     }
 
     public Optional<Usuario> login(String email, String senhaDigitada) {
-        Optional<Usuario> usuarioOpt = repository.findByEmail(email);
-        if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
-            if (passwordEncoder.matches(senhaDigitada, usuario.getSenha())) {
-                return Optional.of(usuario);
-            }
-        }
-        return Optional.empty();
+        return repository.findByEmail(email)
+            .filter(u -> passwordEncoder.matches(senhaDigitada, u.getSenha()));
     }
 
+    /**
+     * Valida a senha master do administrador.
+     * SEGURANÇA: A senha no application.properties deve estar em BCrypt para produção.
+     * Em desenvolvimento, aceita texto plano como fallback.
+     */
     public boolean validarSenhaAdmin(String senhaDigitada) {
-        if (adminPassword == null || adminPassword.isEmpty()) {
+        if (adminPasswordHash == null || adminPasswordHash.isEmpty()) {
             log.warn("Senha de admin não configurada em app.admin.password!");
             return false;
         }
-        // Comparação segura usando PasswordEncoder (resistente a timing attacks)
-        // Se a senha no env for plaintext, fazemos comparação direta (fallback para dev)
-        return adminPassword.equals(senhaDigitada);
+        // Tenta comparação BCrypt primeiro (produção); fallback para texto plano (dev)
+        if (adminPasswordHash.startsWith("$2")) {
+            return passwordEncoder.matches(senhaDigitada, adminPasswordHash);
+        }
+        // Comparação de tempo constante para evitar timing attacks
+        return java.security.MessageDigest.isEqual(
+            adminPasswordHash.getBytes(),
+            senhaDigitada.getBytes()
+        );
     }
 
     public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
@@ -128,31 +121,36 @@ public class UsuarioService {
         return repository.findByCidadeAndRole(cidadeBusca, role);
     }
 
-    public boolean deletarUsuario(String id) {
-        // Obter o usuário autenticado para verificar se ele é um administrador
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        boolean isSolicianteAdmin = auth != null && auth.isAuthenticated() && 
-            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
-        
-        if (!isSolicianteAdmin) {
-            throw new SecurityException("Apenas administradores podem deletar usuários.");
-        }
+    /**
+     * Promove um cidadão/usuário a AGENTE.
+     * Proteção por ADMINISTRADOR garantida no SecurityConfig.
+     */
+    public Usuario promoverParaAgente(String email) {
+        Usuario usuario = repository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado com e-mail: " + email));
+        usuario.setRole(Role.AGENTE.name());
+        usuario.setStatus(Status.ATIVO.name());
+        return repository.save(usuario);
+    }
 
-        Optional<Usuario> usr = repository.findById(id);
-        if (usr.isPresent()) {
-            repository.deleteById(id);
-            return true;
-        }
-        return false;
+    /**
+     * Deleta um usuário.
+     * Proteção por ADMINISTRADOR garantida no SecurityConfig.
+     */
+    public boolean deletarUsuario(String id) {
+        if (!repository.existsById(id)) return false;
+        repository.deleteById(id);
+        return true;
     }
 
     public Usuario atualizarUsuario(String id, UsuarioRequest request) {
         Usuario usuario = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
 
         // Apenas o próprio usuário ou um admin pode editar
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
         boolean isProprio = auth != null && auth.getName().equals(usuario.getEmail());
 
         if (!isAdmin && !isProprio) {
@@ -163,8 +161,8 @@ public class UsuarioService {
         if (request.getTelefone() != null) usuario.setTelefone(request.getTelefone());
         if (request.getCidade() != null) usuario.setCidade(request.getCidade().trim().toUpperCase());
         if (request.getFcmToken() != null) usuario.setFcmToken(request.getFcmToken());
-        
-        // Se um Admin estiver editando, ele pode mudar a role
+
+        // Apenas admins podem mudar a role de outros usuários
         if (isAdmin && request.getRole() != null) {
             usuario.setRole(request.getRole().toUpperCase());
         }

@@ -5,6 +5,7 @@ import '../providers/usuario_provider.dart';
 import 'login_screen.dart';
 import 'cadastro_agente_screen.dart';
 import 'gerenciar_poi_screen.dart';
+import 'loading_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
    const PerfilScreen({super.key});
@@ -357,12 +358,19 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Desconectado')),
                       );
+                      
+                      // IMPORTANTE: Força a recriação do LoadingScreen para rodar o initState
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoadingScreen()),
+                        (route) => false,
+                      );
                     },
                     icon: const Icon(Icons.logout_rounded, size: 18),
                     label: const Text('Sair'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.statusActive,
-                      side:  const BorderSide(color: AppColors.statusActive),
+                      side: const BorderSide(color: AppColors.statusActive),
                     ),
                   ),
                 ),
@@ -595,14 +603,20 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     await prov.logout();
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Admin deslogado')));
+                        const SnackBar(content: Text('Deslogado com sucesso')));
+                    
+                    // IMPORTANTE: Força a recriação do LoadingScreen para rodar o initState
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoadingScreen()),
+                      (route) => false,
+                    );
                   },
                   icon: const Icon(Icons.logout_rounded, size: 18),
                   label: const Text('Sair'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.statusActive,
-                    side:  const BorderSide(color: AppColors.statusActive),
+                    side: const BorderSide(color: AppColors.statusActive),
                   ),
                 ),
               ),

@@ -2,37 +2,44 @@ package com.defesacivil.backend.controller;
 
 import com.defesacivil.backend.domain.PontoInteresse;
 import com.defesacivil.backend.service.PontoInteresseService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller de Pontos de Interesse (marcações no mapa).
+ * POST e DELETE protegidos por ADMINISTRADOR no SecurityConfig.
+ * GET é público.
+ */
 @RestController
 @RequestMapping("/api/marcacoes")
 public class PontoInteresseController {
 
-    @Autowired
-    private PontoInteresseService service;
+    private static final Logger log = LoggerFactory.getLogger(PontoInteresseController.class);
 
-    @GetMapping
-    public List<PontoInteresse> listar(@RequestParam(required = false) String cidade) {
-        return service.listarPorCidade(cidade);
+    private final PontoInteresseService service;
+
+    public PontoInteresseController(PontoInteresseService service) {
+        this.service = service;
     }
 
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PontoInteresseController.class);
+    @GetMapping
+    public ResponseEntity<List<PontoInteresse>> listar(
+            @RequestParam(required = false) String cidade) {
+        return ResponseEntity.ok(service.listarPorCidade(cidade));
+    }
 
     @PostMapping
-    public PontoInteresse criar(@jakarta.validation.Valid @RequestBody PontoInteresse ponto) {
-        log.info("Recebendo requisição para criar Ponto de Interesse: {}", ponto.getDescricao());
-        try {
-            PontoInteresse salvo = service.salvar(ponto);
-            log.info("Ponto de Interesse salvo com sucesso: ID {}", salvo.getId());
-            return salvo;
-        } catch (Exception e) {
-            log.error("Erro ao salvar Ponto de Interesse: {}", e.getMessage());
-            throw e;
-        }
+    public ResponseEntity<PontoInteresse> criar(@Valid @RequestBody PontoInteresse ponto) {
+        log.info("Criando Ponto de Interesse: tipo={}, cidade={}", ponto.getTipo(), ponto.getCidade());
+        PontoInteresse salvo = service.salvar(ponto);
+        log.info("Ponto de Interesse criado com sucesso: id={}", salvo.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
 
     @DeleteMapping("/{id}")
