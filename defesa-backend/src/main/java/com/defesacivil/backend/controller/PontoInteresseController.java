@@ -20,9 +20,19 @@ public class PontoInteresseController {
         return service.listarPorCidade(cidade);
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PontoInteresseController.class);
+
     @PostMapping
     public PontoInteresse criar(@RequestBody PontoInteresse ponto) {
-        return service.salvar(ponto);
+        log.info("Recebendo requisição para criar Ponto de Interesse: {}", ponto.getDescricao());
+        try {
+            PontoInteresse salvo = service.salvar(ponto);
+            log.info("Ponto de Interesse salvo com sucesso: ID {}", salvo.getId());
+            return salvo;
+        } catch (Exception e) {
+            log.error("Erro ao salvar Ponto de Interesse: {}", e.getMessage());
+            throw e;
+        }
     }
 
     @DeleteMapping("/{id}")

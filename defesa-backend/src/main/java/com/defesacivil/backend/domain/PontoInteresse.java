@@ -13,11 +13,25 @@ public class PontoInteresse {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @jakarta.validation.constraints.NotBlank
+    @jakarta.persistence.Column(name = "tipo")
     private String tipo;
+
+    @jakarta.validation.constraints.NotBlank
+    @jakarta.persistence.Column(name = "descricao", columnDefinition = "TEXT")
     private String descricao;
+
+    @jakarta.persistence.Column(name = "latitude")
     private double latitude;
+
+    @jakarta.persistence.Column(name = "longitude")
     private double longitude;
+
+    @jakarta.persistence.Column(name = "cidade")
     private String cidade;
+
+    @jakarta.persistence.Column(name = "criado_por")
     private String criadoPor;
 
     public PontoInteresse() {}

@@ -131,7 +131,7 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
                  const LinearProgressIndicator()
               else
                 DropdownButtonFormField<String>(
-                  value: _cidadeSelecionada,
+                  initialValue: _cidadeSelecionada,
                   hint: const Text('Selecione a cidade'),
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
@@ -243,12 +243,18 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
       criadoPor: user?.id,
     );
     
-    await context.read<PontoInteresseProvider>().adicionarPonto(novoPonto);
+    final sucesso = await context.read<PontoInteresseProvider>().adicionarPonto(novoPonto);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ponto de interesse adicionado com sucesso!')),
-      );
-      Navigator.pop(context, true);
+      if (sucesso) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ponto de interesse adicionado com sucesso!'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao salvar ponto. Verifique a conexão.'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 }
