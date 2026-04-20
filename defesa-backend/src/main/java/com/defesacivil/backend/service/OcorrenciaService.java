@@ -131,7 +131,7 @@ public class OcorrenciaService {
             }
         }
 
-        return processarUrl(ocorrenciaRepository.save(oc));
+        return ocorrenciaRepository.save(oc);
     }
 
     /** Aprovar — SecurityConfig já garante que apenas ADMINISTRADOR chega aqui */
@@ -152,7 +152,7 @@ public class OcorrenciaService {
             );
         }
 
-        return processarUrl(salva);
+        return salva;
     }
 
     /** Registrar chegada — SecurityConfig garante AGENTE ou ADMINISTRADOR */
@@ -168,7 +168,7 @@ public class OcorrenciaService {
             oc.setDescricaoSituacao(sanitizeInput(parecer));
         }
 
-        return processarUrl(ocorrenciaRepository.save(oc));
+        return ocorrenciaRepository.save(oc);
     }
 
     /** Resolver ocorrência — SecurityConfig garante AGENTE ou ADMINISTRADOR */
@@ -205,7 +205,7 @@ public class OcorrenciaService {
 
         oc.setStatus(OcorrenciaStatus.APROVADA.name());
         oc.setDataResolucao(null);
-        return processarUrl(ocorrenciaRepository.save(oc));
+        return ocorrenciaRepository.save(oc);
     }
 
     /** Deletar — SecurityConfig garante ADMINISTRADOR */
@@ -228,7 +228,7 @@ public class OcorrenciaService {
         if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
 
-        return processarUrl(ocorrenciaRepository.save(oc));
+        return ocorrenciaRepository.save(oc);
     }
 
     @Transactional(readOnly = true)
@@ -274,29 +274,34 @@ public class OcorrenciaService {
     // ========== HELPERS INTERNOS ==========
 
     private Ocorrencia processarUrl(Ocorrencia oc) {
-        if (oc == null || oc.getCaminhoFoto() == null) return oc;
+        if (oc == null) return null;
         
         String foto = oc.getCaminhoFoto();
+        if (foto == null || foto.isBlank()) {
+            log.info("ℹ️ Ocorrência {}: Sem foto para processar.", oc.getId());
+            return oc;
+        }
         
         // Se for Base64 (data:image) ou já for uma URL absoluta (http), não mexe
         if (foto.startsWith("data:") || foto.startsWith("http")) {
-            log.debug("📸 Imagem em Base64 ou URL absoluta detectada. Mantendo original.");
+            log.info("📸 Ocorrência {}: Foto em Base64 ou URL absoluta. Tamanho: {} chars.", oc.getId(), foto.length());
             return oc;
         }
         
         // Só gera URL assinada do MinIO se for um caminho de objeto (ex: ocorrencias/uuid.jpg)
         try {
             String urlAssinada = minioService.getPresignedUrl(foto);
-            log.info("🔗 URL Gerada para Ocorrência {}: {}", oc.getId(), urlAssinada);
+            log.info("🔗 Ocorrência {}: URL Gerada -> {}", oc.getId(), urlAssinada);
             oc.setCaminhoFoto(urlAssinada);
         } catch (Exception e) {
-            log.warn("❌ Erro ao gerar URL do MinIO para {}: {}", foto, e.getMessage());
+            log.warn("❌ Ocorrência {}: Erro ao gerar URL do MinIO para {}: {}", oc.getId(), foto, e.getMessage());
         }
         
         return oc;
     }
 
     private Page<Ocorrencia> processarUrls(Page<Ocorrencia> page) {
+        log.info("📦 Processando URLs para {} ocorrências encontradas.", page.getNumberOfElements());
         page.getContent().forEach(this::processarUrl);
         return page;
     }
