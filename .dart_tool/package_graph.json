@@ -23,6 +23,7 @@
         "permission_handler",
         "provider",
         "shared_preferences",
+        "stomp_dart_client",
         "url_launcher",
         "uuid"
       ],
@@ -123,6 +124,13 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "stomp_dart_client",
+      "version": "3.0.1",
+      "dependencies": [
+        "web_socket"
       ]
     },
     {
@@ -705,6 +713,13 @@
       ]
     },
     {
+      "name": "web_socket",
+      "version": "1.0.1",
+      "dependencies": [
+        "web"
+      ]
+    },
+    {
       "name": "url_launcher_windows",
       "version": "3.1.5",
       "dependencies": [
@@ -1178,13 +1193,6 @@
         "collection",
         "path",
         "term_glyph"
-      ]
-    },
-    {
-      "name": "web_socket",
-      "version": "1.0.1",
-      "dependencies": [
-        "web"
       ]
     },
     {

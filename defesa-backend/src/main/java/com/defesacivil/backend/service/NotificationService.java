@@ -16,8 +16,13 @@ import java.util.List;
 public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
-    private static final String ONESIGNAL_APP_ID = "6537856b-c264-42af-b2a9-583652a175d2";
-    private static final String ONESIGNAL_REST_KEY = "os_v2_app_mu3yk26cmrbk7mvjla3ffilv2kvtmvxnhcsecv4syuosibksl2mlu6ecwjj33njcogmzl64vorabjaogqbjtsmzyx7b435hguiykxdy";
+
+    @org.springframework.beans.factory.annotation.Value("${onesignal.app.id}")
+    private String onesignalAppId;
+
+    @org.springframework.beans.factory.annotation.Value("${onesignal.rest.key}")
+    private String onesignalRestKey;
+
     private final RestTemplate restTemplate;
 
     public NotificationService() {
@@ -32,11 +37,11 @@ public class NotificationService {
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Key " + ONESIGNAL_REST_KEY);
+            headers.set("Authorization", "Key " + onesignalRestKey);
             headers.set("accept", "application/json");
             
             Map<String, Object> payload = new HashMap<>();
-            payload.put("app_id", ONESIGNAL_APP_ID);
+            payload.put("app_id", onesignalAppId);
             payload.put("target_channel", "push");
             payload.put("include_aliases", Map.of("external_id", List.of(userId)));
             payload.put("headings", Map.of("en", title, "pt", title));

@@ -818,6 +818,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "stomp_dart_client",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/stomp_dart_client-3.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "stream_channel",
       "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/stream_channel-2.1.4",
       "packageUri": "lib/",
