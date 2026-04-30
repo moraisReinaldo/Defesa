@@ -94,6 +94,38 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     }
   }
 
+  Future<void> _obterLocalizacaoSemAlterarCarregando() async {
+    try {
+      final prov = context.read<UsuarioProvider>();
+      final posicao = await _localizacaoService.obterPosicaoAtual();
+      if (!mounted) return;
+      if (posicao != null) {
+        setState(() => _posicaoAtual = posicao);
+        try {
+          final cidade = await _geocodingService.obterCidade(posicao.latitude, posicao.longitude);
+          if (!mounted) return;
+          if (cidade != null) {
+            setState(() {
+              _cidadeDetectada = cidade;
+              for (var c in prov.cidadesSuportadas) {
+                String nome = c['nome'] ?? '';
+                if (cidade.toLowerCase().contains(nome.toLowerCase()) ||
+                    nome.toLowerCase().contains(cidade.toLowerCase())) {
+                  _codigoCidadeDetectada = c['codigo'];
+                  break;
+                }
+              }
+            });
+          }
+        } catch (e) {
+          debugPrint("Erro ao obter cidade: $e");
+        }
+      }
+    } catch (e) {
+      // silencioso — o chamador vai verificar _codigoCidadeDetectada
+    }
+  }
+
   Future<void> _selecionarFoto() async {
     final usuarioProvider = context.read<UsuarioProvider>();
     final usuarioLogado = usuarioProvider.estaLogado || usuarioProvider.isAdmin;
@@ -243,8 +275,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
 
     // Verificação de Cidade para TODOS os usuários
     if (_codigoCidadeDetectada == null) {
-      // Tenta buscar novamente se falhou antes
-      await _obterLocalizacao();
+      // Chamar lógica de localização SEM alterar _carregando
+      await _obterLocalizacaoSemAlterarCarregando();
       if (!mounted) return;
     }
     
@@ -471,7 +503,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                 icon: Icons.photo_camera_rounded,
                 title: 'Foto',
                 subtitle: usuarioOuAdminLogado
-                    ? 'Tire uma foto ou escolha da galeria'
+                    ? 'Tire uma foto or escolha da galeria'
                     : 'Tire uma foto para registrar',
               ),
               const SizedBox(height: 14),

@@ -3,9 +3,8 @@
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <!--
-  LaunchAgent: Cloudflare Quick Tunnel para a API (Spring Boot na porta 8080).
-  Gera uma URL aleatória em *.trycloudflare.com a cada inicialização.
-  A URL é logada em ~/logs/cloudflared-error.log (cloudflared loga no stderr).
+  LaunchAgent: Cloudflare Tunnel Fixo (rhprogramer.com.br).
+  Lê as rotas do ~/.cloudflared/config.yml
 
   Instalar:
     cp com.cloudflared.tunnel.plist ~/Library/LaunchAgents/
@@ -18,13 +17,17 @@
   <array>
     <string>/usr/local/bin/cloudflared</string>
     <string>tunnel</string>
-    <string>--url</string>
-    <string>http://localhost:8080</string>
+    <string>--config</string>
+    <string>/Users/reinaldohenriquemorais/.cloudflared/config.yml</string>
+    <string>run</string>
+    <string>defesacivil</string>
   </array>
   <key>RunAtLoad</key>
-  <true/>
+  <false/>
   <key>KeepAlive</key>
   <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
   <key>StandardOutPath</key>
   <string>/Users/reinaldohenriquemorais/logs/cloudflared.log</string>
   <key>StandardErrorPath</key>

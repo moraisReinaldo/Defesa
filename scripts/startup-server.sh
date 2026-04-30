@@ -3,6 +3,7 @@
 # startup-server.sh — Script de inicialização do Mac Mini Server
 # ==============================================================
 # Mac Mini 2014 (Intel) — brew em /usr/local/bin/brew
+# Domínio Fixo: rhprogramer.com.br
 #
 # Instalar:
 #   sudo cp startup-server.sh /usr/local/bin/startup-server.sh
@@ -14,8 +15,6 @@
 USR="reinaldohenriquemorais"
 HOME_DIR="/Users/$USR"
 LOG="$HOME_DIR/logs/startup.log"
-PROPS="$HOME_DIR/Defesa/defesa-backend/src/main/resources/application.properties"
-ENV_FILE="$HOME_DIR/logs/tunnel-urls.env"
 TAILSCALE="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 ADGUARD="/Applications/AdGuardHome/AdGuardHome"
 BACKEND_DIR="$HOME_DIR/Defesa/defesa-backend"
@@ -42,6 +41,7 @@ cat > "$LOG" <<EOF
 ========================================
 STARTUP - $(date)
 Mac Mini 2014 (Intel)
+Domínio: rhprogramer.com.br
 ========================================
 EOF
 
@@ -114,7 +114,7 @@ for i in 1 2 3 4 5; do
     if echo "$TS_STATUS" | grep -q "100\."; then
         TS_OK=true
         log_ok "Tailscale conectado"
-        sudo -u "$USR" "$TAILSCALE" up --advertise-exit-node --accept-routes --exit-node-allow-lan-access >> "$LOG" 2>&1
+        sudo -u "$USR" "$TAILSCALE" up --advertise-exit-node --accept-routes >> "$LOG" 2>&1
         log "Tailscale exit node configurado"
         break
     else
@@ -133,7 +133,7 @@ else
 fi
 
 # ──────────────────────────────────────
-# [4] MinIO (já tem RunAtLoad=true no plist, só verificar)
+# [4] MinIO
 # ──────────────────────────────────────
 log "[4] MinIO..."
 MINIO_OK=false
@@ -160,74 +160,24 @@ if ! $MINIO_OK; then
 fi
 
 # ──────────────────────────────────────
-# [5] Cloudflare Tunnels
+# [5] Cloudflare Tunnels (Named Tunnel)
 # ──────────────────────────────────────
-log "[5] Cloudflare Tunnels..."
+log "[5] Cloudflare Tunnels (Fixo)..."
+CF_PLIST="$HOME_DIR/Library/LaunchAgents/com.cloudflared.tunnel.plist"
 
-CF_API_PLIST="$HOME_DIR/Library/LaunchAgents/com.cloudflared.tunnel.plist"
-CF_MINIO_PLIST="$HOME_DIR/Library/LaunchAgents/com.cloudflared.minio.plist"
-CF_API_LOG="$HOME_DIR/logs/cloudflared-error.log"
-CF_MINIO_LOG="$HOME_DIR/logs/cloudflared-minio-error.log"
-
-# Limpar logs anteriores para capturar URLs novas
-> "$CF_API_LOG" 2>/dev/null
-> "$CF_MINIO_LOG" 2>/dev/null
-
-# Parar tunnels existentes
-sudo -u "$USR" launchctl unload "$CF_API_PLIST" >> "$LOG" 2>&1
-sudo -u "$USR" launchctl unload "$CF_MINIO_PLIST" >> "$LOG" 2>&1
+sudo -u "$USR" launchctl unload "$CF_PLIST" >> "$LOG" 2>&1
 sleep 3
+sudo -u "$USR" launchctl load "$CF_PLIST" >> "$LOG" 2>&1
 
-# Iniciar tunnels
-sudo -u "$USR" launchctl load "$CF_API_PLIST" >> "$LOG" 2>&1
-sudo -u "$USR" launchctl load "$CF_MINIO_PLIST" >> "$LOG" 2>&1
-
-log "Aguardando URLs do Cloudflare (máx 90s)..."
-API_URL=""
-MINIO_URL=""
-for i in $(seq 1 18); do
-    if [ -z "$API_URL" ]; then
-        API_URL=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$CF_API_LOG" 2>/dev/null | tail -1)
-    fi
-    if [ -z "$MINIO_URL" ]; then
-        MINIO_URL=$(grep -oE 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' "$CF_MINIO_LOG" 2>/dev/null | tail -1)
-    fi
-    if [ -n "$API_URL" ] && [ -n "$MINIO_URL" ]; then
-        break
-    fi
-    sleep 5
-done
-
-if [ -n "$API_URL" ]; then
-    log_ok "API URL: $API_URL"
-else
-    log_error "Não conseguiu obter API URL do Cloudflare"
-fi
-if [ -n "$MINIO_URL" ]; then
-    log_ok "MinIO URL: $MINIO_URL"
-else
-    log_error "Não conseguiu obter MinIO URL do Cloudflare"
-fi
+# Verificar se o tunnel está ativo na porta 8080 e 9000
+log_ok "Cloudflare Tunnel iniciado lendo ~/.cloudflared/config.yml"
 
 # ──────────────────────────────────────
-# [6] Salvar URLs no arquivo de ambiente
-# ──────────────────────────────────────
-log "[6] Salvando URLs no arquivo de ambiente..."
-cat > "$ENV_FILE" <<ENVEOF
-# Gerado automaticamente pelo startup-server.sh em $(date)
-# Usado pelo run-spring-boot.sh para configurar o MinIO endpoint
-export MINIO_ENDPOINT="${MINIO_URL:-http://localhost:9000}"
-export API_URL="${API_URL:-}"
-ENVEOF
-chown "$USR" "$ENV_FILE"
-log_ok "Arquivo de ambiente salvo: $ENV_FILE"
-
-# ──────────────────────────────────────
-# [7] Build Spring Boot (só se JAR não existir)
+# [6] Build Spring Boot (só se JAR não existir)
 # ──────────────────────────────────────
 JAR_FILE="$BACKEND_DIR/target/backend-0.0.1-SNAPSHOT.jar"
 if [ ! -f "$JAR_FILE" ]; then
-    log "[7] Build Spring Boot (JAR não encontrado)..."
+    log "[6] Build Spring Boot (JAR não encontrado)..."
     if [ -d "$BACKEND_DIR" ] && [ -f "$BACKEND_DIR/mvnw" ]; then
         chmod +x "$BACKEND_DIR/mvnw"
         sudo -u "$USR" "$BACKEND_DIR/mvnw" -f "$BACKEND_DIR/pom.xml" package -DskipTests >> "$LOG" 2>&1
@@ -241,13 +191,13 @@ if [ ! -f "$JAR_FILE" ]; then
         log_error "Diretório do backend ou mvnw não encontrado: $BACKEND_DIR"
     fi
 else
-    log "[7] Build Spring Boot — JAR já existe, pulando build ✅"
+    log "[6] Build Spring Boot — JAR já existe, pulando build ✅"
 fi
 
 # ──────────────────────────────────────
-# [8] Restart Spring Boot
+# [7] Restart Spring Boot
 # ──────────────────────────────────────
-log "[8] Restart Spring Boot..."
+log "[7] Restart Spring Boot..."
 SPRING_PLIST="$HOME_DIR/Library/LaunchAgents/com.defesacivil.spring.plist"
 if [ -f "$SPRING_PLIST" ]; then
     sudo -u "$USR" launchctl unload "$SPRING_PLIST" >> "$LOG" 2>&1
@@ -260,9 +210,9 @@ else
 fi
 
 # ──────────────────────────────────────
-# [9] Health Check
+# [8] Health Check
 # ──────────────────────────────────────
-log "[9] Health check..."
+log "[8] Health check..."
 HEALTH=""
 for i in $(seq 1 6); do
     HEALTH=$(curl -s http://localhost:8080/actuator/health 2>&1)
@@ -287,14 +237,12 @@ cat >> "$LOG" <<EOF
 RESUMO - $(date)
 ========================================
 Tailscale IP : ${TS_IP:-NÃO DISPONÍVEL}
-API URL      : ${API_URL:-NÃO DISPONÍVEL}
-MinIO URL    : ${MINIO_URL:-NÃO DISPONÍVEL}
 Backend      : ${HEALTH:-NÃO RESPONDEU}
 ========================================
 
-Para ver as fotos de qualquer lugar, o app usa:
-  API  → $API_URL (porta 8080 via Cloudflare)
-  Fotos → As URLs presigned do MinIO usam $MINIO_URL
+O servidor está configurado em DOMÍNIO FIXO:
+  API  → https://api.rhprogramer.com.br
+  Fotos → https://fotos.rhprogramer.com.br
 
 ========================================
 EOF

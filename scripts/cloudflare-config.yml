@@ -1,0 +1,9 @@
+tunnel: 6c89b38b-1800-411e-a11a-9695a4c08e55
+credentials-file: /Users/reinaldohenriquemorais/.cloudflared/6c89b38b-1800-411e-a11a-9695a4c08e55.json
+
+ingress:
+  - hostname: api.rhprogramer.com.br
+    service: http://localhost:8080
+  - hostname: fotos.rhprogramer.com.br
+    service: http://localhost:9000
+  - service: http_status:404

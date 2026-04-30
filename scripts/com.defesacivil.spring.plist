@@ -4,12 +4,10 @@
 <plist version="1.0">
 <!--
   LaunchAgent: Gerencia o processo do Spring Boot (Defesa Civil Backend).
-  Usa o wrapper run-spring-boot.sh que lê a URL do MinIO automaticamente.
+  O jar é gerado pelo Maven em target/backend-0.0.1-SNAPSHOT.jar.
 
   Instalar:
     cp com.defesacivil.spring.plist ~/Library/LaunchAgents/
-    sudo cp run-spring-boot.sh /usr/local/bin/run-spring-boot.sh
-    sudo chmod +x /usr/local/bin/run-spring-boot.sh
     launchctl load ~/Library/LaunchAgents/com.defesacivil.spring.plist
 -->
 <dict>
@@ -17,17 +15,18 @@
   <string>com.defesacivil.spring</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/bin/bash</string>
-    <string>/usr/local/bin/run-spring-boot.sh</string>
+    <string>/usr/bin/java</string>
+    <string>-Xmx512m</string>
+    <string>-Dserver.port=8080</string>
+    <string>-jar</string>
+    <string>/Users/reinaldohenriquemorais/Defesa/defesa-backend/target/backend-0.0.1-SNAPSHOT.jar</string>
   </array>
   <key>WorkingDirectory</key>
   <string>/Users/reinaldohenriquemorais/Defesa/defesa-backend</string>
   <key>RunAtLoad</key>
   <false/>
-  <!-- Reiniciar se o processo cair -->
   <key>KeepAlive</key>
   <true/>
-  <!-- Esperar 10s antes de reiniciar -->
   <key>ThrottleInterval</key>
   <integer>10</integer>
   <key>StandardOutPath</key>

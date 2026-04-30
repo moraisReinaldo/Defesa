@@ -16,6 +16,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.PageImpl;
+import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -87,7 +89,18 @@ public class OcorrenciaService {
         oc.setLongitude(request.getLongitude());
         oc.setCidade(sanitizeInput(request.getCidade()));
         oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
-        oc.setUsuarioId(request.getUsuarioId());
+        
+        // CORRETO - Segurança (Backend Bug 4)
+        String emailAutenticado = getAuthenticatedEmail();
+        if (emailAutenticado != null && !"anonymousUser".equals(emailAutenticado)) {
+            // Usuário autenticado: sempre usa o ID do JWT — nunca confia no body
+            usuarioRepository.findByEmail(emailAutenticado)
+                    .ifPresent(u -> oc.setUsuarioId(u.getId()));
+        } else {
+            // Usuário anônimo (sem conta): não tem ID para associar
+            oc.setUsuarioId(null);
+        }
+
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
         // Criador (agente/admin) já vem pré-escalado pelo app
         if (request.getAgentes() != null && !request.getAgentes().isBlank()) {
@@ -221,8 +234,11 @@ public class OcorrenciaService {
 
         if (request.getTipo() != null) oc.setTipo(sanitizeInput(request.getTipo()));
         if (request.getDescricao() != null) oc.setDescricao(sanitizeInput(request.getDescricao()));
-        if (request.getLatitude() != 0) oc.setLatitude(request.getLatitude());
-        if (request.getLongitude() != 0) oc.setLongitude(request.getLongitude());
+        
+        // CORRETO - Prevenção de NPE (Backend Bug 3)
+        if (request.getLatitude() != null && request.getLatitude() != 0) oc.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null && request.getLongitude() != 0) oc.setLongitude(request.getLongitude());
+        
         if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
         if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
         if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
@@ -315,10 +331,18 @@ public class OcorrenciaService {
         return copia;
     }
 
+    // CORRETO - (Backend Bug 2)
     private Page<Ocorrencia> processarUrls(Page<Ocorrencia> page) {
         log.info("📦 Processando URLs para {} ocorrências encontradas.", page.getNumberOfElements());
-        page.getContent().forEach(this::processarUrl);
-        return page;
+        List<Ocorrencia> processadas = page.getContent()
+                .stream()
+                .map(this::processarUrl)
+                .collect(Collectors.toList());
+        return new PageImpl<>(
+                processadas,
+                page.getPageable(),
+                page.getTotalElements()
+        );
     }
 
     private String sanitizeInput(String input) {

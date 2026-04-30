@@ -567,7 +567,7 @@ class _MapaScreenState extends State<MapaScreen> {
       final color = poiColors[p.tipo] ?? Colors.grey;
       markers.add(Marker(
         point: LatLng(p.latitude, p.longitude), 
-        builder: (ctx) => GestureDetector(
+        child: GestureDetector(
           onTap: () => _mostrarDetalhesPOI(p), 
           child: Container(
             decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
@@ -581,7 +581,7 @@ class _MapaScreenState extends State<MapaScreen> {
       final color = AppColors.getTipoColor(o.tipo);
       markers.add(Marker(
         point: LatLng(o.latitude, o.longitude), 
-        builder: (ctx) => GestureDetector(
+        child: GestureDetector(
           onTap: () => _mostrarDetalhesOcorrencia(o), 
           child: Stack(
             children: [
@@ -615,7 +615,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 if (usuarioProvider.isAdmin) ...[
                   FloatingActionButton.extended(
                     heroTag: 'fab_poi',
-                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.center),
+                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
                     icon: const Icon(Icons.add_location_alt_rounded),
                     label: const Text('Ponto de Interesse'),
                     backgroundColor: Colors.orange,
@@ -660,15 +660,17 @@ class _MapaScreenState extends State<MapaScreen> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            center: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
-            zoom: 14,
+            initialCenter: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
+            initialZoom: 14,
             minZoom: 5,
             maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),
             onLongPress: (_, latlng) { if (userProv.isAdmin) _confirmarNovoPontoInteresse(latlng); },
-            maxBounds: LatLngBounds(
-              const LatLng(-33.0, -73.0),
-              const LatLng(5.0, -34.0),
+            cameraConstraint: CameraConstraint.containCenter(
+              bounds: LatLngBounds(
+                const LatLng(-33.0, -73.0),
+                const LatLng(5.0, -34.0),
+              ),
             ),
           ),
           children: [
@@ -677,7 +679,7 @@ class _MapaScreenState extends State<MapaScreen> {
               userAgentPackageName: 'com.defesacivil.app',
             ),
             MarkerLayer(markers: markers),
-            if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), builder: (_) => const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
+            if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), child: const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
           ],
         ),
         Positioned(

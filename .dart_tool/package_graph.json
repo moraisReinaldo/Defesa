@@ -283,13 +283,14 @@
     },
     {
       "name": "flutter_map",
-      "version": "5.0.0",
+      "version": "6.1.0",
       "dependencies": [
         "async",
         "collection",
         "flutter",
         "http",
         "latlong2",
+        "logger",
         "meta",
         "polylabel",
         "proj4dart",
@@ -1128,6 +1129,14 @@
       "version": "1.0.1",
       "dependencies": [
         "collection"
+      ]
+    },
+    {
+      "name": "logger",
+      "version": "2.7.0",
+      "dependencies": [
+        "clock",
+        "meta"
       ]
     },
     {

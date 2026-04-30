@@ -8,6 +8,8 @@ enum OcorrenciaStatus {
   resolvida
 }
 
+const _omit = Object();
+
 class Ocorrencia {
   final String id;
   final String tipo;
@@ -60,7 +62,10 @@ class Ocorrencia {
       'caminhoFoto': caminhoFoto,
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
-      'status': status.name.replaceAll(RegExp(r'([A-Z])'), r'_\1').toUpperCase(),
+      'status': status.name.replaceAllMapped(
+        RegExp(r'([A-Z])'),
+        (m) => '_${m.group(0)!}',
+      ).toUpperCase(),
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
       'criadoPorAgente': criadoPorAgente,
@@ -125,11 +130,11 @@ class Ocorrencia {
     DateTime? dataHora,
     String? usuarioId,
     OcorrenciaStatus? status,
-    DateTime? dataResolucao,
+    Object? dataResolucao = _omit,
     String? agentes,
     bool? criadoPorAgente,
     bool? agenteNoLocal,
-    DateTime? dataChegadaAgente,
+    Object? dataChegadaAgente = _omit,
     String? descricaoSituacao,
     bool? isLocal,
   }) {
@@ -144,11 +149,15 @@ class Ocorrencia {
       dataHora: dataHora ?? this.dataHora,
       usuarioId: usuarioId ?? this.usuarioId,
       status: status ?? this.status,
-      dataResolucao: dataResolucao ?? this.dataResolucao,
+      dataResolucao: dataResolucao == _omit
+          ? this.dataResolucao
+          : dataResolucao as DateTime?,
       agentes: agentes ?? this.agentes,
       criadoPorAgente: criadoPorAgente ?? this.criadoPorAgente,
       agenteNoLocal: agenteNoLocal ?? this.agenteNoLocal,
-      dataChegadaAgente: dataChegadaAgente ?? this.dataChegadaAgente,
+      dataChegadaAgente: dataChegadaAgente == _omit
+          ? this.dataChegadaAgente
+          : dataChegadaAgente as DateTime?,
       descricaoSituacao: descricaoSituacao ?? this.descricaoSituacao,
       isLocal: isLocal ?? this.isLocal,
     );
