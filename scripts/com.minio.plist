@@ -26,7 +26,7 @@
     <key>MINIO_ROOT_USER</key>
     <string>admin</string>
     <key>MINIO_ROOT_PASSWORD</key>
-    <string>defesa@2025</string>
+    <string>TROCAR_PELA_SUA_SENHA</string>
   </dict>
   <key>RunAtLoad</key>
   <true/>
