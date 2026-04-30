@@ -114,7 +114,7 @@ for i in 1 2 3 4 5; do
     if echo "$TS_STATUS" | grep -q "100\."; then
         TS_OK=true
         log_ok "Tailscale conectado"
-        sudo -u "$USR" "$TAILSCALE" up --advertise-exit-node --accept-routes >> "$LOG" 2>&1
+        sudo -u "$USR" "$TAILSCALE" up --advertise-exit-node --accept-routes --exit-node-allow-lan-access >> "$LOG" 2>&1
         log "Tailscale exit node configurado"
         break
     else
