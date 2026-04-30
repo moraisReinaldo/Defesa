@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  LaunchAgent: Cloudflare Quick Tunnel para a API (Spring Boot na porta 8080).
+  Gera uma URL aleatória em *.trycloudflare.com a cada inicialização.
+  A URL é logada em ~/logs/cloudflared-error.log (cloudflared loga no stderr).
+
+  Instalar:
+    cp com.cloudflared.tunnel.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.cloudflared.tunnel.plist
+-->
+<dict>
+  <key>Label</key>
+  <string>com.cloudflared.tunnel</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/cloudflared</string>
+    <string>tunnel</string>
+    <string>--url</string>
+    <string>http://localhost:8080</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/cloudflared.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/cloudflared-error.log</string>
+</dict>
+</plist>

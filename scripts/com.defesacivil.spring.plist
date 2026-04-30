@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  LaunchAgent: Gerencia o processo do Spring Boot (Defesa Civil Backend).
+  Usa o wrapper run-spring-boot.sh que lê a URL do MinIO automaticamente.
+
+  Instalar:
+    cp com.defesacivil.spring.plist ~/Library/LaunchAgents/
+    sudo cp run-spring-boot.sh /usr/local/bin/run-spring-boot.sh
+    sudo chmod +x /usr/local/bin/run-spring-boot.sh
+    launchctl load ~/Library/LaunchAgents/com.defesacivil.spring.plist
+-->
+<dict>
+  <key>Label</key>
+  <string>com.defesacivil.spring</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/usr/local/bin/run-spring-boot.sh</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/reinaldohenriquemorais/Defesa/defesa-backend</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <!-- Reiniciar se o processo cair -->
+  <key>KeepAlive</key>
+  <true/>
+  <!-- Esperar 10s antes de reiniciar -->
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/spring-boot.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/spring-boot-error.log</string>
+</dict>
+</plist>
