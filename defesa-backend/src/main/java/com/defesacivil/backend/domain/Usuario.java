@@ -27,6 +27,10 @@ public class Usuario {
     @JsonIgnore
     private String dataCriacao;
     private String fcmToken; // Token para Push (FCM)
+    @JsonIgnore
+    private String resetSenhaCodigo;
+    @JsonIgnore
+    private LocalDateTime resetSenhaExpiracao;
 
     public Usuario() {
         this.dataCriacao = LocalDateTime.now().toString();
@@ -55,4 +59,8 @@ public class Usuario {
     public void setDataCriacao(String dataCriacao) { this.dataCriacao = dataCriacao; }
     public String getFcmToken() { return fcmToken; }
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    public String getResetSenhaCodigo() { return resetSenhaCodigo; }
+    public void setResetSenhaCodigo(String resetSenhaCodigo) { this.resetSenhaCodigo = resetSenhaCodigo; }
+    public LocalDateTime getResetSenhaExpiracao() { return resetSenhaExpiracao; }
+    public void setResetSenhaExpiracao(LocalDateTime resetSenhaExpiracao) { this.resetSenhaExpiracao = resetSenhaExpiracao; }
 }

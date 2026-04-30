@@ -173,4 +173,38 @@ public class UsuarioService {
 
         return repository.save(usuario);
     }
+    public boolean solicitarResetSenha(String email) {
+        Optional<Usuario> userOpt = repository.findByEmail(email);
+        if (userOpt.isEmpty()) return false;
+
+        Usuario user = userOpt.get();
+        // Gerar código de 6 dígitos
+        String codigo = String.format("%06d", new java.util.Random().nextInt(999999));
+        user.setResetSenhaCodigo(codigo);
+        user.setResetSenhaExpiracao(LocalDateTime.now().plusMinutes(15));
+        repository.save(user);
+
+        emailService.enviarEmailRecuperacaoSenha(email, codigo);
+        return true;
+    }
+
+    public boolean resetarSenha(String email, String codigo, String novaSenha) {
+        Optional<Usuario> userOpt = repository.findByEmail(email);
+        if (userOpt.isEmpty()) return false;
+
+        Usuario user = userOpt.get();
+        if (user.getResetSenhaCodigo() == null || !user.getResetSenhaCodigo().equals(codigo)) {
+            return false;
+        }
+
+        if (user.getResetSenhaExpiracao().isBefore(LocalDateTime.now())) {
+            return false;
+        }
+
+        user.setSenha(passwordEncoder.encode(novaSenha));
+        user.setResetSenhaCodigo(null);
+        user.setResetSenhaExpiracao(null);
+        repository.save(user);
+        return true;
+    }
 }

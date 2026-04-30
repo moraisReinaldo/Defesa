@@ -159,6 +159,64 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _esqueciSenha() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Digite seu e-mail acima para recuperar a senha.')));
+      return;
+    }
+
+    setState(() => _carregando = true);
+    try {
+      final prov = context.read<UsuarioProvider>();
+      final ok = await prov.solicitarResetSenha(email);
+      if (ok && mounted) {
+        _mostrarDialogoReset(email);
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _carregando = false);
+    }
+  }
+
+  void _mostrarDialogoReset(String email) {
+    final codigoCtrl = TextEditingController();
+    final novaSenhaCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Recuperar Senha'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enviamos um código de 6 dígitos para o seu e-mail.'),
+            const SizedBox(height: 16),
+            TextField(controller: codigoCtrl, decoration: const InputDecoration(labelText: 'Código de 6 dígitos'), keyboardType: TextInputType.number),
+            TextField(controller: novaSenhaCtrl, decoration: const InputDecoration(labelText: 'Nova Senha'), obscureText: true),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCELAR')),
+          ElevatedButton(
+            onPressed: () async {
+              final ok = await context.read<UsuarioProvider>().resetarSenha(email, codigoCtrl.text, novaSenhaCtrl.text);
+              if (ok && mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada! Agora você pode entrar.'), backgroundColor: Colors.green));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Código inválido ou erro no servidor.'), backgroundColor: Colors.red));
+              }
+            },
+            child: const Text('ALTERAR SENHA'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -402,6 +460,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: _carregando ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) : Text(_modoRegistro ? 'Criar Conta' : 'Entrar', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    if (!_modoRegistro)
+                      TextButton(
+                        onPressed: _esqueciSenha,
+                        child: const Text('Esqueci minha senha', style: TextStyle(color: AppColors.primaryTeal)),
+                      ),
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () { 

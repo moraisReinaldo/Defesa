@@ -54,4 +54,27 @@ public class UsuarioController {
         Usuario atualizado = usuarioService.atualizarUsuario(id, request);
         return ResponseEntity.ok(atualizado);
     }
+
+    /** Solicitar código de reset (PÚBLICO) */
+    @PostMapping("/esqueci-senha")
+    public ResponseEntity<?> solicitarReset(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        boolean enviado = usuarioService.solicitarResetSenha(email);
+        // Retornamos OK mesmo se o e-mail não existir por segurança (não vazar se o e-mail tem conta)
+        return ResponseEntity.ok(Map.of("message", "Se o e-mail existir, um código foi enviado."));
+    }
+
+    /** Resetar senha com código (PÚBLICO) */
+    @PostMapping("/resetar-senha")
+    public ResponseEntity<?> resetarSenha(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String codigo = payload.get("codigo");
+        String novaSenha = payload.get("novaSenha");
+        
+        boolean sucesso = usuarioService.resetarSenha(email, codigo, novaSenha);
+        if (sucesso) {
+            return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso!"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("message", "Código inválido ou expirado."));
+    }
 }

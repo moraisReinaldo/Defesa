@@ -266,6 +266,14 @@ class UsuarioProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> solicitarResetSenha(String email) async {
+    return await _apiService.solicitarResetSenha(email);
+  }
+
+  Future<bool> resetarSenha(String email, String codigo, String novaSenha) async {
+    return await _apiService.resetarSenha(email, codigo, novaSenha);
+  }
+
   Future<Map<String, dynamic>> cadastrar(UsuarioRequest request) async {
     _setLoading(true);
     try {

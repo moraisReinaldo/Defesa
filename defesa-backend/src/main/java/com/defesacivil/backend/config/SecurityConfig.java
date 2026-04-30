@@ -49,6 +49,8 @@ public class SecurityConfig {
                 .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/usuarios/login").permitAll()
+                .requestMatchers("/api/usuarios/esqueci-senha").permitAll()
+                .requestMatchers("/api/usuarios/resetar-senha").permitAll()
                 .requestMatchers("/api/cidades").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()
