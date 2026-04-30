@@ -44,7 +44,7 @@ public class OcorrenciaController {
         return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade, pageable));
     }
 
-    /** Aprovar — apenas ADMINISTRADOR (protegido no SecurityConfig) */
+    /** Aprovar — ADMINISTRADOR e AGENTE (protegido no SecurityConfig) */
     @PostMapping("/{id}/aprovar")
     public ResponseEntity<Ocorrencia> aprovar(@PathVariable String id) {
         Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id);

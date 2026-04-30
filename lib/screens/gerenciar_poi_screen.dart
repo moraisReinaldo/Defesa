@@ -92,6 +92,7 @@ class _GerenciarPOIScreenState extends State<GerenciarPOIScreen> {
       case 'PONTO_COLETA_AGUA': return Icons.water_drop;
       case 'AREA_RISCO': return Icons.warning;
       case 'ABRIGO': return Icons.home;
+      case 'BASE_DEFESA': return Icons.security;
       case 'DESLIZAMENTO': return Icons.terrain;
       default: return Icons.location_on;
     }
@@ -102,6 +103,7 @@ class _GerenciarPOIScreenState extends State<GerenciarPOIScreen> {
       case 'AREA_RISCO':
       case 'DESLIZAMENTO': return Colors.orange;
       case 'ABRIGO': return Colors.green;
+      case 'BASE_DEFESA': return Colors.indigo;
       case 'PONTO_COLETA_AGUA': return Colors.blue;
       default: return Colors.grey;
     }
@@ -112,6 +114,7 @@ class _GerenciarPOIScreenState extends State<GerenciarPOIScreen> {
       case 'PONTO_COLETA_AGUA': return 'Água';
       case 'AREA_RISCO': return 'Risco';
       case 'ABRIGO': return 'Abrigo';
+      case 'BASE_DEFESA': return 'Base Defesa Civil';
       case 'DESLIZAMENTO': return 'Deslizamento';
       default: return 'Ponto';
     }

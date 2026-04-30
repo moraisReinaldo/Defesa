@@ -59,7 +59,7 @@ public class SecurityConfig {
 
                 // ===== ROTAS DE ADMINISTRADOR =====
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
-                .requestMatchers("/api/ocorrencias/{id}/aprovar").hasRole("ADMINISTRADOR")
+                .requestMatchers("/api/ocorrencias/{id}/aprovar").hasAnyRole("ADMINISTRADOR", "AGENTE")
                 .requestMatchers(HttpMethod.DELETE, "/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasRole("ADMINISTRADOR")
 
