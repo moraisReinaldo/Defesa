@@ -7,7 +7,6 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'providers/ocorrencia_provider.dart';
 import 'providers/usuario_provider.dart';
 import 'providers/ponto_interesse_provider.dart';
-import 'providers/alerta_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
@@ -69,9 +68,6 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => PontoInteresseProvider(apiService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => AlertaProvider(apiService),
         ),
         Provider.value(value: notificationService),
       ],
