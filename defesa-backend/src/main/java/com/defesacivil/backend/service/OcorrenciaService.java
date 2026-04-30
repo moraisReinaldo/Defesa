@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.PageImpl;
@@ -32,15 +33,18 @@ public class OcorrenciaService {
     private final UsuarioRepository usuarioRepository;
     private final NotificationService notificationService;
     private final MinioService minioService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public OcorrenciaService(OcorrenciaRepository ocorrenciaRepository,
                              UsuarioRepository usuarioRepository,
                              NotificationService notificationService,
-                             MinioService minioService) {
+                             MinioService minioService,
+                             SimpMessagingTemplate messagingTemplate) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.usuarioRepository = usuarioRepository;
         this.notificationService = notificationService;
         this.minioService = minioService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // ========== HELPERS DE SEGURANÇA ==========
@@ -144,7 +148,9 @@ public class OcorrenciaService {
             }
         }
 
-        return processarUrl(ocorrenciaRepository.save(oc));
+        Ocorrencia salva = processarUrl(ocorrenciaRepository.save(oc));
+        messagingTemplate.convertAndSend("/topic/ocorrencias/" + salva.getCidade(), salva);
+        return salva;
     }
 
     /** Aprovar — SecurityConfig já garante que apenas ADMINISTRADOR chega aqui */
@@ -165,7 +171,9 @@ public class OcorrenciaService {
             );
         }
 
-        return processarUrl(salva);
+        Ocorrencia processada = processarUrl(salva);
+        messagingTemplate.convertAndSend("/topic/ocorrencias/" + processada.getCidade(), processada);
+        return processada;
     }
 
     /** Registrar chegada — SecurityConfig garante AGENTE ou ADMINISTRADOR */
@@ -208,7 +216,9 @@ public class OcorrenciaService {
             );
         }
 
-        return processarUrl(salva);
+        Ocorrencia processada = processarUrl(salva);
+        messagingTemplate.convertAndSend("/topic/ocorrencias/" + processada.getCidade(), processada);
+        return processada;
     }
 
     /** Reativar — SecurityConfig garante AGENTE ou ADMINISTRADOR */

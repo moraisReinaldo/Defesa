@@ -46,11 +46,12 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // ===== ROTAS PÚBLICAS (sem token) =====
-                .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
+                .requestMatchers("/", "/api/health", "/actuator/health", "/ws/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/usuarios/login").permitAll()
                 .requestMatchers("/api/cidades").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/alertas/ativos/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
@@ -59,6 +60,8 @@ public class SecurityConfig {
 
                 // ===== ROTAS DE ADMINISTRADOR =====
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.POST, "/api/alertas").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/alertas/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/api/ocorrencias/{id}/aprovar").hasAnyRole("ADMINISTRADOR", "AGENTE")
                 .requestMatchers(HttpMethod.DELETE, "/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasRole("ADMINISTRADOR")
