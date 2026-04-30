@@ -590,6 +590,12 @@
       "languageVersion": "3.10"
     },
     {
+      "name": "onesignal_flutter",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/onesignal_flutter-5.5.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "package_config",
       "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/package_config-2.2.0",
       "packageUri": "lib/",

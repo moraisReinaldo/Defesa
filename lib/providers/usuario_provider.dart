@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../models/usuario.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -250,6 +251,9 @@ class UsuarioProvider extends ChangeNotifier {
         _usuarioLogado = usuario;
         _isAdmin = usuario.role == Role.administrador;
         
+        // Registrar ID no OneSignal para receber push diretos
+        OneSignal.login(usuario.id);
+        
         notifyListeners();
         return true;
       }
@@ -293,6 +297,7 @@ class UsuarioProvider extends ChangeNotifier {
     _estaInicializado = false; // Reset essencial para evitar loop de carregamento
     _todosAgentes = [];
     _cidadesSuportadas = [];
+    OneSignal.logout();
     notifyListeners();
   }
 

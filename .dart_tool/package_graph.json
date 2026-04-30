@@ -19,6 +19,7 @@
         "image_picker",
         "intl",
         "latlong2",
+        "onesignal_flutter",
         "permission_handler",
         "provider",
         "shared_preferences",
@@ -122,6 +123,13 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "onesignal_flutter",
+      "version": "5.5.2",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
