@@ -48,4 +48,25 @@ public class EmailService {
             log.error("Falha ao enviar e-mail. Verifique as configurações de SMTP.", e);
         }
     }
+    @Async
+    public void enviarEmailRecuperacaoSenha(String email, String codigo) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Código de Recuperação: Defesa Civil");
+        message.setText("Olá,\n\n" +
+                "Você solicitou a recuperação de senha no app Defesa Civil.\n\n" +
+                "Seu código de acesso é: " + codigo + "\n\n" +
+                "Este código expira em 15 minutos.\n\n" +
+                "Se você não solicitou isso, ignore este e-mail.\n\n" +
+                "Atenciosamente,\n" +
+                "Equipe Defesa Civil");
+        
+        try {
+            message.setFrom(mailFrom);
+            mailSender.send(message);
+            log.info("E-mail de recuperação enviado para: {}", email);
+        } catch(Exception e) {
+            log.error("Falha ao enviar e-mail de recuperação.", e);
+        }
+    }
 }

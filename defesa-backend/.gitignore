@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secrets — NUNCA versionar arquivos com senhas reais ###
+# Use application.properties.example como template
+src/main/resources/application.properties
+src/main/resources/application-prod.properties
+src/main/resources/application-local.properties

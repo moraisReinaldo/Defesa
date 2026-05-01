@@ -41,36 +41,39 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable()) // Stateless, sem CSRF
+            .csrf(csrf -> csrf.disable()) // API Stateless — CSRF não se aplica
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Endpoints públicos e Health Checks
+                // ===== ROTAS PÚBLICAS (sem token) =====
                 .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
-                .requestMatchers("/api/auth/**", "/api/usuarios/login").permitAll()
-                .requestMatchers("/api/cidades", "/api/pontos-interesse").permitAll()
-                .requestMatchers("/api/ocorrencias").permitAll()
-                // Apenas Administradores podem promover usuários a agentes
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/usuarios/login").permitAll()
+                .requestMatchers("/api/usuarios/esqueci-senha").permitAll()
+                .requestMatchers("/api/usuarios/resetar-senha").permitAll()
+                .requestMatchers("/api/cidades").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // ===== REGISTRO DE OCORRÊNCIA (Público) =====
+                .requestMatchers(HttpMethod.POST, "/api/ocorrencias").permitAll()
+
+                // ===== ROTAS DE ADMINISTRADOR =====
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
-                // Apenas Agentes e Admins podem listar outros agentes
+                .requestMatchers("/api/ocorrencias/{id}/aprovar").hasAnyRole("ADMINISTRADOR", "AGENTE")
+                .requestMatchers(HttpMethod.DELETE, "/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasRole("ADMINISTRADOR")
+
+                // ===== ROTAS DE AGENTE E ADMINISTRADOR =====
                 .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                // Apenas Administradores podem aprovar ocorrências
-                .requestMatchers("/api/ocorrencias/*/aprovar").hasRole("ADMINISTRADOR")
-                // Agentes e Admins podem registrar chegada
-                .requestMatchers("/api/ocorrencias/*/chegada").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                // Agentes e Admins podem resolver/reativar
-                .requestMatchers("/api/ocorrencias/*/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                .requestMatchers("/api/ocorrencias/*/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                // DELETE explícito — apenas Administradores
-                .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/*").hasRole("ADMINISTRADOR")
-                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/*").hasRole("ADMINISTRADOR")
-                // Pontos de interesse — criar qualquer autenticado, deletar apenas Agentes e Admins
-                .requestMatchers(HttpMethod.POST, "/api/pontos-interesse").authenticated()
-                .requestMatchers(HttpMethod.DELETE, "/api/pontos-interesse/*").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                // Qualquer usuário autenticado pode ver ocorrências e criar
+                .requestMatchers("/api/ocorrencias/{id}/chegada").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers("/api/ocorrencias/{id}/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers("/api/ocorrencias/{id}/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
+
+                // ===== DEMAIS ROTAS (Perfil, Edição, etc.) =====
                 .anyRequest().authenticated()
             )
-            // Rate limiting aplicado antes do JWT
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -85,20 +88,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // Ler do environment para flexibilidade
-        String allowedOrigins = System.getenv("CORS_ALLOWED_ORIGINS");
-        if (allowedOrigins == null || allowedOrigins.isEmpty()) {
-            // Em desenvolvimento, permite todas as origens
-            configuration.setAllowedOriginPatterns(List.of("*"));
-        } else {
-            // Em produção, usa as origens configuradas no ambiente
-            configuration.setAllowedOriginPatterns(List.of(allowedOrigins.split(",")));
-        }
-        
+
+        // App Flutter mobile não usa cookies/credentials — wildcard é seguro aqui
+        configuration.setAllowedOriginPatterns(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-User-Id"));
-        configuration.setAllowCredentials(true);
+        configuration.setAllowedHeaders(List.of("*"));
+        // IMPORTANTE: allowCredentials=false permite o uso de wildcard em allowedOriginPatterns
+        // O app Flutter envia o JWT no header Authorization, não em cookies
+        configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -1,68 +1,80 @@
 package com.defesacivil.backend.controller;
 
 import com.defesacivil.backend.domain.Usuario;
-import com.defesacivil.backend.repository.UsuarioRepository;
 import com.defesacivil.backend.service.UsuarioService;
 import com.defesacivil.backend.dto.UsuarioRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * Controller de gestão de Usuários.
+ *
+ * SEGURANÇA: A verificação de roles é feita pelo Spring Security (SecurityConfig).
+ * Este controller não duplica verificações — apenas delega ao serviço.
+ */
 @RestController
 @RequestMapping("/api/usuarios")
 public class UsuarioController {
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private final UsuarioService usuarioService;
 
-    @Autowired
-    private UsuarioService usuarioService;
+    public UsuarioController(UsuarioService usuarioService) {
+        this.usuarioService = usuarioService;
+    }
 
+    /** Promover cidadão a agente — apenas ADMINISTRADOR (protegido no SecurityConfig) */
     @PostMapping("/promover")
     public ResponseEntity<?> promoverParaAgente(@RequestBody Map<String, String> payload) {
-        // SEGURANÇA: Apenas Administradores podem promover outros usuários
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
-        
-        if (!isAdmin) {
-            throw new SecurityException("Acesso negado: Apenas administradores podem promover usuários.");
-        }
-
         String email = payload.get("email");
         if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("E-mail é obrigatório");
+            throw new IllegalArgumentException("E-mail é obrigatório para promoção.");
         }
-
-        Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
-        if (usuarioOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        Usuario usuario = usuarioOpt.get();
-        usuario.setRole("AGENTE");
-        usuario.setStatus("ATIVO");
-        
-        usuarioRepository.save(usuario);
-
+        Usuario promovido = usuarioService.promoverParaAgente(email);
         return ResponseEntity.ok(Map.of(
             "message", "Usuário promovido a AGENTE com sucesso!",
-            "usuario", usuario
+            "usuario", promovido
         ));
     }
 
+    /** Deletar usuário — apenas ADMINISTRADOR (protegido no SecurityConfig) */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarUsuario(@PathVariable String id) {
         boolean deletado = usuarioService.deletarUsuario(id);
-        return deletado ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        return deletado ? ResponseEntity.ok().<Void>build() : ResponseEntity.notFound().build();
     }
 
+    /** Atualizar perfil — autenticado (serviço verifica se é o próprio ou admin) */
     @PutMapping("/{id}")
-    public ResponseEntity<Usuario> atualizar(@PathVariable String id, @Valid @RequestBody UsuarioRequest request) {
+    public ResponseEntity<Usuario> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody UsuarioRequest request) {
         Usuario atualizado = usuarioService.atualizarUsuario(id, request);
         return ResponseEntity.ok(atualizado);
+    }
+
+    /** Solicitar código de reset (PÚBLICO) */
+    @PostMapping("/esqueci-senha")
+    public ResponseEntity<?> solicitarReset(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        boolean enviado = usuarioService.solicitarResetSenha(email);
+        // Retornamos OK mesmo se o e-mail não existir por segurança (não vazar se o e-mail tem conta)
+        return ResponseEntity.ok(Map.of("message", "Se o e-mail existir, um código foi enviado."));
+    }
+
+    /** Resetar senha com código (PÚBLICO) */
+    @PostMapping("/resetar-senha")
+    public ResponseEntity<?> resetarSenha(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String codigo = payload.get("codigo");
+        String novaSenha = payload.get("novaSenha");
+        
+        boolean sucesso = usuarioService.resetarSenha(email, codigo, novaSenha);
+        if (sucesso) {
+            return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso!"));
+        }
+        return ResponseEntity.badRequest().body(Map.of("message", "Código inválido ou expirado."));
     }
 }

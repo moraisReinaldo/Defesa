@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -39,14 +40,45 @@ class _MapaScreenState extends State<MapaScreen> {
   int _indiceAbaAtual = 0;
   String _searchQuery = '';
   bool _showSearchResults = false;
+  
+  StreamSubscription<Position>? _positionSubscription;
+  bool _mapaCentralizadoInicialmente = false;
 
   @override
   void initState() {
     super.initState();
     _inicializarMapa();
+    _iniciarSeguimentoLocalizacao();
+  }
+
+  void _iniciarSeguimentoLocalizacao() {
+    _positionSubscription = _localizacaoService.obterFluxoPosicao().listen((posicao) {
+      if (mounted) {
+        setState(() {
+          _posicaoAtual = posicao;
+        });
+        
+        // Se ainda não centralizamos o mapa, fazemos agora
+        if (!_mapaCentralizadoInicialmente) {
+          _mapaCentralizadoInicialmente = true;
+          _mapController.move(LatLng(posicao.latitude, posicao.longitude), 15);
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    _searchController.dispose();
+    _comentarioController.dispose();
+    super.dispose();
   }
 
   Future<void> _inicializarMapa() async {
+    // Buscar localização IMEDIATAMENTE (sem travar a thread)
+    _centralizarLocalizacao(animar: true);
+
     final usuarioProv = context.read<UsuarioProvider>();
     final ocorrenciaProv = context.read<OcorrenciaProvider>();
     
@@ -61,9 +93,6 @@ class _MapaScreenState extends State<MapaScreen> {
     } else {
       debugPrint('⚠️ Mapa inicializado sem cidade de contexto. Nada será exibido.');
     }
-    
-    // Na inicialização, centralizamos sem animação brusca se possível
-    await _centralizarLocalizacao(animar: true);
   }
 
   Future<void> _centralizarLocalizacao({bool animar = true}) async {
@@ -83,11 +112,11 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   List<Ocorrencia> _getFilteredOcorrencias() {
-    final todas = context.read<OcorrenciaProvider>().ocorrencias;
+    final ativas = context.read<OcorrenciaProvider>().ocorrenciasAtivas;
     if (_searchQuery.isEmpty) return [];
 
     final query = _searchQuery.toLowerCase();
-    return todas.where((o) {
+    return ativas.where((o) {
       final tipoNome = OcorrenciaTipos.getTipoNome(o.tipo).toLowerCase();
       final desc = o.descricao.toLowerCase();
       return tipoNome.contains(query) || desc.contains(query);
@@ -243,7 +272,10 @@ class _MapaScreenState extends State<MapaScreen> {
 
                     const SizedBox(height: 12),
 
-                    if (usuarioProvider.isAdmin)
+                    // Designação de agentes — apenas quando aprovada (nunca em pendente)
+                    if (usuarioProvider.isAdmin &&
+                        (ocorrencia.status == OcorrenciaStatus.aprovada ||
+                         ocorrencia.status == OcorrenciaStatus.trabalhandoAtualmente))
                       _buildSectionCard(
                         icon: Icons.groups_rounded,
                         title: 'Agentes a caminho',
@@ -318,6 +350,30 @@ class _MapaScreenState extends State<MapaScreen> {
                           child: ElevatedButton.icon(
                           onPressed: () async { 
                             try {
+                              // Trava de Geolocalização removida para facilitar testes
+                              /*
+                              if (_posicaoAtual != null) {
+                                final distancia = await _localizacaoService.calcularDistancia(
+                                  _posicaoAtual!.latitude, 
+                                  _posicaoAtual!.longitude, 
+                                  ocorrencia.latitude, 
+                                  ocorrencia.longitude
+                                );
+                                
+                                if (distancia > 500) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Você está muito longe (${distancia.toInt()}m). Aproxime-se para registrar a chegada.'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+                              }
+                              */
+
                               final parecer = _comentarioController.text.trim();
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
                               _comentarioController.clear();
@@ -337,8 +393,9 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ),
 
-                    // Botões de Administrador
-                    if (usuarioProvider.isAdmin)
+                    // Botões de Administrador — resolver/reativar (apenas para aprovadas ou trabalhando)
+                    if (usuarioProvider.isAdmin &&
+                        ocorrencia.status != OcorrenciaStatus.pendenteAprovacao)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: Row(
@@ -385,7 +442,7 @@ class _MapaScreenState extends State<MapaScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
+                       SizedBox(height: MediaQuery.of(context).padding.bottom + 40),
                     ],
                   ),
               ),
@@ -395,7 +452,10 @@ class _MapaScreenState extends State<MapaScreen> {
           }
         ),
       ),
-    );
+    ).then((_) {
+      // Ao fechar o painel de detalhes, recarregar para refletir mudanças de status
+      if (mounted) _inicializarMapa();
+    });
   }
 
   Widget _buildSectionCard({required IconData icon, required String title, required Widget child}) {
@@ -500,32 +560,45 @@ class _MapaScreenState extends State<MapaScreen> {
     final nomeUsuario = usuarioProvider.usuarioLogado?.nome.split(' ').first ?? 'Cidadão';
     final markers = <Marker>[];
 
-    for (final o in ocorrenciaProvider.ocorrenciasAtivas) {
-      final color = AppColors.getTipoColor(o.tipo);
-      markers.add(Marker(
-        point: LatLng(o.latitude, o.longitude), 
-        builder: (ctx) => GestureDetector(
-          onTap: () => _mostrarDetalhesOcorrencia(o), 
-          child: Container(
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
-            child: Icon(OcorrenciaTipos.getTipoIcone(o.tipo), color: Colors.white, size: 18)
-          )
-        )
-      ));
-    }
-
-    final Map<String, IconData> poiIcons = {'PONTO_COLETA_AGUA': Icons.water_drop, 'AREA_RISCO': Icons.warning, 'ABRIGO': Icons.home, 'DESLIZAMENTO': Icons.terrain, 'OUTRO': Icons.location_on};
-    final Map<String, Color> poiColors = {'PONTO_COLETA_AGUA': Colors.blue, 'AREA_RISCO': Colors.orange, 'ABRIGO': Colors.green, 'DESLIZAMENTO': Colors.brown, 'OUTRO': Colors.grey};
+    final Map<String, IconData> poiIcons = {'PONTO_COLETA_AGUA': Icons.water_drop, 'AREA_RISCO': Icons.warning, 'ABRIGO': Icons.home, 'BASE_DEFESA': Icons.security, 'DESLIZAMENTO': Icons.terrain, 'OUTRO': Icons.location_on};
+    final Map<String, Color> poiColors = {'PONTO_COLETA_AGUA': Colors.blue, 'AREA_RISCO': Colors.orange, 'ABRIGO': Colors.green, 'BASE_DEFESA': Colors.indigo, 'DESLIZAMENTO': Colors.brown, 'OUTRO': Colors.grey};
 
     for (final p in poiProvider.pontos) {
       final color = poiColors[p.tipo] ?? Colors.grey;
       markers.add(Marker(
         point: LatLng(p.latitude, p.longitude), 
-        builder: (ctx) => GestureDetector(
+        child: GestureDetector(
           onTap: () => _mostrarDetalhesPOI(p), 
           child: Container(
             decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
             child: Icon(poiIcons[p.tipo] ?? Icons.place, color: Colors.white, size: 20)
+          )
+        )
+      ));
+    }
+
+    for (final o in ocorrenciaProvider.ocorrenciasAtivas) {
+      final color = AppColors.getTipoColor(o.tipo);
+      markers.add(Marker(
+        point: LatLng(o.latitude, o.longitude), 
+        child: GestureDetector(
+          onTap: () => _mostrarDetalhesOcorrencia(o), 
+          child: Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
+                child: Center(child: Icon(OcorrenciaTipos.getTipoIcone(o.tipo), color: Colors.white, size: 18))
+              ),
+              if (o.isLocal)
+                Positioned(
+                  right: 0, top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: const Icon(Icons.cloud_off_rounded, color: AppColors.accentAmber, size: 10),
+                  ),
+                ),
+            ],
           )
         )
       ));
@@ -542,7 +615,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 if (usuarioProvider.isAdmin) ...[
                   FloatingActionButton.extended(
                     heroTag: 'fab_poi',
-                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.center),
+                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
                     icon: const Icon(Icons.add_location_alt_rounded),
                     label: const Text('Ponto de Interesse'),
                     backgroundColor: Colors.orange,
@@ -587,15 +660,17 @@ class _MapaScreenState extends State<MapaScreen> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            center: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
-            zoom: 14,
+            initialCenter: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
+            initialZoom: 14,
             minZoom: 5,
             maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),
             onLongPress: (_, latlng) { if (userProv.isAdmin) _confirmarNovoPontoInteresse(latlng); },
-            maxBounds: LatLngBounds(
-              const LatLng(-33.0, -73.0),
-              const LatLng(5.0, -34.0),
+            cameraConstraint: CameraConstraint.containCenter(
+              bounds: LatLngBounds(
+                const LatLng(-33.0, -73.0),
+                const LatLng(5.0, -34.0),
+              ),
             ),
           ),
           children: [
@@ -604,7 +679,7 @@ class _MapaScreenState extends State<MapaScreen> {
               userAgentPackageName: 'com.defesacivil.app',
             ),
             MarkerLayer(markers: markers),
-            if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), builder: (_) => const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
+            if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), child: const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
           ],
         ),
         Positioned(

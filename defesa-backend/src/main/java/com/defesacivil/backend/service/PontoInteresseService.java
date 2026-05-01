@@ -2,7 +2,6 @@ package com.defesacivil.backend.service;
 
 import com.defesacivil.backend.domain.PontoInteresse;
 import com.defesacivil.backend.repository.PontoInteresseRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,8 +11,11 @@ import java.util.List;
 @Transactional
 public class PontoInteresseService {
 
-    @Autowired
-    private PontoInteresseRepository repository;
+    private final PontoInteresseRepository repository;
+
+    public PontoInteresseService(PontoInteresseRepository repository) {
+        this.repository = repository;
+    }
 
     public List<PontoInteresse> listarTodos() {
         return repository.findAll();

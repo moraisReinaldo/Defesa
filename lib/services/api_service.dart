@@ -35,6 +35,8 @@ class ApiService {
   Future<List<Usuario>> listarAgentes({String? cidade}) => _auth.listarAgentes(cidade: cidade);
   Future<void> deletarUsuario(String id) => _auth.deletarUsuario(id);
   Future<Usuario?> atualizarUsuario(String id, UsuarioRequest req) => _auth.atualizarUsuario(id, req);
+  Future<bool> solicitarResetSenha(String email) => _auth.solicitarResetSenha(email);
+  Future<bool> resetarSenha(String email, String codigo, String novaSenha) => _auth.resetarSenha(email, codigo, novaSenha);
 
   // ========== OCORRÊNCIAS ==========
   Future<List<Ocorrencia>> listarOcorrencias({String? cidade, int page = 0, int size = 50}) => 
@@ -50,7 +52,7 @@ class ApiService {
   // ========== PONTOS DE INTERESSE ==========
   Future<List<PontoInteresse>> listarPontosInteresse({String? cidade}) => _ponto.listarPontosInteresse(cidade: cidade);
   Future<PontoInteresse?> criarPontoInteresse(PontoInteresse ponto) => _ponto.criarPontoInteresse(ponto);
-  Future<bool> deletarPontoInteresse(String id) => _ponto.deletarPontoInteresse(id);
+  Future<void> deletarPontoInteresse(String id) => _ponto.deletarPontoInteresse(id);
 
   // ========== CIDADES ==========
   static const List<Map<String, String>> fallbackCidades = ApiClient.fallbackCidades;

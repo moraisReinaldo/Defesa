@@ -94,6 +94,38 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
     }
   }
 
+  Future<void> _obterLocalizacaoSemAlterarCarregando() async {
+    try {
+      final prov = context.read<UsuarioProvider>();
+      final posicao = await _localizacaoService.obterPosicaoAtual();
+      if (!mounted) return;
+      if (posicao != null) {
+        setState(() => _posicaoAtual = posicao);
+        try {
+          final cidade = await _geocodingService.obterCidade(posicao.latitude, posicao.longitude);
+          if (!mounted) return;
+          if (cidade != null) {
+            setState(() {
+              _cidadeDetectada = cidade;
+              for (var c in prov.cidadesSuportadas) {
+                String nome = c['nome'] ?? '';
+                if (cidade.toLowerCase().contains(nome.toLowerCase()) ||
+                    nome.toLowerCase().contains(cidade.toLowerCase())) {
+                  _codigoCidadeDetectada = c['codigo'];
+                  break;
+                }
+              }
+            });
+          }
+        } catch (e) {
+          debugPrint("Erro ao obter cidade: $e");
+        }
+      }
+    } catch (e) {
+      // silencioso — o chamador vai verificar _codigoCidadeDetectada
+    }
+  }
+
   Future<void> _selecionarFoto() async {
     final usuarioProvider = context.read<UsuarioProvider>();
     final usuarioLogado = usuarioProvider.estaLogado || usuarioProvider.isAdmin;
@@ -243,8 +275,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
 
     // Verificação de Cidade para TODOS os usuários
     if (_codigoCidadeDetectada == null) {
-      // Tenta buscar novamente se falhou antes
-      await _obterLocalizacao();
+      // Chamar lógica de localização SEM alterar _carregando
+      await _obterLocalizacaoSemAlterarCarregando();
       if (!mounted) return;
     }
     
@@ -315,13 +347,43 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       await context.read<OcorrenciaProvider>().adicionarOcorrencia(ocorrencia);
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Ocorrência registrada com sucesso! ✅"),
-          backgroundColor: AppColors.statusResolved,
-        ),
-      );
-      Navigator.pop(context, true); // Retorna true para a tela 1
+      // Se o usuário não estiver logado, mostramos o aviso solicitado
+      if (!usuarioProvider.estaLogado) {
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: AppColors.accentAmber),
+                SizedBox(width: 10),
+                Text('Aviso Importante'),
+              ],
+            ),
+            content: const Text(
+              'Sua ocorrência foi registrada com sucesso!\n\n'
+              'Como você não está logado, esta ocorrência não aparecerá no seu histórico enquanto estiver pendente de aprovação. '
+              'Ela ficará visível para todos no mapa assim que for aprovada pela Defesa Civil.'
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryTeal),
+                child: const Text('Entendido', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Ocorrência registrada com sucesso! ✅"),
+            backgroundColor: AppColors.statusResolved,
+          ),
+        );
+      }
+
+      if (mounted) Navigator.pop(context, true); // Retorna true para a tela 1
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -441,7 +503,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                 icon: Icons.photo_camera_rounded,
                 title: 'Foto',
                 subtitle: usuarioOuAdminLogado
-                    ? 'Tire uma foto ou escolha da galeria'
+                    ? 'Tire uma foto or escolha da galeria'
                     : 'Tire uma foto para registrar',
               ),
               const SizedBox(height: 14),

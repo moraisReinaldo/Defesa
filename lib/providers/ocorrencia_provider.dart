@@ -20,7 +20,10 @@ class OcorrenciaProvider extends ChangeNotifier {
 
   List<Ocorrencia> get ocorrenciasAtivas =>
       _ocorrencias.where((o) => 
-        (o.status == OcorrenciaStatus.aprovada || o.status == OcorrenciaStatus.trabalhandoAtualmente) && o.status != OcorrenciaStatus.resolvida
+        (o.status == OcorrenciaStatus.aprovada || 
+         o.status == OcorrenciaStatus.trabalhandoAtualmente ||
+         o.status == OcorrenciaStatus.pendenteAprovacao ||
+         o.isLocal) && o.status != OcorrenciaStatus.resolvida && o.status != OcorrenciaStatus.recusada
       ).toList();
 
   List<Ocorrencia> get ocorrenciasPendentes =>
@@ -33,7 +36,7 @@ class OcorrenciaProvider extends ChangeNotifier {
     _paginaAtual = 0;
     _temMais = true;
     _carregandoMais = false;
-    
+
     if (cidade == null || cidade.isEmpty) {
       _ocorrencias = [];
       notifyListeners();
@@ -41,27 +44,44 @@ class OcorrenciaProvider extends ChangeNotifier {
     }
 
     try {
+      // SEMPRE busca do servidor primeiro — fonte da verdade
       final vindoDaApi = await _apiService.listarOcorrencias(
-        cidade: cidade, 
-        page: _paginaAtual, 
-        size: _pageSize
+        cidade: cidade,
+        page: _paginaAtual,
+        size: _pageSize,
       );
-      
-      _ocorrencias = vindoDaApi.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
+
+      _ocorrencias = vindoDaApi
+          .where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId))
+          .toList();
       _temMais = vindoDaApi.length >= _pageSize;
 
-      // Sincronizar com storage local para suporte offline
-      for (var oc in _ocorrencias) {
+      // Atualizar storage local com os dados do servidor (sobrescreve itens locais sincronizados)
+      final idsDoServidor = _ocorrencias.map((o) => o.id).toSet();
+      final localAntes = await _storageService.obterOcorrencias();
+
+      // Manter apenas ocorrências locais que ainda não foram sincronizadas
+      final localNaoSincronizadas = localAntes
+          .where((o) => !idsDoServidor.contains(o.id) &&
+              (o.cidade == cidade || (userId != null && o.usuarioId == userId)))
+          .map((o) => o.copyWith(isLocal: true))
+          .toList();
+
+      // Combina: servidor primeiro, depois locais não sincronizadas (com badge)
+      _ocorrencias = [..._ocorrencias, ...localNaoSincronizadas];
+
+      // Atualiza cache local
+      for (var oc in _ocorrencias.where((o) => !o.isLocal)) {
         await _storageService.salvarOcorrencia(oc);
       }
-      
-      if (_ocorrencias.isEmpty) {
-        final local = await _storageService.obterOcorrencias();
-        _ocorrencias = local.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
-      }
     } catch (e) {
+      // Sem internet — usa cache local e marca todos como locais
+      if (kDebugMode) print('⚠️ Offline: usando cache local. Erro: $e');
       final local = await _storageService.obterOcorrencias();
-      _ocorrencias = local.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
+      _ocorrencias = local
+          .where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId))
+          .map((o) => o.copyWith(isLocal: true))
+          .toList();
     }
     notifyListeners();
   }
@@ -105,16 +125,28 @@ class OcorrenciaProvider extends ChangeNotifier {
       final salvaNaApi = await _apiService.criarOcorrencia(ocorrencia);
       if (salvaNaApi != null) {
         _ocorrencias.add(salvaNaApi);
-      } else {
-        // Fallback local se estiver sem internet
+        notifyListeners();
+      }
+      // Sem fallback — se a API retornou null inesperadamente, lançamos erro
+      // para o usuário saber que algo errado aconteceu
+    } on Exception catch (e) {
+      final msg = e.toString().toLowerCase();
+      // Fallback LOCAL apenas em erros reais de conectividade (sem internet)
+      final isSemInternet = msg.contains('connection') ||
+          msg.contains('timeout') ||
+          msg.contains('sem conexão') ||
+          msg.contains('connect_error');
+
+      if (isSemInternet) {
         await _storageService.salvarOcorrencia(ocorrencia);
         _ocorrencias.add(ocorrencia);
+        notifyListeners();
+      } else {
+        // Erros de autenticação (401), permissão (403), validação, etc.
+        // Re-lançar para que a tela exiba a mensagem correta ao usuário
+        rethrow;
       }
-    } catch (e) {
-      await _storageService.salvarOcorrencia(ocorrencia);
-      _ocorrencias.add(ocorrencia);
     }
-    notifyListeners();
   }
 
   Future<void> aprovarOcorrencia(String id) async {
@@ -124,6 +156,7 @@ class OcorrenciaProvider extends ChangeNotifier {
         final index = _ocorrencias.indexWhere((o) => o.id == id);
         if (index != -1) {
           _ocorrencias[index] = atualizada;
+          await _storageService.salvarOcorrencia(atualizada);
           notifyListeners();
         }
       }
@@ -138,6 +171,7 @@ class OcorrenciaProvider extends ChangeNotifier {
       final index = _ocorrencias.indexWhere((o) => o.id == id);
       if (index != -1) {
         _ocorrencias[index] = vindoDaApi;
+        await _storageService.salvarOcorrencia(vindoDaApi);
         notifyListeners();
       }
     }

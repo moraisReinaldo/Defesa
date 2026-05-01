@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 import 'providers/ocorrencia_provider.dart';
 import 'providers/usuario_provider.dart';
@@ -23,6 +24,11 @@ void main() async {
   await storageService.init();
 
   final apiService = ApiService(storageService);
+
+  // Inicializar OneSignal
+  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+  OneSignal.initialize("6537856b-c264-42af-b2a9-583652a175d2");
+  OneSignal.Notifications.requestPermission(true);
 
   final notificationService = NotificationService();
   try {

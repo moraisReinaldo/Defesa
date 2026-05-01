@@ -20,25 +20,26 @@ class PontoInteresseProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> adicionarPonto(PontoInteresse ponto) async {
+  Future<bool> adicionarPonto(PontoInteresse ponto) async {
     try {
       final salvo = await _apiService.criarPontoInteresse(ponto);
       if (salvo != null) {
         _pontos.add(salvo);
         notifyListeners();
+        return true;
       }
+      return false;
     } catch (e) {
       if (kDebugMode) print('Erro ao adicionar ponto de interesse: $e');
+      rethrow; // Propaga para a UI capturar a mensagem de erro real
     }
   }
 
   Future<void> deletarPonto(String id) async {
     try {
-      final sucesso = await _apiService.deletarPontoInteresse(id);
-      if (sucesso) {
-        _pontos.removeWhere((p) => p.id == id);
-        notifyListeners();
-      }
+      await _apiService.deletarPontoInteresse(id);
+      _pontos.removeWhere((p) => p.id == id);
+      notifyListeners();
     } catch (e) {
       if (kDebugMode) print('Erro ao deletar ponto de interesse: $e');
     }

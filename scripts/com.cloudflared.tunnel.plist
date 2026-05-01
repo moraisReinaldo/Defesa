@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  LaunchAgent: Cloudflare Tunnel Fixo (rhprogramer.com.br).
+  Lê as rotas do ~/.cloudflared/config.yml
+
+  Instalar:
+    cp com.cloudflared.tunnel.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.cloudflared.tunnel.plist
+-->
+<dict>
+  <key>Label</key>
+  <string>com.cloudflared.tunnel</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/cloudflared</string>
+    <string>tunnel</string>
+    <string>--config</string>
+    <string>/Users/reinaldohenriquemorais/.cloudflared/config.yml</string>
+    <string>run</string>
+    <string>defesacivil</string>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/cloudflared.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/cloudflared-error.log</string>
+</dict>
+</plist>

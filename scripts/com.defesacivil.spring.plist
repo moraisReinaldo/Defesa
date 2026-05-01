@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  LaunchAgent: Gerencia o processo do Spring Boot (Defesa Civil Backend).
+  O jar é gerado pelo Maven em target/backend-0.0.1-SNAPSHOT.jar.
+
+  Instalar:
+    cp com.defesacivil.spring.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.defesacivil.spring.plist
+-->
+<dict>
+  <key>Label</key>
+  <string>com.defesacivil.spring</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/java</string>
+    <string>-Xmx512m</string>
+    <string>-Dserver.port=8080</string>
+    <string>-jar</string>
+    <string>/Users/reinaldohenriquemorais/Defesa/defesa-backend/target/backend-0.0.1-SNAPSHOT.jar</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/reinaldohenriquemorais/Defesa/defesa-backend</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+  <key>StandardOutPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/spring-boot.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/reinaldohenriquemorais/logs/spring-boot-error.log</string>
+</dict>
+</plist>

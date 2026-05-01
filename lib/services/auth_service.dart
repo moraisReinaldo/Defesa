@@ -92,4 +92,36 @@ class AuthService {
       throw _client.handleDioError(e);
     }
   }
+
+  Future<bool> solicitarResetSenha(String email) async {
+    try {
+      await _client.dio.post(
+        '/usuarios/esqueci-senha',
+        data: {'email': email},
+        options: Options(extra: {'secure': false}),
+      );
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao solicitar reset: $e');
+      return false;
+    }
+  }
+
+  Future<bool> resetarSenha(String email, String codigo, String novaSenha) async {
+    try {
+      await _client.dio.post(
+        '/usuarios/resetar-senha',
+        data: {
+          'email': email,
+          'codigo': codigo,
+          'novaSenha': novaSenha,
+        },
+        options: Options(extra: {'secure': false}),
+      );
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao resetar senha: $e');
+      return false;
+    }
+  }
 }

@@ -19,9 +19,11 @@
         "image_picker",
         "intl",
         "latlong2",
+        "onesignal_flutter",
         "permission_handler",
         "provider",
         "shared_preferences",
+        "stomp_dart_client",
         "url_launcher",
         "uuid"
       ],
@@ -122,6 +124,20 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "stomp_dart_client",
+      "version": "3.0.1",
+      "dependencies": [
+        "web_socket"
+      ]
+    },
+    {
+      "name": "onesignal_flutter",
+      "version": "5.5.2",
+      "dependencies": [
+        "flutter"
       ]
     },
     {
@@ -283,13 +299,14 @@
     },
     {
       "name": "flutter_map",
-      "version": "5.0.0",
+      "version": "6.1.0",
       "dependencies": [
         "async",
         "collection",
         "flutter",
         "http",
         "latlong2",
+        "logger",
         "meta",
         "polylabel",
         "proj4dart",
@@ -693,6 +710,13 @@
       "dependencies": [
         "clock",
         "collection"
+      ]
+    },
+    {
+      "name": "web_socket",
+      "version": "1.0.1",
+      "dependencies": [
+        "web"
       ]
     },
     {
@@ -1131,6 +1155,14 @@
       ]
     },
     {
+      "name": "logger",
+      "version": "2.7.0",
+      "dependencies": [
+        "clock",
+        "meta"
+      ]
+    },
+    {
       "name": "sky_engine",
       "version": "0.0.0",
       "dependencies": []
@@ -1161,13 +1193,6 @@
         "collection",
         "path",
         "term_glyph"
-      ]
-    },
-    {
-      "name": "web_socket",
-      "version": "1.0.1",
-      "dependencies": [
-        "web"
       ]
     },
     {

@@ -8,18 +8,17 @@ class ApiClient {
 
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://ware-particularly-taxi-atlantic.trycloudflare.com/api',
+    defaultValue: 'https://api.rhprogramer.com.br/api',
   );
 
   static const List<Map<String, String>> fallbackCidades = [
-    {'nome': 'Joanópolis', 'codigo': 'JOA'},
-    {'nome': 'Piracaia', 'codigo': 'PIR'},
-    {'nome': 'Bragança Paulista', 'codigo': 'BRA'},
-    {'nome': 'Vargem', 'codigo': 'VAR'},
     {'nome': 'Atibaia', 'codigo': 'ATI'},
+    {'nome': 'Bragança Paulista', 'codigo': 'BP'},
+    {'nome': 'Joanópolis', 'codigo': 'JOA'},
     {'nome': 'Nazaré Paulista', 'codigo': 'NAZ'},
-    {'nome': 'Bom Jesus dos Perdões', 'codigo': 'BJP'},
-    {'nome': 'Igaratá', 'codigo': 'IGA'},
+    {'nome': 'Piracaia', 'codigo': 'PIR'},
+    {'nome': 'Tuiuti', 'codigo': 'TUI'},
+    {'nome': 'Vargem', 'codigo': 'VAR'},
   ];
 
   static const Duration _timeout = Duration(seconds: 60);
@@ -43,10 +42,6 @@ class ApiClient {
           final token = await _storageService.obterToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
-          }
-          final user = await _storageService.obterUsuarioLogado();
-          if (user != null) {
-            options.headers['X-User-Id'] = user.id;
           }
         }
         handler.next(options);
@@ -83,12 +78,14 @@ class ApiClient {
 
   Exception handleDioError(DioException e) {
     final data = e.response?.data;
-    String msg = 'Erro ao conectar com o servidor.';
+    final statusCode = e.response?.statusCode;
+    String msg = 'Erro ao conectar com o servidor${statusCode != null ? ' (Status: $statusCode)' : ''}.';
+    
     if (data is Map && data['message'] != null) {
       msg = data['message'].toString();
     } else if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      msg = 'O servidor demorou para responder. Tente novamente.';
+      msg = 'O servidor demorou para responder (Timeout).';
     } else if (e.type == DioExceptionType.connectionError) {
       msg = 'Sem conexão com o servidor. Verifique sua internet.';
     }

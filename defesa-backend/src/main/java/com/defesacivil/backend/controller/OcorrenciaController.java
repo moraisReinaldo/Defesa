@@ -4,7 +4,6 @@ import com.defesacivil.backend.domain.Ocorrencia;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.service.OcorrenciaService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,12 +11,22 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller de Ocorrências.
+ *
+ * SEGURANÇA: Nenhum endpoint aceita userId via parâmetro ou header externo.
+ * A identidade do usuário é sempre extraída do JWT no SecurityContext,
+ * tornando impossível a impersonação.
+ */
 @RestController
 @RequestMapping("/api/ocorrencias")
 public class OcorrenciaController {
 
-    @Autowired
-    private OcorrenciaService ocorrenciaService;
+    private final OcorrenciaService ocorrenciaService;
+
+    public OcorrenciaController(OcorrenciaService ocorrenciaService) {
+        this.ocorrenciaService = ocorrenciaService;
+    }
 
     @PostMapping
     public ResponseEntity<Ocorrencia> criar(@Valid @RequestBody OcorrenciaRequest request) {
@@ -25,42 +34,51 @@ public class OcorrenciaController {
         return ResponseEntity.ok(salva);
     }
 
+    @GetMapping
+    public ResponseEntity<Page<Ocorrencia>> listarHistorico(
+            @RequestParam(required = false) String cidade,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dataHora").descending());
+        return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade, pageable));
+    }
+
+    /** Aprovar — ADMINISTRADOR e AGENTE (protegido no SecurityConfig) */
     @PostMapping("/{id}/aprovar")
-    public ResponseEntity<Ocorrencia> aprovar(
-            @PathVariable String id,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id, userId);
+    public ResponseEntity<Ocorrencia> aprovar(@PathVariable String id) {
+        Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id);
         return aprovada != null ? ResponseEntity.ok(aprovada) : ResponseEntity.notFound().build();
     }
 
+    /** Registrar chegada de agente — apenas AGENTE ou ADMINISTRADOR */
     @PostMapping("/{id}/chegada")
     public ResponseEntity<Ocorrencia> registrarChegada(
             @PathVariable String id,
-            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestBody(required = false) java.util.Map<String, String> body) {
         String parecer = (body != null) ? body.get("parecer") : null;
-        Ocorrencia atualizada = ocorrenciaService.registrarChegadaAgente(id, userId, parecer);
+        Ocorrencia atualizada = ocorrenciaService.registrarChegadaAgente(id, parecer);
         return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
     }
 
+    /** Resolver ocorrência — apenas AGENTE ou ADMINISTRADOR */
     @PostMapping("/{id}/resolver")
     public ResponseEntity<Ocorrencia> resolver(
             @PathVariable String id,
-            @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestBody(required = false) java.util.Map<String, String> body) {
         String parecer = (body != null) ? body.get("parecer") : null;
-        Ocorrencia atualizada = ocorrenciaService.resolverOcorrencia(id, userId, parecer);
+        Ocorrencia atualizada = ocorrenciaService.resolverOcorrencia(id, parecer);
         return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
     }
 
+    /** Reativar ocorrência resolvida — apenas AGENTE ou ADMINISTRADOR */
     @PostMapping("/{id}/reativar")
-    public ResponseEntity<Ocorrencia> reativar(
-            @PathVariable String id,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        Ocorrencia atualizada = ocorrenciaService.reativarOcorrencia(id, userId);
+    public ResponseEntity<Ocorrencia> reativar(@PathVariable String id) {
+        Ocorrencia atualizada = ocorrenciaService.reativarOcorrencia(id);
         return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
     }
 
+    /** Atualizar campos da ocorrência — autenticado */
     @PatchMapping("/{id}")
     public ResponseEntity<Ocorrencia> atualizar(
             @PathVariable String id,
@@ -69,21 +87,10 @@ public class OcorrenciaController {
         return atualizada != null ? ResponseEntity.ok(atualizada) : ResponseEntity.notFound().build();
     }
 
-    @GetMapping
-    public ResponseEntity<Page<Ocorrencia>> listarHistorico(
-            @RequestParam(required = false) String cidade,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        
-        Pageable pageable = PageRequest.of(page, size, Sort.by("dataHora").descending());
-        return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade, pageable));
-    }
-
+    /** Deletar — apenas ADMINISTRADOR (protegido no SecurityConfig) */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(
-            @PathVariable String id,
-            @RequestHeader(value = "X-User-Id", required = false) String userId) {
-        boolean deletado = ocorrenciaService.deletarOcorrencia(id, userId);
-        return deletado ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    public ResponseEntity<Void> deletar(@PathVariable String id) {
+        boolean deletado = ocorrenciaService.deletarOcorrencia(id);
+        return deletado ? ResponseEntity.ok().<Void>build() : ResponseEntity.notFound().build();
     }
 }

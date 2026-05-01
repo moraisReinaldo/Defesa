@@ -100,13 +100,27 @@ class OcorrenciaCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      OcorrenciaTipos.getTipoNome(ocorrencia.tipo),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            OcorrenciaTipos.getTipoNome(ocorrencia.tipo),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (ocorrencia.isLocal)
+                          const Padding(
+                            padding: EdgeInsets.only(left: 6),
+                            child: Tooltip(
+                              message: 'Aguardando sincronização com o servidor',
+                              child: Icon(Icons.cloud_off_rounded, size: 14, color: AppColors.accentAmber),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 3),
                     Text(

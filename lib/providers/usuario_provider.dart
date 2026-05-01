@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import '../models/usuario.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -250,6 +251,9 @@ class UsuarioProvider extends ChangeNotifier {
         _usuarioLogado = usuario;
         _isAdmin = usuario.role == Role.administrador;
         
+        // Registrar ID no OneSignal para receber push diretos
+        OneSignal.login(usuario.id);
+        
         notifyListeners();
         return true;
       }
@@ -260,6 +264,14 @@ class UsuarioProvider extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<bool> solicitarResetSenha(String email) async {
+    return await _apiService.solicitarResetSenha(email);
+  }
+
+  Future<bool> resetarSenha(String email, String codigo, String novaSenha) async {
+    return await _apiService.resetarSenha(email, codigo, novaSenha);
   }
 
   Future<Map<String, dynamic>> cadastrar(UsuarioRequest request) async {
@@ -293,6 +305,7 @@ class UsuarioProvider extends ChangeNotifier {
     _estaInicializado = false; // Reset essencial para evitar loop de carregamento
     _todosAgentes = [];
     _cidadesSuportadas = [];
+    OneSignal.logout();
     notifyListeners();
   }
 

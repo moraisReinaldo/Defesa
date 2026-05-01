@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  LaunchDaemon: Roda o startup-server.sh automaticamente no boot.
+  
+  Instalar:
+    sudo cp com.defesacivil.startup.plist /Library/LaunchDaemons/
+    sudo chown root:wheel /Library/LaunchDaemons/com.defesacivil.startup.plist
+    sudo chmod 644 /Library/LaunchDaemons/com.defesacivil.startup.plist
+    sudo launchctl load /Library/LaunchDaemons/com.defesacivil.startup.plist
+-->
+<dict>
+    <key>Label</key>
+    <string>com.defesacivil.startup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/usr/local/bin/startup-server.sh</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/reinaldohenriquemorais/logs/startup-daemon-stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/reinaldohenriquemorais/logs/startup-daemon-stderr.log</string>
+
+    <!-- Não reiniciar automaticamente se falhar -->
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
