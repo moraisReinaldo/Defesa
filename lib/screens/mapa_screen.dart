@@ -350,29 +350,25 @@ class _MapaScreenState extends State<MapaScreen> {
                           child: ElevatedButton.icon(
                           onPressed: () async { 
                             try {
-                              // Trava de Geolocalização removida para facilitar testes
-                              /*
-                              if (_posicaoAtual != null) {
-                                final distancia = await _localizacaoService.calcularDistancia(
-                                  _posicaoAtual!.latitude, 
-                                  _posicaoAtual!.longitude, 
-                                  ocorrencia.latitude, 
-                                  ocorrencia.longitude
-                                );
-                                
-                                if (distancia > 500) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Você está muito longe (${distancia.toInt()}m). Aproxime-se para registrar a chegada.'),
-                                        backgroundColor: Colors.orange,
-                                      ),
-                                    );
-                                  }
-                                  return;
+                              // Auto-atribuição: adiciona o agente à lista se ainda não estiver
+                              final nomeAgente = usuarioLogado?.nome.trim() ?? '';
+                              if (nomeAgente.isNotEmpty) {
+                                final agentesAtuais = ocorrencia.agentes
+                                    ?.split(', ')
+                                    .where((s) => s.isNotEmpty)
+                                    .toList() ?? [];
+                                final jaEstaLista = agentesAtuais
+                                    .any((s) => s.trim().toLowerCase() == nomeAgente.toLowerCase());
+                                if (!jaEstaLista) {
+                                  agentesAtuais.add(nomeAgente);
+                                  final ocorrenciaAtualizada = ocorrencia.copyWith(
+                                    agentes: agentesAtuais.join(', '),
+                                  );
+                                  await context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrenciaAtualizada);
+                                  // Atualiza referência local para refletir os novos agentes
+                                  ocorrencia = ocorrenciaAtualizada;
                                 }
                               }
-                              */
 
                               final parecer = _comentarioController.text.trim();
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
