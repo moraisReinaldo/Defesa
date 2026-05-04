@@ -203,7 +203,8 @@ class _LoginScreenState extends State<LoginScreen> {
           ElevatedButton(
             onPressed: () async {
               final ok = await context.read<UsuarioProvider>().resetarSenha(email, codigoCtrl.text, novaSenhaCtrl.text);
-              if (ok && mounted) {
+              if (!mounted) return;
+              if (ok) {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada! Agora você pode entrar.'), backgroundColor: Colors.green));
               } else {

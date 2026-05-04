@@ -372,14 +372,14 @@ class _MapaScreenState extends State<MapaScreen> {
 
                               final parecer = _comentarioController.text.trim();
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
+                              if (!mounted) return;
                               _comentarioController.clear();
-                              if (context.mounted) Navigator.pop(context); 
+                              Navigator.pop(context); 
                             } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
-                                );
-                              }
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+                              );
                             }
                           }, 
                             icon: const Icon(Icons.location_on_rounded), 
