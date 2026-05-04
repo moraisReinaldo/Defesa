@@ -37,8 +37,17 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
             
-        String ip = request.getRemoteAddr();
-        // Em produção atrás de proxy, considere usar request.getHeader("X-Forwarded-For")
+        // Atrás do Cloudflare, o IP real vem nos headers especiais
+        String ip = request.getHeader("CF-Connecting-IP");
+        if (ip == null || ip.isEmpty()) {
+            ip = request.getHeader("X-Forwarded-For");
+            if (ip != null && ip.contains(",")) {
+                ip = ip.split(",")[0].trim(); // primeiro IP é o real
+            }
+        }
+        if (ip == null || ip.isEmpty()) {
+            ip = request.getRemoteAddr();
+        }
         
         Bucket bucket = cache.get(ip, k -> createNewBucket());
 

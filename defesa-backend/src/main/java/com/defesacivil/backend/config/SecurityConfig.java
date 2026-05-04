@@ -61,15 +61,18 @@ public class SecurityConfig {
 
                 // ===== ROTAS DE ADMINISTRADOR =====
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
-                .requestMatchers("/api/ocorrencias/{id}/aprovar").hasAnyRole("ADMINISTRADOR", "AGENTE")
-                .requestMatchers(HttpMethod.DELETE, "/**").hasRole("ADMINISTRADOR")
-                .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/marcacoes/**").hasRole("ADMINISTRADOR")
+                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("ADMINISTRADOR")
 
                 // ===== ROTAS DE AGENTE E ADMINISTRADOR =====
+                .requestMatchers(HttpMethod.POST, "/api/ocorrencias/*/aprovar").hasAnyRole("ADMINISTRADOR", "AGENTE")
+                .requestMatchers(HttpMethod.POST, "/api/ocorrencias/*/chegada").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.POST, "/api/ocorrencias/*/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.POST, "/api/ocorrencias/*/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
+                .requestMatchers(HttpMethod.PATCH, "/api/ocorrencias/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasAnyRole("ADMINISTRADOR", "AGENTE")
                 .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                .requestMatchers("/api/ocorrencias/{id}/chegada").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                .requestMatchers("/api/ocorrencias/{id}/resolver").hasAnyRole("AGENTE", "ADMINISTRADOR")
-                .requestMatchers("/api/ocorrencias/{id}/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
 
                 // ===== DEMAIS ROTAS (Perfil, Edição, etc.) =====
                 .anyRequest().authenticated()
