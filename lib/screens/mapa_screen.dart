@@ -307,13 +307,12 @@ class _MapaScreenState extends State<MapaScreen> {
                                     final ocorrenciaAtualizada = o.copyWith(agentes: novoTexto, status: OcorrenciaStatus.aprovada);
                                     
                                     try {
+                                      final messenger = ScaffoldMessenger.of(context);
                                       await context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrenciaAtualizada);
                                     } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Erro ao salvar atribuição: ${e.toString()}'), backgroundColor: Colors.red),
-                                        );
-                                      }
+                                      messenger.showSnackBar(
+                                        SnackBar(content: Text('Erro ao salvar atribuição: ${e.toString()}'), backgroundColor: Colors.red),
+                                      );
                                     }
                                   },
                                   selectedColor: AppColors.primaryTeal.withValues(alpha: 0.2),
@@ -332,9 +331,9 @@ class _MapaScreenState extends State<MapaScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
                           children: [
-                            Expanded(child: ElevatedButton.icon(onPressed: () async { await context.read<OcorrenciaProvider>().aprovarOcorrencia(ocorrencia.id); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.check_circle_rounded), label: const Text('APROVAR'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green))),
+                            Expanded(child: ElevatedButton.icon(onPressed: () async { final navigator = Navigator.of(context); await context.read<OcorrenciaProvider>().aprovarOcorrencia(ocorrencia.id); navigator.pop(); }, icon: const Icon(Icons.check_circle_rounded), label: const Text('APROVAR'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green))),
                             const SizedBox(width: 8),
-                            Expanded(child: ElevatedButton.icon(onPressed: () async { await context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.cancel_rounded), label: const Text('RECUSAR'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red))),
+                            Expanded(child: ElevatedButton.icon(onPressed: () async { final navigator = Navigator.of(context); await context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id); navigator.pop(); }, icon: const Icon(Icons.cancel_rounded), label: const Text('RECUSAR'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red))),
                           ],
                         ),
                       ),
@@ -370,14 +369,16 @@ class _MapaScreenState extends State<MapaScreen> {
                                 }
                               }
 
+                              final messenger = ScaffoldMessenger.of(context);
+                              final navigator = Navigator.of(context);
                               final parecer = _comentarioController.text.trim();
+                              
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
-                              if (!mounted) return;
+                              
                               _comentarioController.clear();
-                              Navigator.pop(context); 
+                              navigator.pop(); 
                             } catch (e) {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
                               );
                             }
@@ -420,16 +421,16 @@ class _MapaScreenState extends State<MapaScreen> {
                           child: ElevatedButton.icon(
                             onPressed: () async {
                               try {
+                                final messenger = ScaffoldMessenger.of(context);
+                                final navigator = Navigator.of(context);
                                 final parecer = _comentarioController.text.trim();
                                 await context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null);
                                 _comentarioController.clear();
-                                if (context.mounted) Navigator.pop(context);
+                                navigator.pop();
                               } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
-                                  );
-                                }
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+                                );
                               }
                             }, 
                             icon: const Icon(Icons.check_circle_rounded, size: 18), 
