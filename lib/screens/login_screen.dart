@@ -202,16 +202,12 @@ class _LoginScreenState extends State<LoginScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCELAR')),
           ElevatedButton(
             onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              final navigator = Navigator.of(ctx); // Usando o contexto do builder
-              
               final ok = await context.read<UsuarioProvider>().resetarSenha(email, codigoCtrl.text, novaSenhaCtrl.text);
-              
-              if (ok) {
-                navigator.pop();
-                messenger.showSnackBar(const SnackBar(content: Text('Senha alterada! Agora você pode entrar.'), backgroundColor: Colors.green));
+              if (ok && mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada! Agora você pode entrar.'), backgroundColor: Colors.green));
               } else {
-                messenger.showSnackBar(const SnackBar(content: Text('Código inválido ou erro no servidor.'), backgroundColor: Colors.red));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Código inválido ou erro no servidor.'), backgroundColor: Colors.red));
               }
             },
             child: const Text('ALTERAR SENHA'),
