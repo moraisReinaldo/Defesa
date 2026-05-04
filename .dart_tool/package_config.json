@@ -75,7 +75,7 @@
     },
     {
       "name": "characters",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/characters-1.4.1",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/characters-1.4.0",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -213,9 +213,9 @@
     },
     {
       "name": "flutter",
-      "rootUri": "file:///C:/flutter/packages/flutter",
+      "rootUri": "file:///C:/tools/flutter/packages/flutter",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.8"
     },
     {
       "name": "flutter_launcher_icons",
@@ -303,15 +303,15 @@
     },
     {
       "name": "flutter_test",
-      "rootUri": "file:///C:/flutter/packages/flutter_test",
+      "rootUri": "file:///C:/tools/flutter/packages/flutter_test",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.8"
     },
     {
       "name": "flutter_web_plugins",
-      "rootUri": "file:///C:/flutter/packages/flutter_web_plugins",
+      "rootUri": "file:///C:/tools/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.8"
     },
     {
       "name": "geocoding",
@@ -537,15 +537,15 @@
     },
     {
       "name": "matcher",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/matcher-0.12.19",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/matcher-0.12.17",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.4"
     },
     {
       "name": "material_color_utilities",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/material_color_utilities-0.13.0",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/material_color_utilities-0.11.1",
       "packageUri": "lib/",
-      "languageVersion": "3.5"
+      "languageVersion": "2.17"
     },
     {
       "name": "meta",
@@ -795,9 +795,9 @@
     },
     {
       "name": "sky_engine",
-      "rootUri": "file:///C:/flutter/bin/cache/pkg/sky_engine",
+      "rootUri": "file:///C:/tools/flutter/bin/cache/pkg/sky_engine",
       "packageUri": "lib/",
-      "languageVersion": "3.9"
+      "languageVersion": "3.8"
     },
     {
       "name": "source_gen",
@@ -849,9 +849,9 @@
     },
     {
       "name": "test_api",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.10",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/test_api-0.7.7",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.5"
     },
     {
       "name": "timezone",
@@ -999,8 +999,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.11.5",
-  "flutterRoot": "file:///C:/flutter",
-  "flutterVersion": "3.41.9",
+  "generatorVersion": "3.10.7",
+  "flutterRoot": "file:///C:/tools/flutter",
+  "flutterVersion": "3.38.7",
   "pubCache": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache"
 }
