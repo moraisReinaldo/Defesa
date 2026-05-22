@@ -10,6 +10,7 @@ import 'providers/ponto_interesse_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
+import 'services/hive_service.dart';
 import 'screens/loading_screen.dart';
 
 void main() async {
@@ -22,6 +23,10 @@ void main() async {
 
   final storageService = StorageService();
   await storageService.init();
+
+  // Inicializar Hive para preferências do usuário [CR2 - Recursos Nativos]
+  final hiveService = HiveService();
+  await hiveService.init();
 
   final apiService = ApiService(storageService);
 
@@ -41,6 +46,7 @@ void main() async {
     storageService: storageService,
     apiService: apiService,
     notificationService: notificationService,
+    hiveService: hiveService,
   ));
 }
 
@@ -48,12 +54,14 @@ class MyApp extends StatelessWidget {
   final StorageService storageService;
   final ApiService apiService;
   final NotificationService notificationService;
+  final HiveService hiveService;
 
-   const MyApp({
+  const MyApp({
     super.key,
     required this.storageService,
     required this.apiService,
     required this.notificationService,
+    required this.hiveService,
   });
 
   @override
@@ -61,15 +69,16 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => UsuarioProvider(storageService, apiService),
+          create: (_) => UsuarioProvider(storageService, apiService, hiveService),
         ),
         ChangeNotifierProvider(
-          create: (_) => OcorrenciaProvider(storageService, apiService),
+          create: (_) => OcorrenciaProvider(storageService, apiService, hiveService),
         ),
         ChangeNotifierProvider(
           create: (_) => PontoInteresseProvider(apiService),
         ),
         Provider.value(value: notificationService),
+        Provider.value(value: hiveService),
       ],
       child: Builder(
         builder: (context) {

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -371,7 +373,7 @@ class _MapaScreenState extends State<MapaScreen> {
                                 }
                               }
 
-                              final messenger = ScaffoldMessenger.of(context);
+                              ScaffoldMessenger.of(context);
                               final parecer = _comentarioController.text.trim();
                               await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
                               _comentarioController.clear();

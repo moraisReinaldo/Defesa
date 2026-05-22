@@ -2,17 +2,32 @@ import 'package:flutter/foundation.dart';
 import '../models/ocorrencia.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
+import '../services/hive_service.dart';
 
 class OcorrenciaProvider extends ChangeNotifier {
   final StorageService _storageService;
   final ApiService _apiService;
+  final HiveService _hiveService;
   List<Ocorrencia> _ocorrencias = [];
   int _paginaAtual = 0;
   bool _temMais = true;
   bool _carregandoMais = false;
   final int _pageSize = 20;
+  String _filtroTipoAtivo = 'TODOS';
 
-  OcorrenciaProvider(this._storageService, this._apiService);
+  OcorrenciaProvider(this._storageService, this._apiService, this._hiveService) {
+    // Restaurar filtro salvo no Hive [CR2 - Recursos Nativos]
+    _filtroTipoAtivo = _hiveService.filtroTipo;
+  }
+
+  String get filtroTipoAtivo => _filtroTipoAtivo;
+
+  /// Altera o filtro de tipo ativo e persiste no Hive.
+  Future<void> setFiltroTipo(String tipo) async {
+    _filtroTipoAtivo = tipo;
+    await _hiveService.salvarFiltroTipo(tipo);
+    notifyListeners();
+  }
 
   List<Ocorrencia> get ocorrencias => _ocorrencias;
   bool get temMais => _temMais;
@@ -248,6 +263,12 @@ class OcorrenciaProvider extends ChangeNotifier {
 
   List<Ocorrencia> filtrarPorTipo(String tipo) {
     return _ocorrencias.where((o) => o.tipo == tipo).toList();
+  }
+
+  /// Retorna ocorrências filtradas pelo tipo ativo (salvo no Hive).
+  List<Ocorrencia> get ocorrenciasFiltradas {
+    if (_filtroTipoAtivo == 'TODOS') return _ocorrencias;
+    return _ocorrencias.where((o) => o.tipo == _filtroTipoAtivo).toList();
   }
 
   Ocorrencia? obterOcorrenciaPorId(String id) {

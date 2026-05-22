@@ -35,6 +35,22 @@ class PontoInteresseProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> atualizarPonto(PontoInteresse ponto) async {
+    try {
+      final atualizado = await _apiService.atualizarPontoInteresse(ponto);
+      if (atualizado != null) {
+        final index = _pontos.indexWhere((p) => p.id == ponto.id);
+        if (index != -1) _pontos[index] = atualizado;
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao atualizar ponto de interesse: $e');
+      rethrow;
+    }
+  }
+
   Future<void> deletarPonto(String id) async {
     try {
       await _apiService.deletarPontoInteresse(id);

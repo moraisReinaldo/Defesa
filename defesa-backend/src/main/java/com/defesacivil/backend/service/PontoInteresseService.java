@@ -32,6 +32,17 @@ public class PontoInteresseService {
         return repository.save(ponto);
     }
 
+    public PontoInteresse atualizar(String id, PontoInteresse dados) {
+        PontoInteresse existente = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ponto de Interesse não encontrado: " + id));
+        existente.setTipo(dados.getTipo());
+        existente.setDescricao(dados.getDescricao());
+        existente.setLatitude(dados.getLatitude());
+        existente.setLongitude(dados.getLongitude());
+        if (dados.getCidade() != null) existente.setCidade(dados.getCidade());
+        return repository.save(existente);
+    }
+
     public void deletar(String id) {
         repository.deleteById(id);
     }

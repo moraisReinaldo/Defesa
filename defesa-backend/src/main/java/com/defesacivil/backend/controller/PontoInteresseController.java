@@ -42,6 +42,15 @@ public class PontoInteresseController {
         return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<PontoInteresse> atualizar(
+            @PathVariable String id,
+            @Valid @RequestBody PontoInteresse ponto) {
+        log.info("Atualizando Ponto de Interesse: id={}", id);
+        PontoInteresse atualizado = service.atualizar(id, ponto);
+        return ResponseEntity.ok(atualizado);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable String id) {
         service.deletar(id);

@@ -5,10 +5,12 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
+import '../services/hive_service.dart';
 
 class UsuarioProvider extends ChangeNotifier {
   final StorageService _storageService;
   final ApiService _apiService;
+  final HiveService _hiveService;
   Usuario? _usuarioLogado;
   bool _isAdmin = false;
   bool _isLoading = false;
@@ -18,7 +20,9 @@ class UsuarioProvider extends ChangeNotifier {
   List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeDetectadaGps;
 
-  UsuarioProvider(this._storageService, this._apiService) {
+  UsuarioProvider(this._storageService, this._apiService, this._hiveService) {
+    // Carregar cidade salva no Hive como fallback rápido (sem esperar GPS)
+    _cidadeDetectadaGps = _hiveService.cidadeFavorita;
     // A inicialização pesada será feita pela LoadingScreen chamando carregarTudo()
   }
 
@@ -91,6 +95,8 @@ class UsuarioProvider extends ChangeNotifier {
           
           if (correspondente.isNotEmpty) {
             _cidadeDetectadaGps = correspondente['codigo'];
+            // Persistir no Hive para próximas inicializações [CR2 - Recursos Nativos]
+            await _hiveService.salvarCidadeFavorita(correspondente['codigo']!);
             notifyListeners();
           }
         }
@@ -253,6 +259,10 @@ class UsuarioProvider extends ChangeNotifier {
         
         // Registrar ID no OneSignal para receber push diretos
         OneSignal.login(usuario.id);
+        // Tag de cidade para segmentação de notificações [CR3 - Recursos Nativos]
+        if (usuario.cidade != null && usuario.cidade!.isNotEmpty) {
+          OneSignal.User.addTagWithKey('cidade', usuario.cidade!);
+        }
         
         notifyListeners();
         return true;
@@ -300,11 +310,14 @@ class UsuarioProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _storageService.limparSessao();
+    // Limpar prefer\u00eancias do Hive ao sair [CR2 - Recursos Nativos]
+    await _hiveService.limparPreferencias();
     _usuarioLogado = null;
     _isAdmin = false;
     _estaInicializado = false; // Reset essencial para evitar loop de carregamento
     _todosAgentes = [];
     _cidadesSuportadas = [];
+    _cidadeDetectadaGps = null;
     OneSignal.logout();
     notifyListeners();
   }

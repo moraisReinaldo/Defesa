@@ -52,6 +52,7 @@ class ApiService {
   // ========== PONTOS DE INTERESSE ==========
   Future<List<PontoInteresse>> listarPontosInteresse({String? cidade}) => _ponto.listarPontosInteresse(cidade: cidade);
   Future<PontoInteresse?> criarPontoInteresse(PontoInteresse ponto) => _ponto.criarPontoInteresse(ponto);
+  Future<PontoInteresse?> atualizarPontoInteresse(PontoInteresse ponto) => _ponto.atualizarPontoInteresse(ponto);
   Future<void> deletarPontoInteresse(String id) => _ponto.deletarPontoInteresse(id);
 
   // ========== CIDADES ==========

@@ -39,6 +39,21 @@ class PontoInteresseService {
     }
   }
 
+  Future<PontoInteresse?> atualizarPontoInteresse(PontoInteresse ponto) async {
+    try {
+      final data = ponto.toJson();
+      if (kDebugMode) print('🔄 Atualizando PontoInteresse ${ponto.id}: $data');
+      final res = await _client.dio.put('/marcacoes/${ponto.id}', data: data);
+      return PontoInteresse.fromJson(res.data);
+    } on DioException catch (e) {
+      if (kDebugMode) print('❌ Erro Dio ao atualizar PontoInteresse: ${e.message} | Response: ${e.response?.data}');
+      throw _client.handleDioError(e);
+    } catch (e) {
+      if (kDebugMode) print('❌ Erro genérico ao atualizar PontoInteresse: $e');
+      rethrow;
+    }
+  }
+
   Future<void> deletarPontoInteresse(String id) async {
     try {
       await _client.dio.delete('/marcacoes/$id');

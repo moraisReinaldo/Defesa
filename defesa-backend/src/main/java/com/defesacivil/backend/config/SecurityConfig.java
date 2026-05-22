@@ -72,6 +72,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/ocorrencias/*/reativar").hasAnyRole("AGENTE", "ADMINISTRADOR")
                 .requestMatchers(HttpMethod.PATCH, "/api/ocorrencias/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasAnyRole("ADMINISTRADOR", "AGENTE")
+                .requestMatchers(HttpMethod.PUT, "/api/marcacoes/**").hasAnyRole("ADMINISTRADOR", "AGENTE")
                 .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")
 
                 // ===== DEMAIS ROTAS (Perfil, Edição, etc.) =====
