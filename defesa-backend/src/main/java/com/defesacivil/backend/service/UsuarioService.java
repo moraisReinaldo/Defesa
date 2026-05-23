@@ -129,9 +129,27 @@ public class UsuarioService {
     public Usuario promoverParaAgente(String email) {
         Usuario usuario = repository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("Usuário não encontrado com e-mail: " + email));
+        checkUserJurisdiction(usuario);
         usuario.setRole(Role.AGENTE.name());
         usuario.setStatus(Status.ATIVO.name());
         return repository.save(usuario);
+    }
+
+    private void checkUserJurisdiction(Usuario targetUser) {
+        if (targetUser == null || targetUser.getCidade() == null || targetUser.getCidade().trim().isEmpty()) return;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        
+        if (isAdmin) {
+            String adminEmail = auth.getName();
+            Usuario admin = repository.findByEmail(adminEmail).orElse(null);
+            if (admin != null && admin.getCidade() != null && !admin.getCidade().trim().isEmpty()) {
+                if (!admin.getCidade().equalsIgnoreCase(targetUser.getCidade())) {
+                    throw new SecurityException("Acesso negado: Você só pode modificar usuários da sua própria cidade.");
+                }
+            }
+        }
     }
 
     /**
@@ -139,7 +157,9 @@ public class UsuarioService {
      * Proteção por ADMINISTRADOR garantida no SecurityConfig.
      */
     public boolean deletarUsuario(String id) {
-        if (!repository.existsById(id)) return false;
+        Usuario usuario = repository.findById(id).orElse(null);
+        if (usuario == null) return false;
+        checkUserJurisdiction(usuario);
         repository.deleteById(id);
         return true;
     }
@@ -156,6 +176,10 @@ public class UsuarioService {
 
         if (!isAdmin && !isProprio) {
             throw new SecurityException("Você não tem permissão para editar este perfil.");
+        }
+
+        if (isAdmin && !isProprio) {
+            checkUserJurisdiction(usuario);
         }
 
         if (request.getNome() != null) usuario.setNome(request.getNome());

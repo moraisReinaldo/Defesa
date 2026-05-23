@@ -151,6 +151,7 @@ public class OcorrenciaService {
     public Ocorrencia aprovarOcorrencia(String id) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
+        checkJurisdiction(oc.getCidade());
 
         oc.setStatus(OcorrenciaStatus.APROVADA.name());
         Ocorrencia salva = ocorrenciaRepository.save(oc);
@@ -172,6 +173,7 @@ public class OcorrenciaService {
     public Ocorrencia registrarChegadaAgente(String id, String parecer) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
+        checkJurisdiction(oc.getCidade());
 
         oc.setAgenteNoLocal(true);
         oc.setDataChegadaAgente(LocalDateTime.now().toString());
@@ -188,6 +190,7 @@ public class OcorrenciaService {
     public Ocorrencia resolverOcorrencia(String id, String parecer) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
+        checkJurisdiction(oc.getCidade());
 
         oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
         oc.setDataResolucao(LocalDateTime.now().toString());
@@ -215,6 +218,7 @@ public class OcorrenciaService {
     public Ocorrencia reativarOcorrencia(String id) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
+        checkJurisdiction(oc.getCidade());
 
         oc.setStatus(OcorrenciaStatus.APROVADA.name());
         oc.setDataResolucao(null);
@@ -223,14 +227,30 @@ public class OcorrenciaService {
 
     /** Deletar — SecurityConfig garante ADMINISTRADOR */
     public boolean deletarOcorrencia(String id) {
-        if (!ocorrenciaRepository.existsById(id)) return false;
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
+        if (oc == null) return false;
+        checkJurisdiction(oc.getCidade());
         ocorrenciaRepository.deleteById(id);
         return true;
+    }
+
+    private void checkJurisdiction(String cidadeOcorrencia) {
+        if (cidadeOcorrencia == null || cidadeOcorrencia.trim().isEmpty()) return;
+        if (hasAnyRole("ADMINISTRADOR", "AGENTE")) {
+            String email = getAuthenticatedEmail();
+            if (email != null) {
+                Usuario user = usuarioRepository.findByEmail(email).orElse(null);
+                if (user != null && user.getCidade() != null && !user.getCidade().trim().isEmpty() && !user.getCidade().equalsIgnoreCase(cidadeOcorrencia)) {
+                    throw new SecurityException("Acesso negado: Você só pode gerenciar itens de sua própria cidade.");
+                }
+            }
+        }
     }
 
     public Ocorrencia atualizarOcorrencia(String id, OcorrenciaRequest request) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
+        checkJurisdiction(oc.getCidade());
 
         if (request.getTipo() != null) oc.setTipo(sanitizeInput(request.getTipo()));
         if (request.getDescricao() != null) oc.setDescricao(sanitizeInput(request.getDescricao()));
@@ -252,38 +272,30 @@ public class OcorrenciaService {
         boolean admin = hasRole("ADMINISTRADOR");
         boolean agente = hasRole("AGENTE");
 
-        // Resolver cidade do usuário autenticado se não informada
-        if ((cidade == null || cidade.trim().isEmpty()) && isAuthenticated()) {
+        String cidadeUsuario = null;
+        String currentUserId = null;
+
+        if (isAuthenticated()) {
             String email = getAuthenticatedEmail();
             if (email != null) {
                 Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
-                if (usuario.isPresent() && usuario.get().getCidade() != null) {
-                    cidade = usuario.get().getCidade();
+                if (usuario.isPresent()) {
+                    cidadeUsuario = usuario.get().getCidade();
+                    currentUserId = usuario.get().getId();
                 }
             }
         }
 
-        // ADMIN vê tudo na cidade (ou tudo se não filtrou)
-        if (admin) {
-            if (cidade == null || cidade.trim().isEmpty()) {
+        // Se for admin ou agente, DEVE ver apenas da própria cidade
+        if (admin || agente) {
+            String cidadeParaBuscar = (cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) ? cidadeUsuario : cidade;
+            if (cidadeParaBuscar == null || cidadeParaBuscar.trim().isEmpty()) {
                 return processarUrls(ocorrenciaRepository.findAll(pageable));
             }
-            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
+            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeParaBuscar, pageable));
         }
 
-        // AGENTE vê tudo na sua cidade (incluindo pendentes)
-        if (agente && cidade != null) {
-            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidade, pageable));
-        }
-
-        // CIDADÃO: vê aprovadas da cidade + suas próprias (qualquer status)
-        String currentUserId = null;
-        String email = getAuthenticatedEmail();
-        if (email != null) {
-            Optional<Usuario> u = usuarioRepository.findByEmail(email);
-            if (u.isPresent()) currentUserId = u.get().getId();
-        }
-
+        // CIDADÃO: vê aprovadas da cidade solicitada + suas próprias (qualquer status)
         return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidade, currentUserId, pageable));
     }
 
