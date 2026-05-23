@@ -118,7 +118,27 @@ public class UsuarioService {
     }
 
     public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
-        String cidadeBusca = (cidade != null && !cidade.isBlank()) ? cidade.trim().toUpperCase() : null;
+        String adminCity = null;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+            
+        if (isAdmin) {
+            String adminEmail = auth.getName();
+            Usuario admin = repository.findByEmail(adminEmail).orElse(null);
+            if (admin != null) {
+                adminCity = admin.getCidade();
+            }
+        }
+
+        // Se for admin e tiver cidade, ignora o parâmetro e força a busca na jurisdição
+        String cidadeBusca;
+        if (adminCity != null && !adminCity.trim().isEmpty()) {
+            cidadeBusca = adminCity.trim().toUpperCase();
+        } else {
+            cidadeBusca = (cidade != null && !cidade.isBlank()) ? cidade.trim().toUpperCase() : null;
+        }
+
         return repository.findByCidadeAndRole(cidadeBusca, role);
     }
 

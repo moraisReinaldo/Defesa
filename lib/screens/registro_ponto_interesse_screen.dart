@@ -88,7 +88,9 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
 
       setState(() {
         _cidadeDetectada = cidade;
-        _cidadeSelecionada = codigoCorrespondente;
+        if (!prov.isAdmin) {
+          _cidadeSelecionada = codigoCorrespondente;
+        }
         _buscandoCidade = false;
       });
     }

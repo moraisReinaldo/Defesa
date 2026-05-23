@@ -383,12 +383,8 @@ class UsuarioProvider extends ChangeNotifier {
       
       var agentes = await _apiService.listarAgentes(cidade: cidadeBusca);
       
-      // FALLBACK: Se o admin não encontrar agentes na sua cidade, 
-      // busca globalmente para evitar que erros de cadastro de cidade bloqueiem a visão.
-      if (agentes.isEmpty && cidadeBusca != null && _isAdmin) {
-        if (kDebugMode) print('⚠️ Nenhum agente na cidade $cidadeBusca. Tentando busca global...');
-        agentes = await _apiService.listarAgentes(cidade: null);
-      }
+      // (Fallback global removido a pedido do usuário: agentes fora da jurisdição não devem ser exibidos/vistos na listagem)
+
 
       _todosAgentes = agentes;
       if (kDebugMode) print('✅ Agentes carregados: ${agentes.length}');
