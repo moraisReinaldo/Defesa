@@ -58,6 +58,7 @@ class PontoInteresseProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       if (kDebugMode) print('Erro ao deletar ponto de interesse: $e');
+      rethrow;
     }
   }
 }

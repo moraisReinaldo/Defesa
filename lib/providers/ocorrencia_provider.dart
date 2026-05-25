@@ -204,13 +204,19 @@ class OcorrenciaProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      // Fallback local se a API falhar (mantém viva a experiência off-line, mas avisa no log)
-      if (kDebugMode) print("Erro ao atualizar ocorrência na API: $e");
-      await _storageService.atualizarOcorrencia(ocorrencia);
-      final index = _ocorrencias.indexWhere((o) => o.id == ocorrencia.id);
-      if (index != -1) {
-        _ocorrencias[index] = ocorrencia;
-        notifyListeners();
+      final msg = e.toString().toLowerCase();
+      final isSemInternet = msg.contains('connection') || msg.contains('timeout') || msg.contains('sem conexão') || msg.contains('connect_error');
+      
+      if (isSemInternet) {
+        if (kDebugMode) print("Sem internet: atualizando ocorrência no fallback local. $e");
+        await _storageService.atualizarOcorrencia(ocorrencia);
+        final index = _ocorrencias.indexWhere((o) => o.id == ocorrencia.id);
+        if (index != -1) {
+          _ocorrencias[index] = ocorrencia;
+          notifyListeners();
+        }
+      } else {
+        if (kDebugMode) print("Erro da API ao atualizar ocorrência: $e");
       }
       rethrow;
     }
@@ -223,11 +229,17 @@ class OcorrenciaProvider extends ChangeNotifier {
       _ocorrencias.removeWhere((o) => o.id == id);
       notifyListeners();
     } catch (e) {
-      if (kDebugMode) print("Erro ao deletar ocorrência na API: $e");
-      // Fallback local
-      await _storageService.deletarOcorrencia(id);
-      _ocorrencias.removeWhere((o) => o.id == id);
-      notifyListeners();
+      final msg = e.toString().toLowerCase();
+      final isSemInternet = msg.contains('connection') || msg.contains('timeout') || msg.contains('sem conexão') || msg.contains('connect_error');
+      
+      if (isSemInternet) {
+        if (kDebugMode) print("Sem internet, mantendo experiência offline (apenas alerta do erro ao deletar). Erro: $e");
+        await _storageService.deletarOcorrencia(id);
+        _ocorrencias.removeWhere((o) => o.id == id);
+        notifyListeners();
+      } else {
+        if (kDebugMode) print("Erro da API ao deletar ocorrência: $e");
+      }
       rethrow;
     }
   }
