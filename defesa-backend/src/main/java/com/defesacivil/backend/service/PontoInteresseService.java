@@ -1,20 +1,27 @@
 package com.defesacivil.backend.service;
 
 import com.defesacivil.backend.domain.PontoInteresse;
+import com.defesacivil.backend.domain.Usuario;
 import com.defesacivil.backend.repository.PontoInteresseRepository;
+import com.defesacivil.backend.repository.UsuarioRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Transactional
 public class PontoInteresseService {
 
     private final PontoInteresseRepository repository;
+    private final UsuarioRepository usuarioRepository;
 
-    public PontoInteresseService(PontoInteresseRepository repository) {
+    public PontoInteresseService(PontoInteresseRepository repository, UsuarioRepository usuarioRepository) {
         this.repository = repository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     public List<PontoInteresse> listarTodos() {
@@ -22,6 +29,18 @@ public class PontoInteresseService {
     }
 
     public List<PontoInteresse> listarPorCidade(String cidade) {
+        // Resolver cidade do usuário autenticado se não informada (Isolamento Geográfico Estrito)
+        if (cidade == null || cidade.trim().isEmpty()) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+                String email = auth.getName();
+                Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
+                if (usuario.isPresent() && usuario.get().getCidade() != null) {
+                    cidade = usuario.get().getCidade();
+                }
+            }
+        }
+
         if (cidade == null || cidade.isBlank()) {
             return listarTodos();
         }

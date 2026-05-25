@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.PageImpl;
+import org.springframework.web.util.HtmlUtils;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -347,9 +348,6 @@ public class OcorrenciaService {
 
     private String sanitizeInput(String input) {
         if (input == null) return null;
-        return input.replaceAll("<", "&lt;")
-                    .replaceAll(">", "&gt;")
-                    .replaceAll("\"", "&quot;")
-                    .trim();
+        return HtmlUtils.htmlEscape(input.trim());
     }
 }

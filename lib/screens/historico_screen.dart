@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
+import '../services/ad_service.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/ocorrencia_card.dart';
 import '../widgets/ocorrencia_image.dart';
@@ -25,10 +27,32 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   String _searchQuery = '';
   final ScrollController _scrollController = ScrollController();
 
+  // --- AdMob ---
+  BannerAd? _bannerAd;
+  bool _isBannerLoaded = false;
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _carregarBannerAd();
+  }
+
+  void _carregarBannerAd() {
+    // Regra Mestra: só carrega se NÃO estiver logado
+    final usuarioProvider = context.read<UsuarioProvider>();
+    if (usuarioProvider.estaLogado) return;
+
+    final adService = context.read<AdService>();
+    _bannerAd = adService.criarBannerAd(
+      onLoaded: () {
+        if (mounted) setState(() => _isBannerLoaded = true);
+      },
+      onFailed: () {
+        if (mounted) setState(() => _isBannerLoaded = false);
+      },
+    );
+    _bannerAd!.load();
   }
 
   void _onScroll() {
@@ -49,6 +73,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     _scrollController.dispose();
     _comentarioController.dispose();
     _searchController.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -220,6 +245,20 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             color: AppColors.textLight,
                           ),
                         ),
+                        // Banner Ad no Empty State (Regra Mestra)
+                        if (!context.read<UsuarioProvider>().estaLogado && _isBannerLoaded && _bannerAd != null) ...[
+                          const SizedBox(height: 24),
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: AppColors.surfaceCard,
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            width: _bannerAd!.size.width.toDouble(),
+                            height: _bannerAd!.size.height.toDouble(),
+                            child: AdWidget(ad: _bannerAd!),
+                          ),
+                        ],
                       ],
                     ),
                   );
@@ -283,26 +322,31 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             ],
                           ),
                         ),
-                        // Cards
-                        ...entry.value
-                            .map((ocorrencia) => OcorrenciaCard(
-                                  ocorrencia: ocorrencia,
-                                  selectable: _selectionMode,
-                                  selected:
-                                      _selecionadas.contains(ocorrencia.id),
-                                  onSelectToggle: () {
-                                    setState(() {
-                                      if (_selecionadas.contains(ocorrencia.id)) {
-                                        _selecionadas.remove(ocorrencia.id);
-                                      } else {
-                                        _selecionadas.add(ocorrencia.id);
-                                      }
-                                    });
-                                  },
-                                  onTap: () => _mostrarDetalhesOcorrencia(
-                                      context, ocorrencia),
-                                ))
-                            ,
+                        // Cards com Native Ad intercalado (Regra Mestra)
+                        ...entry.value.asMap().entries.expand((cardEntry) {
+                          final idx = cardEntry.key;
+                          final ocorrencia = cardEntry.value;
+                          return [
+                            OcorrenciaCard(
+                              ocorrencia: ocorrencia,
+                              selectable: _selectionMode,
+                              selected: _selecionadas.contains(ocorrencia.id),
+                              onSelectToggle: () {
+                                setState(() {
+                                  if (_selecionadas.contains(ocorrencia.id)) {
+                                    _selecionadas.remove(ocorrencia.id);
+                                  } else {
+                                    _selecionadas.add(ocorrencia.id);
+                                  }
+                                });
+                              },
+                              onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
+                            ),
+                            // Inserir Native Ad a cada 5 cards (só para não-logados)
+                            if ((idx + 1) % 5 == 0 && !context.read<UsuarioProvider>().estaLogado)
+                              _buildNativeAdPlaceholder(),
+                          ];
+                        }),
                       ];
                     }),
                     if (provider.carregandoMais)
@@ -925,5 +969,65 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
 
   String _formatarData(DateTime data) {
     return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às ${data.hour}:${data.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Widget de Native Ad que se integra visualmente ao feed de ocorrências.
+  /// Exibe um card com visual semelhante ao OcorrenciaCard mas com tag "Patrocinado".
+  Widget _buildNativeAdPlaceholder() {
+    return StatefulBuilder(
+      builder: (context, setAdState) {
+        NativeAd? nativeAd;
+        bool isLoaded = false;
+
+        final adService = context.read<AdService>();
+        nativeAd = adService.criarNativeAd(
+          onLoaded: (ad) {
+            nativeAd = ad;
+            setAdState(() => isLoaded = true);
+          },
+          onFailed: () {
+            setAdState(() => isLoaded = false);
+          },
+        );
+        nativeAd!.load();
+
+        if (!isLoaded) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.borderLight.withValues(alpha: 0.5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentAmber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'Patrocinado',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.accentAmber),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 120,
+                child: AdWidget(ad: nativeAd!),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

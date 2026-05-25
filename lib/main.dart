@@ -11,6 +11,7 @@ import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
 import 'services/hive_service.dart';
+import 'services/ad_service.dart';
 import 'screens/loading_screen.dart';
 
 void main() async {
@@ -30,6 +31,10 @@ void main() async {
 
   final apiService = ApiService(storageService);
 
+  // Inicializar AdMob
+  final adService = AdService();
+  adService.initialize();
+
   // Inicializar OneSignal
   OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
   OneSignal.initialize("6537856b-c264-42af-b2a9-583652a175d2");
@@ -47,6 +52,7 @@ void main() async {
     apiService: apiService,
     notificationService: notificationService,
     hiveService: hiveService,
+    adService: adService,
   ));
 }
 
@@ -55,6 +61,7 @@ class MyApp extends StatelessWidget {
   final ApiService apiService;
   final NotificationService notificationService;
   final HiveService hiveService;
+  final AdService adService;
 
   const MyApp({
     super.key,
@@ -62,6 +69,7 @@ class MyApp extends StatelessWidget {
     required this.apiService,
     required this.notificationService,
     required this.hiveService,
+    required this.adService,
   });
 
   @override
@@ -79,6 +87,7 @@ class MyApp extends StatelessWidget {
         ),
         Provider.value(value: notificationService),
         Provider.value(value: hiveService),
+        ChangeNotifierProvider.value(value: adService),
       ],
       child: Builder(
         builder: (context) {
