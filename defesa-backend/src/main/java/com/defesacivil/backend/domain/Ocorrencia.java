@@ -1,6 +1,7 @@
 package com.defesacivil.backend.domain;
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 @Table(name = "ocorrencias")
@@ -28,6 +29,22 @@ public class Ocorrencia {
     private String dataChegadaAgente; // Novo: data da chegada
     @Column(columnDefinition = "TEXT")
     private String descricaoSituacao; // Novo: Parecer técnico/situação atual
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cidade_id")
+    private Cidade cidadeEntidade;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "autor_id")
+    private Usuario autor;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "ocorrencia_agentes_atribuidos",
+        joinColumns = @JoinColumn(name = "ocorrencia_id"),
+        inverseJoinColumns = @JoinColumn(name = "usuario_id")
+    )
+    private List<Usuario> agentesAtribuidos;
 
     public Ocorrencia() {
     }
@@ -158,5 +175,29 @@ public class Ocorrencia {
 
     public void setDescricaoSituacao(String descricaoSituacao) {
         this.descricaoSituacao = descricaoSituacao;
+    }
+
+    public Cidade getCidadeEntidade() {
+        return cidadeEntidade;
+    }
+
+    public void setCidadeEntidade(Cidade cidadeEntidade) {
+        this.cidadeEntidade = cidadeEntidade;
+    }
+
+    public Usuario getAutor() {
+        return autor;
+    }
+
+    public void setAutor(Usuario autor) {
+        this.autor = autor;
+    }
+
+    public List<Usuario> getAgentesAtribuidos() {
+        return agentesAtribuidos;
+    }
+
+    public void setAgentesAtribuidos(List<Usuario> agentesAtribuidos) {
+        this.agentesAtribuidos = agentesAtribuidos;
     }
 }

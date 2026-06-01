@@ -31,6 +31,10 @@ public class PontoInteresse {
     @jakarta.persistence.Column(name = "cidade")
     private String cidade;
 
+    @jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "cidade_id")
+    private Cidade cidadeEntidade;
+
     @jakarta.persistence.Column(name = "criado_por", nullable = true)
     private String criadoPor;
 
@@ -92,5 +96,13 @@ public class PontoInteresse {
 
     public void setCriadoPor(String criadoPor) {
         this.criadoPor = criadoPor;
+    }
+
+    public Cidade getCidadeEntidade() {
+        return cidadeEntidade;
+    }
+
+    public void setCidadeEntidade(Cidade cidadeEntidade) {
+        this.cidadeEntidade = cidadeEntidade;
     }
 }

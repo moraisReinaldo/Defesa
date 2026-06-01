@@ -8,6 +8,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
@@ -21,6 +25,11 @@ public class Usuario {
     @JsonIgnore
     private String senha;
     private String cidade;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cidade_id")
+    private Cidade cidadeEntidade;
+
     private String especialidade;
     private String role;
     private String status;
@@ -139,5 +148,13 @@ public class Usuario {
 
     public void setResetSenhaExpiracao(LocalDateTime resetSenhaExpiracao) {
         this.resetSenhaExpiracao = resetSenhaExpiracao;
+    }
+
+    public Cidade getCidadeEntidade() {
+        return cidadeEntidade;
+    }
+
+    public void setCidadeEntidade(Cidade cidadeEntidade) {
+        this.cidadeEntidade = cidadeEntidade;
     }
 }
