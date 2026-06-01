@@ -37,30 +37,107 @@ public class Usuario {
     }
 
     // Getters and Setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getTelefone() { return telefone; }
-    public void setTelefone(String telefone) { this.telefone = telefone; }
-    public String getSenha() { return senha; }
-    public void setSenha(String senha) { this.senha = senha; }
-    public String getCidade() { return cidade; }
-    public void setCidade(String cidade) { this.cidade = cidade; }
-    public String getEspecialidade() { return especialidade; }
-    public void setEspecialidade(String especialidade) { this.especialidade = especialidade; }
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public String getDataCriacao() { return dataCriacao; }
-    public void setDataCriacao(String dataCriacao) { this.dataCriacao = dataCriacao; }
-    public String getFcmToken() { return fcmToken; }
-    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
-    public String getResetSenhaCodigo() { return resetSenhaCodigo; }
-    public void setResetSenhaCodigo(String resetSenhaCodigo) { this.resetSenhaCodigo = resetSenhaCodigo; }
-    public LocalDateTime getResetSenhaExpiracao() { return resetSenhaExpiracao; }
-    public void setResetSenhaExpiracao(LocalDateTime resetSenhaExpiracao) { this.resetSenhaExpiracao = resetSenhaExpiracao; }
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
+
+    public String getCidade() {
+        return cidade;
+    }
+
+    public void setCidade(String cidade) {
+        this.cidade = cidade;
+    }
+
+    public String getEspecialidade() {
+        return especialidade;
+    }
+
+    public void setEspecialidade(String especialidade) {
+        this.especialidade = especialidade;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getDataCriacao() {
+        return dataCriacao;
+    }
+
+    public void setDataCriacao(String dataCriacao) {
+        this.dataCriacao = dataCriacao;
+    }
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
+
+    public String getResetSenhaCodigo() {
+        return resetSenhaCodigo;
+    }
+
+    public void setResetSenhaCodigo(String resetSenhaCodigo) {
+        this.resetSenhaCodigo = resetSenhaCodigo;
+    }
+
+    public LocalDateTime getResetSenhaExpiracao() {
+        return resetSenhaExpiracao;
+    }
+
+    public void setResetSenhaExpiracao(LocalDateTime resetSenhaExpiracao) {
+        this.resetSenhaExpiracao = resetSenhaExpiracao;
+    }
 }

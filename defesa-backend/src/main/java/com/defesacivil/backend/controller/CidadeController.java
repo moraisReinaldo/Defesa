@@ -4,45 +4,55 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
+import com.defesacivil.backend.domain.Cidade;
+import com.defesacivil.backend.service.CidadeService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/cidades")
 public class CidadeController {
 
-    /**
-     * Retorna a lista de cidades suportadas pelo sistema.
-     * Em uma evolução futura, essas cidades podem ser armazenadas no PostgreSQL.
-     */
-    @GetMapping
-    public List<CidadeDTO> listarCidades() {
-        return Arrays.asList(
-            new CidadeDTO("ATI", "Atibaia"),
-            new CidadeDTO("BP", "Bragança Paulista"),
-            new CidadeDTO("JOA", "Joanópolis"),
-            new CidadeDTO("NAZ", "Nazaré Paulista"),
-            new CidadeDTO("PIR", "Piracaia"),
-            new CidadeDTO("TUI", "Tuiuti"),
-            new CidadeDTO("VAR", "Vargem")
-        );
+    private final CidadeService service;
+
+    public CidadeController(CidadeService service) {
+        this.service = service;
     }
 
-    public static class CidadeDTO {
-        private String codigo;
-        private String nome;
+    @GetMapping
+    public ResponseEntity<List<Cidade>> listarCidades() {
+        return ResponseEntity.ok(service.listarTodas());
+    }
 
-        public CidadeDTO() {}
+    @GetMapping("/{id}")
+    public ResponseEntity<Cidade> buscarPorId(@PathVariable String id) {
+        return service.buscarPorId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
-        public CidadeDTO(String codigo, String nome) {
-            this.codigo = codigo;
-            this.nome = nome;
+    @PostMapping
+    public ResponseEntity<Cidade> criar(@RequestBody Cidade cidade) {
+        return ResponseEntity.ok(service.salvar(cidade));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Cidade> atualizar(@PathVariable String id, @RequestBody Cidade cidade) {
+        return service.buscarPorId(id).map(existente -> {
+            existente.setNome(cidade.getNome());
+            existente.setCodigo(cidade.getCodigo());
+            return ResponseEntity.ok(service.salvar(existente));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(@PathVariable String id) {
+        if (service.buscarPorId(id).isPresent()) {
+            service.deletar(id);
+            return ResponseEntity.noContent().build();
         }
-
-        public String getCodigo() { return codigo; }
-        public void setCodigo(String codigo) { this.codigo = codigo; }
-
-        public String getNome() { return nome; }
-        public void setNome(String nome) { this.nome = nome; }
+        return ResponseEntity.notFound().build();
     }
 }
