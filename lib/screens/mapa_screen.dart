@@ -87,11 +87,16 @@ class _MapaScreenState extends State<MapaScreen> {
     // Prioridade: Cidade Ativa (Logado ou GPS Detectado)
     final cidadeFiltro = usuarioProv.cidadeAtiva;
     
-    // Só carregamos se soubermos a cidade (Isolamento Geográfico Estrito)
-    if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
-      await ocorrenciaProv.carregarOcorrencias(cidade: cidadeFiltro, userId: usuarioProv.usuarioLogado?.id);
+    if (usuarioProv.isAdmin || (cidadeFiltro != null && cidadeFiltro.isNotEmpty)) {
+      await ocorrenciaProv.carregarOcorrencias(
+        cidade: cidadeFiltro, 
+        userId: usuarioProv.usuarioLogado?.id,
+        isAdmin: usuarioProv.isAdmin,
+      );
       if (!mounted) return;
-      await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
+      if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
+        await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
+      }
     } else {
       debugPrint('⚠️ Mapa inicializado sem cidade de contexto. Nada será exibido.');
     }

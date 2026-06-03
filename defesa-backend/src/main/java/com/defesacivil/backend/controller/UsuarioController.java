@@ -25,6 +25,20 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
+    /** Listar todos os usuários — apenas ADMINISTRADOR */
+    @GetMapping
+    public ResponseEntity<java.util.List<Usuario>> listarTodos() {
+        java.util.List<Usuario> usuarios = usuarioService.listarTodos();
+        return ResponseEntity.ok(usuarios);
+    }
+
+    /** Buscar usuário por ID — autenticado */
+    @GetMapping("/{id}")
+    public ResponseEntity<Usuario> buscarPorId(@PathVariable String id) {
+        Usuario usuario = usuarioService.buscarPorId(id);
+        return usuario != null ? ResponseEntity.ok(usuario) : ResponseEntity.notFound().build();
+    }
+
     /** Promover cidadão a agente — apenas ADMINISTRADOR (protegido no SecurityConfig) */
     @PostMapping("/promover")
     public ResponseEntity<?> promoverParaAgente(@RequestBody Map<String, String> payload) {

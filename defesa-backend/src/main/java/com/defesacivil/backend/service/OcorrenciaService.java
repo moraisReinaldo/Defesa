@@ -79,6 +79,13 @@ public class OcorrenciaService {
 
     // ========== OPERAÇÕES ==========
 
+    @Transactional(readOnly = true)
+    public Ocorrencia buscarPorId(String id) {
+        return ocorrenciaRepository.findById(id)
+                .map(this::processarUrl)
+                .orElse(null);
+    }
+
     public Ocorrencia registrarOcorrencia(OcorrenciaRequest request) {
         if (request.getTipo() == null || request.getTipo().isBlank()) {
             throw new IllegalArgumentException("Tipo da ocorrência é obrigatório");

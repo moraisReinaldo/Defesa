@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/resetar-senha").permitAll()
                 .requestMatchers("/api/cidades").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/ocorrencias/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
@@ -64,6 +65,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/ocorrencias").permitAll()
 
                 // ===== ROTAS DE ADMINISTRADOR =====
+                .requestMatchers(HttpMethod.GET, "/api/usuarios").hasRole("ADMINISTRADOR")
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/marcacoes/**").hasRole("ADMINISTRADOR")

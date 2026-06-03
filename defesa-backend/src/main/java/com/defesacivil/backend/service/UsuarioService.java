@@ -96,6 +96,16 @@ public class UsuarioService {
             .filter(u -> passwordEncoder.matches(senhaDigitada, u.getSenha()));
     }
 
+    @Transactional(readOnly = true)
+    public List<Usuario> listarTodos() {
+        return repository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Usuario buscarPorId(String id) {
+        return repository.findById(id).orElse(null);
+    }
+
     /**
      * Valida a senha master do administrador.
      * SEGURANÇA: A senha no application.properties deve estar em BCrypt para produção.

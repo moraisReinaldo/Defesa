@@ -63,6 +63,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         provider.carregarMaisOcorrencias(
           cidade: usuario.usuarioLogado?.cidade,
           userId: usuario.usuarioLogado?.id,
+          isAdmin: usuario.isAdmin,
         );
       }
     }
@@ -276,6 +277,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   onRefresh: () => provider.carregarOcorrencias(
                     cidade: context.read<UsuarioProvider>().usuarioLogado?.cidade,
                     userId: context.read<UsuarioProvider>().usuarioLogado?.id,
+                    isAdmin: context.read<UsuarioProvider>().isAdmin,
                   ),
                   child: ListView(
                     controller: _scrollController,
@@ -524,7 +526,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     if (usuarioProvider.estaLogado) {
       final cidadeUsuario = usuarioProvider.usuarioLogado?.cidade;
       if (cidadeUsuario != null && cidadeUsuario.isNotEmpty) {
-        ocorrencias = ocorrencias.where((o) => o.cidade == cidadeUsuario || o.usuarioId == usuarioProvider.usuarioLogado?.id).toList();
+        ocorrencias = ocorrencias.where((o) => 
+          (o.cidade != null && o.cidade!.trim().toUpperCase() == cidadeUsuario.trim().toUpperCase()) || 
+          o.usuarioId == usuarioProvider.usuarioLogado?.id
+        ).toList();
       }
     }
 
