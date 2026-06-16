@@ -73,7 +73,7 @@ public class UsuarioController {
     @PostMapping("/esqueci-senha")
     public ResponseEntity<?> solicitarReset(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
-        boolean enviado = usuarioService.solicitarResetSenha(email);
+        usuarioService.solicitarResetSenha(email);
         // Retornamos OK mesmo se o e-mail não existir por segurança (não vazar se o e-mail tem conta)
         return ResponseEntity.ok(Map.of("message", "Se o e-mail existir, um código foi enviado."));
     }

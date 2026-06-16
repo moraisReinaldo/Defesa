@@ -133,7 +133,7 @@ public class UsuarioService {
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
             
-        if (isAdmin) {
+        if (isAdmin && auth != null) {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null) {
@@ -171,7 +171,7 @@ public class UsuarioService {
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
         
-        if (isAdmin) {
+        if (isAdmin && auth != null) {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null && admin.getCidade() != null && !admin.getCidade().trim().isEmpty()) {
