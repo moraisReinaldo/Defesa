@@ -1,0 +1,468 @@
+{
+  "info": {
+    "name": "Defesa em Foco - API",
+    "_postman_id": "defesa-em-foco-2026",
+    "description": "Coleção completa de testes da API do projeto Defesa em Foco - BRADWBK 2026",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://api.rhprogramer.com.br", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "ocorrencia_id", "value": "", "type": "string" },
+    { "key": "cidade_id", "value": "", "type": "string" },
+    { "key": "marcacao_id", "value": "", "type": "string" },
+    { "key": "usuario_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "4.1 Autenticação",
+      "item": [
+        {
+          "name": "1. Cadastro de Usuário (Cidadão)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/cadastro", "host": ["{{base_url}}"], "path": ["api", "auth", "cadastro"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@teste.com\",\n  \"telefone\": \"(11) 99999-9999\",\n  \"senha\": \"Senha123!\",\n  \"cidade\": \"SAO PAULO\",\n  \"role\": \"CIDADAO\",\n  \"concordaLGPD\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "2. Login (salva token automaticamente)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    pm.collectionVariables.set('usuario_id', json.usuario.id);",
+                  "    console.log('Token salvo automaticamente!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/usuarios/login", "host": ["{{base_url}}"], "path": ["api", "usuarios", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@teste.com\",\n  \"senha\": \"Senha123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "3. Login Admin (salva token admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('Token ADMIN salvo!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/auth/admin-login", "host": ["{{base_url}}"], "path": ["api", "auth", "admin-login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"SUA_SENHA_ADMIN_AQUI\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "4. Logout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/auth/logout", "host": ["{{base_url}}"], "path": ["api", "auth", "logout"] },
+            "body": { "mode": "none" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4.2 Ocorrências",
+      "item": [
+        {
+          "name": "5. Criar Ocorrência (salva ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('ocorrencia_id', json.id);",
+                  "    console.log('ID da ocorrência salvo: ' + json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/ocorrencias", "host": ["{{base_url}}"], "path": ["api", "ocorrencias"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"Alagamento\",\n  \"descricao\": \"Rua completamente alagada após chuva forte\",\n  \"latitude\": -23.5505,\n  \"longitude\": -46.6333,\n  \"cidade\": \"SAO PAULO\",\n  \"dataHora\": \"2026-06-15T10:30:00\",\n  \"criadoPorAgente\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "6. Listar Ocorrências",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/ocorrencias?cidade=SAO PAULO&page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "ocorrencias"],
+              "query": [
+                { "key": "cidade", "value": "SAO PAULO" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Buscar Ocorrência por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}", "host": ["{{base_url}}"], "path": ["api", "ocorrencias", "{{ocorrencia_id}}"] }
+          }
+        },
+        {
+          "name": "8. Atualizar Ocorrência (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}", "host": ["{{base_url}}"], "path": ["api", "ocorrencias", "{{ocorrencia_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descricao\": \"A água baixou. Rua parcialmente liberada.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "9. Aprovar Ocorrência",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/aprovar", "host": ["{{base_url}}"], "path": ["api", "ocorrencias", "{{ocorrencia_id}}", "aprovar"] },
+            "body": { "mode": "none" }
+          }
+        },
+        {
+          "name": "10. Chegada na Ocorrência",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/chegada", "host": ["{{base_url}}"], "path": ["api", "ocorrencias", "{{ocorrencia_id}}", "chegada"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Equipe no local. Situação sob controle.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "11. Resolver Ocorrência",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/resolver", "host": ["{{base_url}}"], "path": ["api", "ocorrencias", "{{ocorrencia_id}}", "resolver"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Local desobstruído e limpo.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "12. Reativar Ocorrência",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/reativar", "host": ["{{base_url}}"], "path": ["api", "ocorrencias", "{{ocorrencia_id}}", "reativar"] },
+            "body": { "mode": "none" }
+          }
+        },
+        {
+          "name": "13. Deletar Ocorrência (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}", "host": ["{{base_url}}"], "path": ["api", "ocorrencias", "{{ocorrencia_id}}"] },
+            "body": { "mode": "none" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4.3 Usuários",
+      "item": [
+        {
+          "name": "14. Listar Usuários (ADMIN)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/usuarios", "host": ["{{base_url}}"], "path": ["api", "usuarios"] }
+          }
+        },
+        {
+          "name": "15. Buscar Usuário por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/usuarios/{{usuario_id}}", "host": ["{{base_url}}"], "path": ["api", "usuarios", "{{usuario_id}}"] }
+          }
+        },
+        {
+          "name": "16. Atualizar Usuário (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/usuarios/{{usuario_id}}", "host": ["{{base_url}}"], "path": ["api", "usuarios", "{{usuario_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João da Silva Atualizado\",\n  \"telefone\": \"(11) 98888-8888\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "17. Promover para Agente (ADMIN)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/usuarios/promover", "host": ["{{base_url}}"], "path": ["api", "usuarios", "promover"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@teste.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "18. Listar Agentes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/usuarios/agentes?cidade=SAO PAULO",
+              "host": ["{{base_url}}"],
+              "path": ["api", "usuarios", "agentes"],
+              "query": [{ "key": "cidade", "value": "SAO PAULO" }]
+            }
+          }
+        },
+        {
+          "name": "19. Esqueci minha Senha",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/usuarios/esqueci-senha", "host": ["{{base_url}}"], "path": ["api", "usuarios", "esqueci-senha"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@teste.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "20. Deletar Usuário (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/usuarios/{{usuario_id}}", "host": ["{{base_url}}"], "path": ["api", "usuarios", "{{usuario_id}}"] },
+            "body": { "mode": "none" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4.4 Cidades",
+      "item": [
+        {
+          "name": "21. Criar Cidade (salva ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('cidade_id', json.id);",
+                  "    console.log('ID da cidade salvo: ' + json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/cidades", "host": ["{{base_url}}"], "path": ["api", "cidades"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"3550308\",\n  \"nome\": \"SAO PAULO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "22. Listar Cidades",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/cidades", "host": ["{{base_url}}"], "path": ["api", "cidades"] }
+          }
+        },
+        {
+          "name": "23. Buscar Cidade por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/cidades/{{cidade_id}}", "host": ["{{base_url}}"], "path": ["api", "cidades", "{{cidade_id}}"] }
+          }
+        },
+        {
+          "name": "24. Atualizar Cidade (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/api/cidades/{{cidade_id}}", "host": ["{{base_url}}"], "path": ["api", "cidades", "{{cidade_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"3550308\",\n  \"nome\": \"SÃO PAULO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "25. Deletar Cidade",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/cidades/{{cidade_id}}", "host": ["{{base_url}}"], "path": ["api", "cidades", "{{cidade_id}}"] },
+            "body": { "mode": "none" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4.5 Pontos de Interesse",
+      "item": [
+        {
+          "name": "26. Criar Ponto de Interesse (salva ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('marcacao_id', json.id);",
+                  "    console.log('ID da marcação salvo: ' + json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/marcacoes", "host": ["{{base_url}}"], "path": ["api", "marcacoes"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"Abrigo\",\n  \"descricao\": \"Escola Municipal sendo usada como abrigo\",\n  \"latitude\": -23.5489,\n  \"longitude\": -46.6388,\n  \"cidade\": \"SAO PAULO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "27. Listar Pontos de Interesse",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/marcacoes?cidade=SAO PAULO",
+              "host": ["{{base_url}}"],
+              "path": ["api", "marcacoes"],
+              "query": [{ "key": "cidade", "value": "SAO PAULO" }]
+            }
+          }
+        },
+        {
+          "name": "28. Atualizar Ponto de Interesse (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{base_url}}/api/marcacoes/{{marcacao_id}}", "host": ["{{base_url}}"], "path": ["api", "marcacoes", "{{marcacao_id}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"Hospital\",\n  \"descricao\": \"Hospital de emergência da região\",\n  \"latitude\": -23.5500,\n  \"longitude\": -46.6400,\n  \"cidade\": \"SAO PAULO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          }
+        },
+        {
+          "name": "29. Deletar Ponto de Interesse (ADMIN)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/marcacoes/{{marcacao_id}}", "host": ["{{base_url}}"], "path": ["api", "marcacoes", "{{marcacao_id}}"] },
+            "body": { "mode": "none" }
+          }
+        }
+      ]
+    }
+  ]
+}

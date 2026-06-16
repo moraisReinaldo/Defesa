@@ -1,0 +1,462 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "Defesa em Foco - API",
+  "collectionId": "defesa-em-foco-2026",
+  "dateExported": "2026-06-15",
+  "version": "1.2",
+  "folders": [
+    { "id": "folder-auth", "name": "4.1 Autenticação", "containerId": "" },
+    { "id": "folder-ocorrencias", "name": "4.2 Ocorrências", "containerId": "" },
+    { "id": "folder-usuarios", "name": "4.3 Usuários", "containerId": "" },
+    { "id": "folder-cidades", "name": "4.4 Cidades", "containerId": "" },
+    { "id": "folder-marcacoes", "name": "4.5 Pontos de Interesse", "containerId": "" }
+  ],
+  "requests": [
+    {
+      "id": "req-01",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-auth",
+      "name": "1. Cadastro de Usuário (Cidadão)",
+      "url": "{{base_url}}/api/auth/cadastro",
+      "method": "POST",
+      "sortNum": 1,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao@teste.com\",\n  \"telefone\": \"(11) 99999-9999\",\n  \"senha\": \"Senha123!\",\n  \"cidade\": \"SAO PAULO\",\n  \"role\": \"CIDADAO\",\n  \"concordaLGPD\": true\n}"
+      }
+    },
+    {
+      "id": "req-02",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-auth",
+      "name": "2. Login (salva token automaticamente)",
+      "url": "{{base_url}}/api/usuarios/login",
+      "method": "POST",
+      "sortNum": 2,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"joao@teste.com\",\n  \"senha\": \"Senha123!\"\n}"
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "var json = tc.response.json();\ntc.setVar(\"token\", json.token, \"env\");"
+        }
+      ]
+    },
+    {
+      "id": "req-03",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-auth",
+      "name": "3. Login Admin",
+      "url": "{{base_url}}/api/auth/admin-login",
+      "method": "POST",
+      "sortNum": 3,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"senha\": \"SUA_SENHA_ADMIN_AQUI\"\n}"
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "var json = tc.response.json();\ntc.setVar(\"token\", json.token, \"env\");"
+        }
+      ]
+    },
+    {
+      "id": "req-04",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-auth",
+      "name": "4. Logout",
+      "url": "{{base_url}}/api/auth/logout",
+      "method": "POST",
+      "sortNum": 4,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-05",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "5. Criar Ocorrência",
+      "url": "{{base_url}}/api/ocorrencias",
+      "method": "POST",
+      "sortNum": 5,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"tipo\": \"Alagamento\",\n  \"descricao\": \"Rua completamente alagada após chuva forte\",\n  \"latitude\": -23.5505,\n  \"longitude\": -46.6333,\n  \"cidade\": \"SAO PAULO\",\n  \"dataHora\": \"2026-06-15T10:30:00\",\n  \"criadoPorAgente\": false\n}",
+        "params": []
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "var json = tc.response.json();\nif(json.id) tc.setVar(\"ocorrencia_id\", json.id, \"env\");"
+        }
+      ]
+    },
+    {
+      "id": "req-06",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "6. Listar Ocorrências",
+      "url": "{{base_url}}/api/ocorrencias?cidade=SAO PAULO&page=0&size=10",
+      "method": "GET",
+      "sortNum": 6,
+      "headers": [],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-07",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "7. Buscar Ocorrência por ID",
+      "url": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}",
+      "method": "GET",
+      "sortNum": 7,
+      "headers": [],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-08",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "8. Atualizar Ocorrência (PATCH)",
+      "url": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}",
+      "method": "PATCH",
+      "sortNum": 8,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"descricao\": \"A água baixou. Rua parcialmente liberada.\"\n}"
+      }
+    },
+    {
+      "id": "req-09",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "9. Aprovar Ocorrência",
+      "url": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/aprovar",
+      "method": "POST",
+      "sortNum": 9,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-10",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "10. Chegada na Ocorrência",
+      "url": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/chegada",
+      "method": "POST",
+      "sortNum": 10,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"parecer\": \"Equipe no local. Situação sob controle.\"\n}"
+      }
+    },
+    {
+      "id": "req-11",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "11. Resolver Ocorrência",
+      "url": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/resolver",
+      "method": "POST",
+      "sortNum": 11,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"parecer\": \"Local desobstruído e limpo.\"\n}"
+      }
+    },
+    {
+      "id": "req-12",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "12. Reativar Ocorrência",
+      "url": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}/reativar",
+      "method": "POST",
+      "sortNum": 12,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-13",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-ocorrencias",
+      "name": "13. Deletar Ocorrência (ADMIN)",
+      "url": "{{base_url}}/api/ocorrencias/{{ocorrencia_id}}",
+      "method": "DELETE",
+      "sortNum": 13,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-14",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "14. Listar Usuários (ADMIN)",
+      "url": "{{base_url}}/api/usuarios",
+      "method": "GET",
+      "sortNum": 14,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-15",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "15. Buscar Usuário por ID",
+      "url": "{{base_url}}/api/usuarios/{{usuario_id}}",
+      "method": "GET",
+      "sortNum": 15,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-16",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "16. Atualizar Usuário (PUT)",
+      "url": "{{base_url}}/api/usuarios/{{usuario_id}}",
+      "method": "PUT",
+      "sortNum": 16,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"nome\": \"João da Silva Atualizado\",\n  \"telefone\": \"(11) 98888-8888\"\n}"
+      }
+    },
+    {
+      "id": "req-17",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "17. Promover para Agente (ADMIN)",
+      "url": "{{base_url}}/api/usuarios/promover",
+      "method": "POST",
+      "sortNum": 17,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"joao@teste.com\"\n}"
+      }
+    },
+    {
+      "id": "req-18",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "18. Esqueci minha Senha",
+      "url": "{{base_url}}/api/usuarios/esqueci-senha",
+      "method": "POST",
+      "sortNum": 18,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"joao@teste.com\"\n}"
+      }
+    },
+    {
+      "id": "req-19",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "19. Resetar Senha com Código",
+      "url": "{{base_url}}/api/usuarios/resetar-senha",
+      "method": "POST",
+      "sortNum": 19,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"joao@teste.com\",\n  \"codigo\": \"123456\",\n  \"novaSenha\": \"NovaSenha123!\"\n}"
+      }
+    },
+    {
+      "id": "req-20",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "20. Deletar Usuário (ADMIN)",
+      "url": "{{base_url}}/api/usuarios/{{usuario_id}}",
+      "method": "DELETE",
+      "sortNum": 20,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-21",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-cidades",
+      "name": "21. Criar Cidade",
+      "url": "{{base_url}}/api/cidades",
+      "method": "POST",
+      "sortNum": 21,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"codigo\": \"3550308\",\n  \"nome\": \"SAO PAULO\"\n}"
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "var json = tc.response.json();\nif(json.id) tc.setVar(\"cidade_id\", json.id, \"env\");"
+        }
+      ]
+    },
+    {
+      "id": "req-22",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-cidades",
+      "name": "22. Listar Cidades",
+      "url": "{{base_url}}/api/cidades",
+      "method": "GET",
+      "sortNum": 22,
+      "headers": [],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-23",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-cidades",
+      "name": "23. Buscar Cidade por ID",
+      "url": "{{base_url}}/api/cidades/{{cidade_id}}",
+      "method": "GET",
+      "sortNum": 23,
+      "headers": [],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-24",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-cidades",
+      "name": "24. Atualizar Cidade (PUT)",
+      "url": "{{base_url}}/api/cidades/{{cidade_id}}",
+      "method": "PUT",
+      "sortNum": 24,
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"codigo\": \"3550308\",\n  \"nome\": \"SÃO PAULO\"\n}"
+      }
+    },
+    {
+      "id": "req-25",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-cidades",
+      "name": "25. Deletar Cidade",
+      "url": "{{base_url}}/api/cidades/{{cidade_id}}",
+      "method": "DELETE",
+      "sortNum": 25,
+      "headers": [],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-26",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-marcacoes",
+      "name": "26. Criar Ponto de Interesse",
+      "url": "{{base_url}}/api/marcacoes",
+      "method": "POST",
+      "sortNum": 26,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"tipo\": \"Abrigo\",\n  \"descricao\": \"Escola Municipal sendo usada como abrigo\",\n  \"latitude\": -23.5489,\n  \"longitude\": -46.6388,\n  \"cidade\": \"SAO PAULO\"\n}"
+      },
+      "tests": [
+        {
+          "type": "set-env-var",
+          "custom": "var json = tc.response.json();\nif(json.id) tc.setVar(\"marcacao_id\", json.id, \"env\");"
+        }
+      ]
+    },
+    {
+      "id": "req-27",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-marcacoes",
+      "name": "27. Listar Pontos de Interesse",
+      "url": "{{base_url}}/api/marcacoes?cidade=SAO PAULO",
+      "method": "GET",
+      "sortNum": 27,
+      "headers": [],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-28",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-marcacoes",
+      "name": "28. Atualizar Ponto de Interesse (PUT)",
+      "url": "{{base_url}}/api/marcacoes/{{marcacao_id}}",
+      "method": "PUT",
+      "sortNum": 28,
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"tipo\": \"Hospital\",\n  \"descricao\": \"Hospital de emergência da região\",\n  \"latitude\": -23.5500,\n  \"longitude\": -46.6400,\n  \"cidade\": \"SAO PAULO\"\n}"
+      }
+    },
+    {
+      "id": "req-29",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-marcacoes",
+      "name": "29. Deletar Ponto de Interesse (ADMIN)",
+      "url": "{{base_url}}/api/marcacoes/{{marcacao_id}}",
+      "method": "DELETE",
+      "sortNum": 29,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    },
+    {
+      "id": "req-30",
+      "colId": "defesa-em-foco-2026",
+      "containerId": "folder-usuarios",
+      "name": "30. Listar Agentes",
+      "url": "{{base_url}}/api/usuarios/agentes?cidade=SAO PAULO",
+      "method": "GET",
+      "sortNum": 30,
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{token}}" }
+      ],
+      "body": { "type": "none" }
+    }
+  ]
+}
