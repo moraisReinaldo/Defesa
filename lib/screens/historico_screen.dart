@@ -97,7 +97,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -220,7 +220,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withValues(alpha: 0.08),
+                            color: AppColors.primaryTeal.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: const Icon(
@@ -294,7 +294,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 14, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                                  color: AppColors.primaryTeal.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Row(
@@ -383,7 +383,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     color: AppColors.surfaceCard,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
+                        color: Colors.black.withOpacity(0.08),
                         blurRadius: 12,
                         offset:  const Offset(0, -4),
                       ),
@@ -458,7 +458,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: AppColors.primaryTeal.withValues(alpha: 0.3),
+                    color: AppColors.primaryTeal.withOpacity(0.3),
                     blurRadius: 8,
                     offset:  const Offset(0, 2),
                   ),
@@ -580,7 +580,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.getTipoColor(ocorrencia.tipo),
-                    AppColors.getTipoColor(ocorrencia.tipo).withValues(alpha: 0.8),
+                    AppColors.getTipoColor(ocorrencia.tipo).withOpacity(0.8),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
@@ -591,7 +591,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -617,7 +617,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         Text(
                           OcorrenciaTipos.getTipoDescricao(ocorrencia.tipo),
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.8),
+                            color: Colors.white.withOpacity(0.8),
                             fontSize: 12,
                           ),
                         ),
@@ -732,7 +732,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                           ),
                                         );
                                       },
-                                      selectedColor: AppColors.primaryTeal.withValues(alpha: 0.2),
+                                      selectedColor: AppColors.primaryTeal.withOpacity(0.2),
                                       checkmarkColor: AppColors.primaryTeal,
                                     );
                                   }).toList(),
@@ -1004,7 +1004,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           decoration: BoxDecoration(
             color: AppColors.surfaceCard,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borderLight.withValues(alpha: 0.5)),
+            border: Border.all(color: AppColors.borderLight.withOpacity(0.5)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1014,7 +1014,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.accentAmber.withValues(alpha: 0.15),
+                      color: AppColors.accentAmber.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(

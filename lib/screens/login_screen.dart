@@ -331,7 +331,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        initialValue: _cidadeSelecionada,
+                        value: _cidadeSelecionada,
                         isExpanded: true,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),

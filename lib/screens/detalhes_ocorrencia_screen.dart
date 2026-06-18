@@ -195,7 +195,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                      color: AppColors.primaryTeal.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.camera_alt_rounded,
@@ -212,7 +212,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.accentAmber.withValues(alpha: 0.1),
+                      color: AppColors.accentAmber.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.photo_library_rounded,
@@ -423,7 +423,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.arrow_back_rounded, size: 20),
@@ -442,9 +442,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                  color: AppColors.primaryTeal.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.3)),
+                  border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -587,7 +587,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                       borderRadius: BorderRadius.circular(18),
                     ),
                     elevation: 4,
-                    shadowColor: AppColors.accentAmber.withValues(alpha: 0.4),
+                    shadowColor: AppColors.accentAmber.withOpacity(0.4),
                   ),
                   child: _carregando
                       ? const SizedBox(
@@ -634,7 +634,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.primaryTeal.withValues(alpha: 0.1),
+            color: AppColors.primaryTeal.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, size: 18, color: AppColors.primaryTeal),
@@ -708,7 +708,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
+                      color: Colors.black.withOpacity(0.2),
                       blurRadius: 6,
                     ),
                   ],
@@ -741,7 +741,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primaryTeal.withValues(alpha: 0.08),
+                color: AppColors.primaryTeal.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
