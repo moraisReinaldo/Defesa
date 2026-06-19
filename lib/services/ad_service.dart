@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -11,14 +12,20 @@ class AdService extends ChangeNotifier {
   bool _isInterstitialReady = false;
 
   // --- IDs de Teste do Google (trocar pelos reais antes de publicar) ---
-  // Android Test IDs oficiais do Google:
-  static const String _bannerAdUnitId = 'ca-app-pub-3940256099942544/6300978111';
-  static const String _interstitialAdUnitId = 'ca-app-pub-3940256099942544/1033173712';
-  static const String _nativeAdUnitId = 'ca-app-pub-3940256099942544/2247696110';
+  // Android IDs do usuário:
+  static const String _androidBannerAdUnitId = 'ca-app-pub-7666166064406107/5984106372';
+  static const String _androidInterstitialAdUnitId = 'ca-app-pub-7666166064406107/6382461548';
+  static const String _androidNativeAdUnitId = 'ca-app-pub-7666166064406107/7294308296';
+
+  // iOS IDs (Padrão de teste do Google AdMob):
+  static const String _iosBannerAdUnitId = 'ca-app-pub-3940256099942544/2934735716';
+  static const String _iosInterstitialAdUnitId = 'ca-app-pub-3940256099942544/4411468910';
+  static const String _iosNativeAdUnitId = 'ca-app-pub-3940256099942544/3986624511';
 
   // Getters públicos para os IDs (usados pelos widgets)
-  String get bannerAdUnitId => _bannerAdUnitId;
-  String get nativeAdUnitId => _nativeAdUnitId;
+  String get bannerAdUnitId => Platform.isAndroid ? _androidBannerAdUnitId : _iosBannerAdUnitId;
+  String get interstitialAdUnitId => Platform.isAndroid ? _androidInterstitialAdUnitId : _iosInterstitialAdUnitId;
+  String get nativeAdUnitId => Platform.isAndroid ? _androidNativeAdUnitId : _iosNativeAdUnitId;
   bool get isInterstitialReady => _isInterstitialReady;
 
   /// Inicializa o SDK do Google Mobile Ads.
@@ -26,6 +33,12 @@ class AdService extends ChangeNotifier {
     if (_isInitialized) return;
     try {
       await MobileAds.instance.initialize();
+      
+      // Configurar dispositivos de teste (substitua pelo ID do seu dispositivo que aparece no logcat)
+      await MobileAds.instance.updateRequestConfiguration(
+        RequestConfiguration(testDeviceIds: ['COLOQUE_O_ID_DO_SEU_DISPOSITIVO_AQUI']),
+      );
+
       _isInitialized = true;
       if (kDebugMode) print('✅ AdMob SDK inicializado com sucesso');
       // Pré-carregar o interstitial
@@ -38,7 +51,7 @@ class AdService extends ChangeNotifier {
   /// Cria um BannerAd para o Empty State (Medium Rectangle 300x250).
   BannerAd criarBannerAd({VoidCallback? onLoaded, VoidCallback? onFailed}) {
     return BannerAd(
-      adUnitId: _bannerAdUnitId,
+      adUnitId: bannerAdUnitId,
       size: AdSize.mediumRectangle,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -61,7 +74,7 @@ class AdService extends ChangeNotifier {
     required void Function() onFailed,
   }) {
     return NativeAd(
-      adUnitId: _nativeAdUnitId,
+      adUnitId: nativeAdUnitId,
       factoryId: 'listTile', // Factory padrão do plugin
       request: const AdRequest(),
       listener: NativeAdListener(
@@ -81,7 +94,7 @@ class AdService extends ChangeNotifier {
   /// Pré-carrega um Interstitial Ad para exibir após o registro de ocorrência.
   void _carregarInterstitial() {
     InterstitialAd.load(
-      adUnitId: _interstitialAdUnitId,
+      adUnitId: interstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
