@@ -251,6 +251,8 @@
 	<string>Este aplicativo precisa acessar sua localização para registrar ocorrências com precisão.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Este aplicativo precisa acessar sua localização para registrar ocorrências com precisão.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Este aplicativo precisa acessar sua localização para registrar ocorrências com precisão.</string>
 	<!-- Permissões para câmera -->
 	<key>NSCameraUsageDescription</key>
 	<string>Este aplicativo precisa acessar sua câmera para capturar fotos das ocorrências.</string>
