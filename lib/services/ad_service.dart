@@ -17,10 +17,10 @@ class AdService extends ChangeNotifier {
   static const String _androidInterstitialAdUnitId = 'ca-app-pub-7666166064406107/6382461548';
   static const String _androidNativeAdUnitId = 'ca-app-pub-7666166064406107/7294308296';
 
-  // iOS IDs (Padrão de teste do Google AdMob):
-  static const String _iosBannerAdUnitId = 'ca-app-pub-3940256099942544/2934735716';
-  static const String _iosInterstitialAdUnitId = 'ca-app-pub-3940256099942544/4411468910';
-  static const String _iosNativeAdUnitId = 'ca-app-pub-3940256099942544/3986624511';
+  // iOS IDs (Reais do usuário):
+  static const String _iosBannerAdUnitId = 'ca-app-pub-7666166064406107/6483101144';
+  static const String _iosInterstitialAdUnitId = 'ca-app-pub-7666166064406107/3804966919';
+  static const String _iosNativeAdUnitId = 'ca-app-pub-7666166064406107/7110776785';
 
   // Getters públicos para os IDs (usados pelos widgets)
   String get bannerAdUnitId => Platform.isAndroid ? _androidBannerAdUnitId : _iosBannerAdUnitId;
