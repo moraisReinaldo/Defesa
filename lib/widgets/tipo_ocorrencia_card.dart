@@ -36,7 +36,7 @@ class TipoOcorrenciaCard extends StatelessWidget {
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: tipoColor.withOpacity(0.25),
+                    color: tipoColor.withValues(alpha: 0.25),
                     blurRadius: 12,
                     offset:  const Offset(0, 4),
                   ),
@@ -66,7 +66,7 @@ class TipoOcorrenciaCard extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: selected
-                            ? tipoColor.withOpacity(0.15)
+                            ? tipoColor.withValues(alpha: 0.15)
                             : tipoColorLight,
                         borderRadius: BorderRadius.circular(16),
                       ),

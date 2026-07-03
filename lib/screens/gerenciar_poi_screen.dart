@@ -48,7 +48,7 @@ class _GerenciarPOIScreenState extends State<GerenciarPOIScreen> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     leading: CircleAvatar(
-                      backgroundColor: _getPOIPriorityColor(poi.tipo).withOpacity(0.1),
+                      backgroundColor: _getPOIPriorityColor(poi.tipo).withValues(alpha: 0.1),
                       child: Icon(_getPOIIcon(poi.tipo), color: _getPOIPriorityColor(poi.tipo)),
                     ),
                     title: Text(
