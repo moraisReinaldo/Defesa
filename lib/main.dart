@@ -22,6 +22,16 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
 
+  // Edge-to-edge: habilitar modo de exibição de ponta a ponta (Android 15+)
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+    systemNavigationBarDividerColor: Colors.transparent,
+  ));
+
   final storageService = StorageService();
   await storageService.init();
 

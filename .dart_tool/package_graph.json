@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "defesa_civil_app",
-      "version": "1.0.0+6",
+      "version": "1.0.0+8",
       "dependencies": [
         "cupertino_icons",
         "dio",
@@ -496,7 +496,7 @@
     },
     {
       "name": "meta",
-      "version": "1.18.0",
+      "version": "1.17.0",
       "dependencies": []
     },
     {
@@ -551,6 +551,18 @@
       "dependencies": [
         "async",
         "path"
+      ]
+    },
+    {
+      "name": "dart_style",
+      "version": "2.3.6",
+      "dependencies": [
+        "analyzer",
+        "args",
+        "collection",
+        "path",
+        "pub_semver",
+        "source_span"
       ]
     },
     {
@@ -678,24 +690,26 @@
       "dependencies": []
     },
     {
-      "name": "source_span",
-      "version": "1.10.0",
+      "name": "analyzer",
+      "version": "6.4.1",
       "dependencies": [
+        "_fe_analyzer_shared",
         "collection",
+        "convert",
+        "crypto",
+        "glob",
+        "meta",
+        "package_config",
         "path",
-        "term_glyph"
-      ]
-    },
-    {
-      "name": "convert",
-      "version": "3.1.2",
-      "dependencies": [
-        "typed_data"
+        "pub_semver",
+        "source_span",
+        "watcher",
+        "yaml"
       ]
     },
     {
       "name": "test_api",
-      "version": "0.7.11",
+      "version": "0.7.10",
       "dependencies": [
         "async",
         "boolean_selector",
@@ -732,11 +746,6 @@
         "term_glyph",
         "test_api"
       ]
-    },
-    {
-      "name": "term_glyph",
-      "version": "1.2.1",
-      "dependencies": []
     },
     {
       "name": "json_annotation",
@@ -811,35 +820,6 @@
         "clock",
         "collection"
       ]
-    },
-    {
-      "name": "leak_tracker_testing",
-      "version": "3.0.2",
-      "dependencies": [
-        "leak_tracker",
-        "matcher",
-        "meta"
-      ]
-    },
-    {
-      "name": "string_scanner",
-      "version": "1.2.0",
-      "dependencies": [
-        "source_span"
-      ]
-    },
-    {
-      "name": "boolean_selector",
-      "version": "2.1.1",
-      "dependencies": [
-        "source_span",
-        "string_scanner"
-      ]
-    },
-    {
-      "name": "vm_service",
-      "version": "14.2.5",
-      "dependencies": []
     },
     {
       "name": "webview_flutter",
@@ -1346,6 +1326,22 @@
       ]
     },
     {
+      "name": "string_scanner",
+      "version": "1.2.0",
+      "dependencies": [
+        "source_span"
+      ]
+    },
+    {
+      "name": "source_span",
+      "version": "1.10.0",
+      "dependencies": [
+        "collection",
+        "path",
+        "term_glyph"
+      ]
+    },
+    {
       "name": "file",
       "version": "7.0.1",
       "dependencies": [
@@ -1376,6 +1372,33 @@
       "dependencies": []
     },
     {
+      "name": "convert",
+      "version": "3.1.2",
+      "dependencies": [
+        "typed_data"
+      ]
+    },
+    {
+      "name": "_fe_analyzer_shared",
+      "version": "67.0.0",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
+      "name": "term_glyph",
+      "version": "1.2.1",
+      "dependencies": []
+    },
+    {
+      "name": "boolean_selector",
+      "version": "2.1.1",
+      "dependencies": [
+        "source_span",
+        "string_scanner"
+      ]
+    },
+    {
       "name": "xml",
       "version": "6.5.0",
       "dependencies": [
@@ -1390,6 +1413,26 @@
       "dependencies": [
         "path",
         "posix"
+      ]
+    },
+    {
+      "name": "leak_tracker_testing",
+      "version": "3.0.2",
+      "dependencies": [
+        "leak_tracker",
+        "matcher",
+        "meta"
+      ]
+    },
+    {
+      "name": "leak_tracker",
+      "version": "11.0.2",
+      "dependencies": [
+        "clock",
+        "collection",
+        "meta",
+        "path",
+        "vm_service"
       ]
     },
     {
@@ -1556,6 +1599,11 @@
       ]
     },
     {
+      "name": "vm_service",
+      "version": "14.2.5",
+      "dependencies": []
+    },
+    {
       "name": "platform",
       "version": "3.1.6",
       "dependencies": []
@@ -1572,54 +1620,6 @@
       "version": "1.0.1",
       "dependencies": [
         "meta"
-      ]
-    },
-    {
-      "name": "leak_tracker",
-      "version": "11.0.2",
-      "dependencies": [
-        "clock",
-        "collection",
-        "meta",
-        "path",
-        "vm_service"
-      ]
-    },
-    {
-      "name": "analyzer",
-      "version": "6.4.1",
-      "dependencies": [
-        "_fe_analyzer_shared",
-        "collection",
-        "convert",
-        "crypto",
-        "glob",
-        "meta",
-        "package_config",
-        "path",
-        "pub_semver",
-        "source_span",
-        "watcher",
-        "yaml"
-      ]
-    },
-    {
-      "name": "_fe_analyzer_shared",
-      "version": "67.0.0",
-      "dependencies": [
-        "meta"
-      ]
-    },
-    {
-      "name": "dart_style",
-      "version": "2.3.6",
-      "dependencies": [
-        "analyzer",
-        "args",
-        "collection",
-        "path",
-        "pub_semver",
-        "source_span"
       ]
     }
   ],
