@@ -100,6 +100,15 @@ public class AuthController {
         return ResponseEntity.status(401).body(Map.of("message", "Senha de administrador incorreta"));
     }
 
+    /**
+     * Logout — JWT é stateless, então o server apenas confirma.
+     * O client apaga o token localmente.
+     */
+    @PostMapping("/auth/logout")
+    public ResponseEntity<?> logout() {
+        return ResponseEntity.ok(Map.of("message", "Logout realizado com sucesso"));
+    }
+
     @GetMapping("/usuarios/agentes")
     public ResponseEntity<List<Usuario>> listarAgentes(@RequestParam(required = false) String cidade) {
         List<Usuario> agentes = usuarioService.buscarUsuariosPorRole("AGENTE", cidade);

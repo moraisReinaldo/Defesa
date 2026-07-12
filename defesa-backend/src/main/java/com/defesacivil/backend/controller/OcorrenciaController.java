@@ -34,6 +34,12 @@ public class OcorrenciaController {
         return ResponseEntity.ok(salva);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Ocorrencia> buscarPorId(@PathVariable String id) {
+        Ocorrencia oc = ocorrenciaService.buscarPorId(id);
+        return oc != null ? ResponseEntity.ok(oc) : ResponseEntity.notFound().build();
+    }
+
     @GetMapping
     public ResponseEntity<Page<Ocorrencia>> listarHistorico(
             @RequestParam(required = false) String cidade,

@@ -47,12 +47,12 @@ class OcorrenciaProvider extends ChangeNotifier {
   List<Ocorrencia> get ocorrenciasResolvidas =>
       _ocorrencias.where((o) => o.status == OcorrenciaStatus.resolvida).toList();
 
-  Future<void> carregarOcorrencias({String? cidade, String? userId}) async {
+  Future<void> carregarOcorrencias({String? cidade, String? userId, bool isAdmin = false}) async {
     _paginaAtual = 0;
     _temMais = true;
     _carregandoMais = false;
 
-    if (cidade == null || cidade.isEmpty) {
+    if (!isAdmin && (cidade == null || cidade.isEmpty)) {
       _ocorrencias = [];
       notifyListeners();
       return;
@@ -61,13 +61,16 @@ class OcorrenciaProvider extends ChangeNotifier {
     try {
       // SEMPRE busca do servidor primeiro — fonte da verdade
       final vindoDaApi = await _apiService.listarOcorrencias(
-        cidade: cidade,
+        cidade: (cidade == null || cidade.isEmpty) ? null : cidade,
         page: _paginaAtual,
         size: _pageSize,
       );
 
       _ocorrencias = vindoDaApi
-          .where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId))
+          .where((o) => 
+            (cidade == null || cidade.isEmpty) || 
+            (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+            (userId != null && o.usuarioId == userId))
           .toList();
       _temMais = vindoDaApi.length >= _pageSize;
 
@@ -78,7 +81,9 @@ class OcorrenciaProvider extends ChangeNotifier {
       // Manter apenas ocorrências locais que ainda não foram sincronizadas
       final localNaoSincronizadas = localAntes
           .where((o) => !idsDoServidor.contains(o.id) &&
-              (o.cidade == cidade || (userId != null && o.usuarioId == userId)))
+              ((cidade == null || cidade.isEmpty) || 
+               (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+               (userId != null && o.usuarioId == userId)))
           .map((o) => o.copyWith(isLocal: true))
           .toList();
 
@@ -94,14 +99,17 @@ class OcorrenciaProvider extends ChangeNotifier {
       if (kDebugMode) print('⚠️ Offline: usando cache local. Erro: $e');
       final local = await _storageService.obterOcorrencias();
       _ocorrencias = local
-          .where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId))
+          .where((o) => 
+            (cidade == null || cidade.isEmpty) || 
+            (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+            (userId != null && o.usuarioId == userId))
           .map((o) => o.copyWith(isLocal: true))
           .toList();
     }
     notifyListeners();
   }
 
-  Future<void> carregarMaisOcorrencias({String? cidade, String? userId}) async {
+  Future<void> carregarMaisOcorrencias({String? cidade, String? userId, bool isAdmin = false}) async {
     if (!_temMais || _carregandoMais) return;
     
     _carregandoMais = true;
@@ -110,12 +118,17 @@ class OcorrenciaProvider extends ChangeNotifier {
     try {
       _paginaAtual++;
       final vindoDaApi = await _apiService.listarOcorrencias(
-        cidade: cidade, 
+        cidade: (cidade == null || cidade.isEmpty) ? null : cidade, 
         page: _paginaAtual, 
         size: _pageSize
       );
       
-      final novos = vindoDaApi.where((o) => o.cidade == cidade || (userId != null && o.usuarioId == userId)).toList();
+      final novos = vindoDaApi
+          .where((o) => 
+            (cidade == null || cidade.isEmpty) || 
+            (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+            (userId != null && o.usuarioId == userId))
+          .toList();
       
       // Evitar duplicatas
       final idsExistentes = _ocorrencias.map((o) => o.id).toSet();

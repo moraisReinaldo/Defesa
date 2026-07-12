@@ -48,13 +48,14 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
     if (!mounted) return;
     final prov = context.read<UsuarioProvider>();
     final user = prov.usuarioLogado;
+    final isGestor = prov.isAdmin || prov.isAgente;
     
     setState(() {
       _cidadesSuportadas = List<Map<String, String>>.from(prov.cidadesSuportadas);
       _carregandoCidades = false;
       
-      // Se for Admin, travar na cidade dele
-      if (prov.isAdmin && user?.cidade != null) {
+      // Se for Gestor (Admin ou Agente), travar na cidade dele
+      if (isGestor && user?.cidade != null) {
         // Encontrar o código da cidade se o usuário tiver apenas o nome
         final correspondente = _cidadesSuportadas.firstWhere(
           (c) => c['nome']?.toLowerCase() == user?.cidade?.toLowerCase() || 
@@ -88,7 +89,9 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
 
       setState(() {
         _cidadeDetectada = cidade;
-        if (!prov.isAdmin) {
+        // Regra: se NÃO for gestor (Admin ou Agente), preenche a cidade selecionada automaticamente
+        final isGestor = prov.isAdmin || prov.isAgente;
+        if (!isGestor) {
           _cidadeSelecionada = codigoCorrespondente;
         }
         _buscandoCidade = false;
@@ -145,8 +148,8 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
               // Cidade Detectada
                if (_carregandoCidades)
                   const LinearProgressIndicator()
-               else if (context.read<UsuarioProvider>().isAdmin)
-                 // Para Admin: Apenas exibe a cidade travada
+               else if (context.read<UsuarioProvider>().isAdmin || context.read<UsuarioProvider>().isAgente)
+                 // Para Gestor (Admin ou Agente): Apenas exibe a cidade travada
                  Container(
                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                    decoration: BoxDecoration(color: AppColors.backgroundOffWhite, borderRadius: BorderRadius.circular(12)),
@@ -227,8 +230,142 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
     
     final userProvider = context.read<UsuarioProvider>();
     final user = userProvider.usuarioLogado;
-    
-    // Verificação de Cidade
+    final isGestor = userProvider.isAdmin || userProvider.isAgente;
+
+    // Se ainda estiver buscando a cidade via GPS, aguardar ou exibir aviso
+    if (_buscandoCidade) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Expanded(child: Text('Verificando jurisdição do ponto selecionado...')),
+            ],
+          ),
+        ),
+      );
+      // Aguarda a detecção terminar
+      int tentativas = 0;
+      while (_buscandoCidade && tentativas < 10) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        tentativas++;
+      }
+      if (!mounted) return;
+      Navigator.pop(context); // fecha o diálogo de carregamento
+    }
+
+    if (!mounted) return;
+
+    // Se for gestor (Admin ou Agente), fazer validação geográfica rigorosa
+    if (isGestor && user?.cidade != null) {
+      final userNotNull = user!;
+      
+      // Tentar obter a cidade novamente se estiver nula
+      if (_cidadeDetectada == null) {
+        try {
+          final cidade = await _geocodingService.obterCidade(
+            widget.posicao.latitude,
+            widget.posicao.longitude,
+          );
+          if (cidade != null) {
+            _cidadeDetectada = cidade;
+          }
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
+
+      if (_cidadeDetectada == null) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Localização Indeterminada'),
+            content: const Text('Não foi possível verificar a cidade deste ponto no mapa. Por favor, verifique sua conexão com a internet.'),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          )
+        );
+        return;
+      }
+
+      final cidadeGestor = userNotNull.cidade!;
+      bool ehMesmaCidade = false;
+
+      // Função de normalização para comparação flexível
+      String normalize(String s) {
+        return s.toLowerCase()
+            .replaceAll('á', 'a').replaceAll('à', 'a').replaceAll('â', 'a').replaceAll('ã', 'a')
+            .replaceAll('é', 'e').replaceAll('ê', 'e')
+            .replaceAll('í', 'i')
+            .replaceAll('ó', 'o').replaceAll('ô', 'o').replaceAll('õ', 'o')
+            .replaceAll('ú', 'u')
+            .replaceAll('ç', 'c')
+            .trim();
+      }
+
+      final normalizedDetectada = normalize(_cidadeDetectada!);
+      final normalizedGestor = normalize(cidadeGestor);
+
+      // 1. Comparação textual direta
+      if (normalizedDetectada.contains(normalizedGestor) || normalizedGestor.contains(normalizedDetectada)) {
+        ehMesmaCidade = true;
+      }
+
+      // 2. Comparação por códigos das cidades suportadas
+      if (!ehMesmaCidade) {
+        String? codigoDetectado;
+        String? codigoGestor;
+
+        for (var c in _cidadesSuportadas) {
+          final nome = c['nome'] ?? '';
+          final codigo = c['codigo'] ?? '';
+          
+          if (normalize(nome).contains(normalizedDetectada) || normalizedDetectada.contains(normalize(nome))) {
+            codigoDetectado = codigo;
+          }
+          if (normalize(nome).contains(normalizedGestor) || normalize(codigo).contains(normalizedGestor)) {
+            codigoGestor = codigo;
+          }
+        }
+
+        if (codigoDetectado != null && codigoGestor != null && codigoDetectado == codigoGestor) {
+          ehMesmaCidade = true;
+        }
+      }
+
+      if (!ehMesmaCidade) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.gpp_bad_rounded, color: Colors.red),
+                SizedBox(width: 8),
+                Expanded(child: Text('Fora da Jurisdição')),
+              ],
+            ),
+            content: Text(
+              'Este ponto está fora da sua jurisdição.\n\n'
+              'Você selecionou um ponto em: "$_cidadeDetectada".\n'
+              'Sua área de atuação é restrita a: "${_cidadesSuportadas.firstWhere((c) => c['codigo'] == _cidadeSelecionada, orElse: () => {'nome': cidadeGestor})['nome']}".'
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              )
+            ],
+          ),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
+
+    // Verificação de Cidade Geral (para todos)
     if (_cidadeSelecionada == null) {
       showDialog(
         context: context,
@@ -241,8 +378,6 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
       return;
     }
 
-    // A cidade já foi travada na inicialização para Admins ou detectada para Cidadãos
-    
     final novoPonto = PontoInteresse(
       tipo: _tipoSelecionado,
       descricao: _descricaoController.text.trim(),
@@ -253,6 +388,7 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
     );
     
     try {
+      if (!mounted) return;
       final sucesso = await context.read<PontoInteresseProvider>().adicionarPonto(novoPonto);
       if (mounted) {
         if (sucesso) {

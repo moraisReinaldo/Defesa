@@ -7,6 +7,7 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
+import com.defesacivil.backend.repository.CidadeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.PageImpl;
+import org.springframework.web.util.HtmlUtils;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,15 +32,18 @@ public class OcorrenciaService {
 
     private final OcorrenciaRepository ocorrenciaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final CidadeRepository cidadeRepository;
     private final NotificationService notificationService;
     private final MinioService minioService;
 
     public OcorrenciaService(OcorrenciaRepository ocorrenciaRepository,
                              UsuarioRepository usuarioRepository,
+                             CidadeRepository cidadeRepository,
                              NotificationService notificationService,
                              MinioService minioService) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.usuarioRepository = usuarioRepository;
+        this.cidadeRepository = cidadeRepository;
         this.notificationService = notificationService;
         this.minioService = minioService;
     }
@@ -74,6 +79,13 @@ public class OcorrenciaService {
 
     // ========== OPERAÇÕES ==========
 
+    @Transactional(readOnly = true)
+    public Ocorrencia buscarPorId(String id) {
+        return ocorrenciaRepository.findById(id)
+                .map(this::processarUrl)
+                .orElse(null);
+    }
+
     public Ocorrencia registrarOcorrencia(OcorrenciaRequest request) {
         if (request.getTipo() == null || request.getTipo().isBlank()) {
             throw new IllegalArgumentException("Tipo da ocorrência é obrigatório");
@@ -94,11 +106,18 @@ public class OcorrenciaService {
         String emailAutenticado = getAuthenticatedEmail();
         if (emailAutenticado != null && !"anonymousUser".equals(emailAutenticado)) {
             // Usuário autenticado: sempre usa o ID do JWT — nunca confia no body
-            usuarioRepository.findByEmail(emailAutenticado)
-                    .ifPresent(u -> oc.setUsuarioId(u.getId()));
+            usuarioRepository.findByEmail(emailAutenticado).ifPresent(u -> {
+                oc.setUsuarioId(u.getId());
+                oc.setAutor(u);
+            });
         } else {
             // Usuário anônimo (sem conta): não tem ID para associar
             oc.setUsuarioId(null);
+            oc.setAutor(null);
+        }
+
+        if (request.getCidade() != null && !request.getCidade().isBlank()) {
+            cidadeRepository.findByNomeIgnoreCase(request.getCidade()).ifPresent(oc::setCidadeEntidade);
         }
 
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
@@ -359,9 +378,6 @@ public class OcorrenciaService {
 
     private String sanitizeInput(String input) {
         if (input == null) return null;
-        return input.replaceAll("<", "&lt;")
-                    .replaceAll(">", "&gt;")
-                    .replaceAll("\"", "&quot;")
-                    .trim();
+        return HtmlUtils.htmlEscape(input.trim());
     }
 }

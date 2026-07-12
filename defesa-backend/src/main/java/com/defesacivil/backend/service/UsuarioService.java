@@ -96,6 +96,16 @@ public class UsuarioService {
             .filter(u -> passwordEncoder.matches(senhaDigitada, u.getSenha()));
     }
 
+    @Transactional(readOnly = true)
+    public List<Usuario> listarTodos() {
+        return repository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Usuario buscarPorId(String id) {
+        return repository.findById(id).orElse(null);
+    }
+
     /**
      * Valida a senha master do administrador.
      * SEGURANÇA: A senha no application.properties deve estar em BCrypt para produção.
@@ -123,7 +133,7 @@ public class UsuarioService {
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
             
-        if (isAdmin) {
+        if (isAdmin && auth != null) {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null) {
@@ -161,7 +171,7 @@ public class UsuarioService {
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
         
-        if (isAdmin) {
+        if (isAdmin && auth != null) {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null && admin.getCidade() != null && !admin.getCidade().trim().isEmpty()) {

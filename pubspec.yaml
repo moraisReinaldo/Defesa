@@ -43,13 +43,14 @@ dependencies:
   geocoding: ^4.0.0
   http: ^1.6.0
   dio: ^5.4.0
-  flutter_local_notifications: ^21.0.0
+  flutter_local_notifications: ^19.5.0
   flutter_secure_storage: ^9.0.0
   url_launcher: ^6.3.0
   onesignal_flutter: ^5.5.2
   stomp_dart_client: ^3.0.1
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  google_mobile_ads: ^4.0.0
 
 dev_dependencies:
   flutter_test:
@@ -111,3 +112,6 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+dependency_overrides:
+  webview_flutter_wkwebview: '>=3.0.0 <3.9.0'
