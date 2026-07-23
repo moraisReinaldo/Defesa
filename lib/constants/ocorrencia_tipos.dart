@@ -12,7 +12,7 @@ class OcorrenciaTipos {
     'tempestade': 'Tempestade / Vendaval',
     'animais_peconhentos': 'Animais Peçonhentos',
     'obstrucao_via': 'Obstrução de Via',
-    'outro': 'Outro (Emergência)',
+    'outro': 'Outro Tipo',
   };
 
   static const Map<String, String> tiposDescricao = {
@@ -25,7 +25,7 @@ class OcorrenciaTipos {
     'tempestade': 'Tempestade, vendaval ou fenômeno meteorológico severo',
     'animais_peconhentos': 'Presença de animais perigosos (serpentes, escorpiões, etc.)',
     'obstrucao_via': 'Vias bloqueadas por detritos, quedas ou acidentes',
-    'outro': 'Outra emergência não classificada',
+    'outro': 'Outra observação',
   };
 
   static const Map<String, IconData> tiposIcones = {
@@ -46,7 +46,7 @@ class OcorrenciaTipos {
   static String getTipoNome(String tipo) => tipos[tipo] ?? 'Desconhecido';
 
   static String getTipoDescricao(String tipo) =>
-      tiposDescricao[tipo] ?? 'Emergência';
+      tiposDescricao[tipo] ?? 'Observação';
 
   static IconData getTipoIcone(String tipo) =>
       tiposIcones[tipo] ?? Icons.emergency_rounded;

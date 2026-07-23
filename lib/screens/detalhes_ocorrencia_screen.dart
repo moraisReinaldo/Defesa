@@ -438,6 +438,36 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Banner Fixo de Aviso Comunitário (Requisito Apple 2.1)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.accentAmber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.4)),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: AppColors.accentAmber, size: 22),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Isso NÃO é canal oficial. Emergência real: 190 (Polícia) / 193 (Bombeiros) / 199 (Defesa Civil)',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          height: 1.35,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
               // Mostrar Card do tipo selecionado
               Container(
                 padding: const EdgeInsets.all(16),
@@ -488,7 +518,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                   controller: _descricaoController,
                   maxLines: 4,
                   decoration: InputDecoration(
-                    hintText: 'Descreva a ocorrência com detalhes...',
+                    hintText: 'Descreva o que você observou (uso comunitário, não substitui os órgãos oficiais)...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide.none,

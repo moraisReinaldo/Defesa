@@ -32,6 +32,7 @@ class UsuarioProvider extends ChangeNotifier {
   String? get cidadeAtiva => _usuarioLogado?.cidade ?? _cidadeDetectadaGps;
 
   ApiService get apiService => _apiService;
+  StorageService get storageService => _storageService;
   Usuario? get usuarioLogado => _usuarioLogado;
   bool get estaLogado => _usuarioLogado != null;
   bool get isAdmin => _isAdmin;

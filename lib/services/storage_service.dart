@@ -8,9 +8,20 @@ class StorageService {
   static const String _ocorrenciasKey = 'ocorrencias';
   static const String _usuarioLogadoKey = 'usuario_logado';
   static const String _tokenKey = 'auth_token';
+  static const String _avisoAceitoKey = 'aviso_comunitario_aceito';
 
   late SharedPreferences _prefs;
   final _secureStorage = const FlutterSecureStorage();
+
+  // ========== AVISO COMUNITÁRIO ==========
+
+  Future<void> salvarAvisoComunitarioAceito(bool aceito) async {
+    await _prefs.setBool(_avisoAceitoKey, aceito);
+  }
+
+  bool obterAvisoComunitarioAceito() {
+    return _prefs.getBool(_avisoAceitoKey) ?? false;
+  }
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();

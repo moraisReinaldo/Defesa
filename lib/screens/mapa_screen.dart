@@ -19,6 +19,7 @@ import '../widgets/search_bar_widget.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ocorrencia_card.dart';
 import '../widgets/ocorrencia_image.dart';
+import '../widgets/aviso_comunitario_dialog.dart';
 import 'registro_ocorrencia_screen.dart'; // Contém SelecaoTipoOcorrenciaScreen
 import 'historico_screen.dart';
 import 'perfil_screen.dart';
@@ -51,6 +52,10 @@ class _MapaScreenState extends State<MapaScreen> {
     super.initState();
     _inicializarMapa();
     _iniciarSeguimentoLocalizacao();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final storage = context.read<UsuarioProvider>().storageService;
+      AvisoComunitarioDialog.exibirSeNecessario(context, storage);
+    });
   }
 
   void _iniciarSeguimentoLocalizacao() {
