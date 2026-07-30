@@ -24,19 +24,35 @@ class DetalhesOcorrenciaScreen extends StatefulWidget {
       _DetalhesOcorrenciaScreenState();
 }
 
-class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
+class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
+    with RestorationMixin {
   final _formKey = GlobalKey<FormState>();
-  final _descricaoController = TextEditingController();
+
+  // Restorável: sobrevive ao Android matar a Activity (ex: câmera em background)
+  final _descricaoController = RestorableTextEditingController();
+  final _fotoPath = RestorableStringN(null);
 
   final ImagePicker _imagePicker = ImagePicker();
   final LocalizacaoService _localizacaoService = LocalizacaoService();
   final GeocodingService _geocodingService = GeocodingService();
 
-  File? _fotoSelecionada;
   Position? _posicaoAtual;
   String? _cidadeDetectada;
   bool _carregando = false;
   String? _codigoCidadeDetectada;
+
+  // Getter de conveniência para o File atual
+  File? get _fotoSelecionada =>
+      _fotoPath.value != null ? File(_fotoPath.value!) : null;
+
+  @override
+  String? get restorationId => 'detalhes_ocorrencia_screen';
+
+  @override
+  void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
+    registerForRestoration(_descricaoController, 'descricao_controller');
+    registerForRestoration(_fotoPath, 'foto_path');
+  }
 
   @override
   void initState() {
@@ -143,7 +159,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         if (!mounted) return;
         if (foto != null) {
           setState(() {
-            _fotoSelecionada = File(foto.path);
+            _fotoPath.value = foto.path;
           });
         }
       } catch (e) {
@@ -245,7 +261,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
       if (!mounted) return;
       if (foto != null) {
         setState(() {
-          _fotoSelecionada = File(foto.path);
+          _fotoPath.value = foto.path;
         });
       }
     } catch (e) {
@@ -334,7 +350,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
 
       final ocorrencia = Ocorrencia(
         tipo: widget.tipoOcorrencia,
-        descricao: _descricaoController.text,
+        descricao: _descricaoController.value.text,
         latitude: _posicaoAtual!.latitude,
         longitude: _posicaoAtual!.longitude,
         cidade: _codigoCidadeDetectada, // Sempre usa o CÓDIGO
@@ -415,6 +431,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
         usuarioProvider.estaLogado || usuarioProvider.isAdmin;
 
     return Scaffold(
+      restorationId: 'detalhes_ocorrencia_scaffold',
       backgroundColor: AppColors.backgroundOffWhite,
       appBar: AppBar(
         title: const Text("Detalhes da Ocorrência"),
@@ -515,7 +532,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                   ],
                 ),
                 child: TextFormField(
-                  controller: _descricaoController,
+                  controller: _descricaoController.value,
                   maxLines: 4,
                   decoration: InputDecoration(
                     hintText: 'Descreva o que você observou (uso comunitário, não substitui os órgãos oficiais)...',
@@ -527,7 +544,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
                     fillColor: AppColors.surfaceCard,
                   ),
                     validator: (valor) {
-                      if (valor == null || valor.isEmpty) {
+                      if (valor == null || valor.trim().isEmpty) {
                         return "Digite uma descrição";
                       }
                       return null;
@@ -727,7 +744,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  _fotoSelecionada = null;
+                  _fotoPath.value = null;
                 });
               },
               child: Container(
@@ -902,6 +919,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen> {
   @override
   void dispose() {
     _descricaoController.dispose();
+    _fotoPath.dispose();
     super.dispose();
   }
 }
