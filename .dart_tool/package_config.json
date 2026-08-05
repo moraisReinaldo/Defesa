@@ -231,33 +231,21 @@
     },
     {
       "name": "flutter_local_notifications",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-22.2.0",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-17.2.4",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "2.17"
     },
     {
       "name": "flutter_local_notifications_linux",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_linux-8.0.1",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_linux-4.0.1",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "2.17"
     },
     {
       "name": "flutter_local_notifications_platform_interface",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_platform_interface-12.1.0",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_platform_interface-7.2.0",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
-    },
-    {
-      "name": "flutter_local_notifications_web",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_web-1.0.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.10"
-    },
-    {
-      "name": "flutter_local_notifications_windows",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_windows-3.1.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "2.17"
     },
     {
       "name": "flutter_map",
@@ -318,30 +306,6 @@
       "rootUri": "file:///C:/flutter/packages/flutter_web_plugins",
       "packageUri": "lib/",
       "languageVersion": "3.9"
-    },
-    {
-      "name": "geocoding",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/geocoding-5.0.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.3"
-    },
-    {
-      "name": "geocoding_android",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/geocoding_android-5.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.3"
-    },
-    {
-      "name": "geocoding_darwin",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/geocoding_darwin-1.0.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.8"
-    },
-    {
-      "name": "geocoding_platform_interface",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/geocoding_platform_interface-5.0.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.8"
     },
     {
       "name": "geolocator",
@@ -722,12 +686,6 @@
       "languageVersion": "3.8"
     },
     {
-      "name": "pigeon",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/pigeon-26.3.4",
-      "packageUri": "lib/",
-      "languageVersion": "3.9"
-    },
-    {
       "name": "platform",
       "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/platform-3.1.6",
       "packageUri": "lib/",
@@ -866,12 +824,6 @@
       "languageVersion": "3.4"
     },
     {
-      "name": "stomp_dart_client",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/stomp_dart_client-3.0.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
       "name": "stream_channel",
       "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/stream_channel-2.1.4",
       "packageUri": "lib/",
@@ -903,9 +855,9 @@
     },
     {
       "name": "timezone",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/timezone-0.11.1",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/timezone-0.9.4",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "2.19"
     },
     {
       "name": "typed_data",
@@ -1029,9 +981,9 @@
     },
     {
       "name": "webview_flutter_wkwebview",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/webview_flutter_wkwebview-3.25.1",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/webview_flutter_wkwebview-3.8.0",
       "packageUri": "lib/",
-      "languageVersion": "3.10"
+      "languageVersion": "2.19"
     },
     {
       "name": "win32",

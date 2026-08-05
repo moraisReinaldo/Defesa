@@ -109,10 +109,10 @@ class NotificationService {
     );
     const details = NotificationDetails(android: androidDetails);
     await _localNotifications.show(
-      id: id,
-      title: titulo,
-      body: corpo,
-      notificationDetails: details,
+      id,
+      titulo,
+      corpo,
+      details,
     );
   }
 
