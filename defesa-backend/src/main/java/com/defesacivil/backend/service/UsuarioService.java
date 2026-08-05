@@ -194,6 +194,31 @@ public class UsuarioService {
         return true;
     }
 
+    /**
+     * Exclui a própria conta do usuário autenticado.
+     * Em vez de DELETE físico (quebraria FKs com ocorrências),
+     * anonimiza todos os dados pessoais (LGPD) e marca como DELETADO.
+     */
+    public void excluirPropriaConta(String email) {
+        Usuario usuario = repository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+
+        log.info("Exclusão de conta solicitada pelo usuário: {} (id: {})", email, usuario.getId());
+
+        // Anonimização LGPD — remove todos os dados pessoais
+        usuario.setNome("Usuário Removido");
+        usuario.setEmail("deletado_" + usuario.getId() + "@removed.local");
+        usuario.setTelefone(null);
+        usuario.setSenha(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        usuario.setFcmToken(null);
+        usuario.setResetSenhaCodigo(null);
+        usuario.setResetSenhaExpiracao(null);
+        usuario.setStatus("DELETADO");
+
+        repository.save(usuario);
+        log.info("Conta anonimizada com sucesso (id: {})", usuario.getId());
+    }
+
     public Usuario atualizarUsuario(String id, UsuarioRequest request) {
         Usuario usuario = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));

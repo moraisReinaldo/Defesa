@@ -69,6 +69,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/promover").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/ocorrencias/**").hasRole("ADMINISTRADOR")
                 .requestMatchers(HttpMethod.DELETE, "/api/marcacoes/**").hasRole("ADMINISTRADOR")
+                // Excluir própria conta — qualquer autenticado (ANTES da regra admin wildcard)
+                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/minha-conta").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasRole("ADMINISTRADOR")
 
                 // ===== ROTAS DE AGENTE E ADMINISTRADOR =====

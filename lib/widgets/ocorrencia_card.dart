@@ -37,7 +37,7 @@ class OcorrenciaCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primaryTeal.withValues(alpha: 0.08)
+              ? AppColors.primaryTeal.withOpacity(0.08)
               : AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(20),
           border: selected

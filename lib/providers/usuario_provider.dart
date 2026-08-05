@@ -80,7 +80,7 @@ class UsuarioProvider extends ChangeNotifier {
       );
 
       // 2. Tentar geocoding com timeout manual (pois a lib geocoding não tem nativo)
-      final placemarks = await Future.any([
+      final placemarks = await Future.any(<Future<List<Placemark>>>[
         placemarkFromCoordinates(position.latitude, position.longitude),
         Future.delayed(const Duration(seconds: 3)).then((_) => <Placemark>[])
       ]);
@@ -304,6 +304,21 @@ class UsuarioProvider extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) print('Erro no cadastro: $e');
       return {'sucesso': false, 'message': 'Erro de conexão ou servidor.'};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Exclui a própria conta do usuário autenticado.
+  /// Chama a API primeiro (precisa do token), depois faz logout local.
+  Future<void> excluirMinhaConta() async {
+    _setLoading(true);
+    try {
+      await _apiService.excluirMinhaConta();
+      await logout();
+    } catch (e) {
+      if (kDebugMode) print('Erro ao excluir conta: $e');
+      rethrow;
     } finally {
       _setLoading(false);
     }

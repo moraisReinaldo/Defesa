@@ -37,6 +37,7 @@ class ApiService {
   Future<Usuario?> atualizarUsuario(String id, UsuarioRequest req) => _auth.atualizarUsuario(id, req);
   Future<bool> solicitarResetSenha(String email) => _auth.solicitarResetSenha(email);
   Future<bool> resetarSenha(String email, String codigo, String novaSenha) => _auth.resetarSenha(email, codigo, novaSenha);
+  Future<void> excluirMinhaConta() => _auth.excluirMinhaConta();
 
   // ========== OCORRÊNCIAS ==========
   Future<List<Ocorrencia>> listarOcorrencias({String? cidade, int page = 0, int size = 50}) => 

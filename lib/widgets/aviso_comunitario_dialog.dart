@@ -62,7 +62,7 @@ class _AvisoComunitarioDialogState extends State<AvisoComunitarioDialog> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.accentAmber.withValues(alpha: 0.15),
+                        color: AppColors.accentAmber.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -102,10 +102,10 @@ class _AvisoComunitarioDialogState extends State<AvisoComunitarioDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
+                    color: Colors.red.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.red.withValues(alpha: 0.3),
+                      color: Colors.red.withOpacity(0.3),
                     ),
                   ),
                   child: const Text(
@@ -122,10 +122,10 @@ class _AvisoComunitarioDialogState extends State<AvisoComunitarioDialog> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryTeal.withValues(alpha: 0.08),
+                    color: AppColors.primaryTeal.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppColors.primaryTeal.withValues(alpha: 0.25),
+                      color: AppColors.primaryTeal.withOpacity(0.25),
                     ),
                   ),
                   child: const Column(

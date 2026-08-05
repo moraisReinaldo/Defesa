@@ -78,9 +78,17 @@ class OcorrenciaProvider extends ChangeNotifier {
       final idsDoServidor = _ocorrencias.map((o) => o.id).toSet();
       final localAntes = await _storageService.obterOcorrencias();
 
-      // Manter apenas ocorrências locais que ainda não foram sincronizadas
+      // Limpar do cache local ocorrências que foram deletadas no servidor
+      // (existiam no cache local como sincronizadas, mas não vieram mais na API)
+      for (final localOc in localAntes) {
+        if (!idsDoServidor.contains(localOc.id) && !localOc.isLocal) {
+          await _storageService.deletarOcorrencia(localOc.id);
+        }
+      }
+
+      // Manter apenas ocorrências locais que nunca foram sincronizadas (criadas offline)
       final localNaoSincronizadas = localAntes
-          .where((o) => !idsDoServidor.contains(o.id) &&
+          .where((o) => !idsDoServidor.contains(o.id) && o.isLocal &&
               ((cidade == null || cidade.isEmpty) || 
                (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
                (userId != null && o.usuarioId == userId)))

@@ -53,6 +53,16 @@ public class UsuarioController {
         ));
     }
 
+    /** Excluir própria conta — qualquer usuário autenticado */
+    @DeleteMapping("/minha-conta")
+    public ResponseEntity<?> excluirMinhaConta() {
+        org.springframework.security.core.Authentication auth =
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+        usuarioService.excluirPropriaConta(email);
+        return ResponseEntity.ok(Map.of("message", "Conta excluída com sucesso."));
+    }
+
     /** Deletar usuário — apenas ADMINISTRADOR (protegido no SecurityConfig) */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarUsuario(@PathVariable String id) {

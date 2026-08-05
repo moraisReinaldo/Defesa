@@ -84,6 +84,14 @@ class AuthService {
     }
   }
 
+  Future<void> excluirMinhaConta() async {
+    try {
+      await _client.dio.delete('/usuarios/minha-conta');
+    } on DioException catch (e) {
+      throw _client.handleDioError(e);
+    }
+  }
+
   Future<Usuario?> atualizarUsuario(String id, UsuarioRequest req) async {
     try {
       final res = await _client.dio.put('/usuarios/$id', data: req.toJson());

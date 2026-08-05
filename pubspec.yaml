@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.1+9
+version: 1.0.2+13
 
 environment:
   sdk: ^3.5.0
@@ -39,10 +39,10 @@ dependencies:
   uuid: ^4.0.0
   permission_handler: ^11.4.0
   latlong2: 0.9.0
-  geocoding: ^4.0.0
+  geocoding: ^3.0.0
   http: ^1.6.0
   dio: ^5.4.0
-  flutter_local_notifications: ^19.5.0
+  flutter_local_notifications: ^17.1.2
   flutter_secure_storage: ^9.0.0
   url_launcher: ^6.3.0
   onesignal_flutter: ^5.5.2
@@ -59,8 +59,8 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^4.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
   mockito: ^5.4.4
   build_runner: ^2.4.11
 
@@ -113,3 +113,4 @@ flutter:
 
 dependency_overrides:
   webview_flutter_wkwebview: '>=3.0.0 <3.9.0'
+

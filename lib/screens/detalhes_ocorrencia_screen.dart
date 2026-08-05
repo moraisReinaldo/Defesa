@@ -32,6 +32,10 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
   final _descricaoController = RestorableTextEditingController();
   final _fotoPath = RestorableStringN(null);
 
+  bool _visaoDistancia = false;
+  final _distanciaController = RestorableTextEditingController();
+  final _direcaoController = RestorableTextEditingController();
+
   final ImagePicker _imagePicker = ImagePicker();
   final LocalizacaoService _localizacaoService = LocalizacaoService();
   final GeocodingService _geocodingService = GeocodingService();
@@ -52,6 +56,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
   void restoreState(RestorationBucket? oldBucket, bool initialRestore) {
     registerForRestoration(_descricaoController, 'descricao_controller');
     registerForRestoration(_fotoPath, 'foto_path');
+    registerForRestoration(_distanciaController, 'distancia_controller');
+    registerForRestoration(_direcaoController, 'direcao_controller');
   }
 
   @override
@@ -211,7 +217,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                      color: AppColors.primaryTeal.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.camera_alt_rounded,
@@ -228,7 +234,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.accentAmber.withValues(alpha: 0.1),
+                      color: AppColors.accentAmber.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.photo_library_rounded,
@@ -348,9 +354,18 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
       final usuarioLogado = usuarioProvider.usuarioLogado;
       final isAgenteOuAdmin = usuarioProvider.isAdmin || (usuarioLogado?.role == Role.agente);
 
+      String descricaoFinal = _descricaoController.value.text;
+      if (_visaoDistancia) {
+        final dist = _distanciaController.value.text.trim();
+        final dir = _direcaoController.value.text.trim();
+        if (dist.isNotEmpty || dir.isNotEmpty) {
+          descricaoFinal = "[Observado à distância: ${dist.isNotEmpty ? dist : '?'} - Direção: ${dir.isNotEmpty ? dir : '?'}]\n\n$descricaoFinal";
+        }
+      }
+
       final ocorrencia = Ocorrencia(
         tipo: widget.tipoOcorrencia,
-        descricao: _descricaoController.value.text,
+        descricao: descricaoFinal,
         latitude: _posicaoAtual!.latitude,
         longitude: _posicaoAtual!.longitude,
         cidade: _codigoCidadeDetectada, // Sempre usa o CÓDIGO
@@ -440,7 +455,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
+              color: Colors.white.withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.arrow_back_rounded, size: 20),
@@ -460,9 +475,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.accentAmber.withValues(alpha: 0.12),
+                  color: AppColors.accentAmber.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.4)),
+                  border: Border.all(color: AppColors.accentAmber.withOpacity(0.4)),
                 ),
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,9 +504,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                  color: AppColors.primaryTeal.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.3)),
+                  border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -549,6 +564,71 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                       }
                       return null;
                     },
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              
+              // === VISÃO À DISTÂNCIA ===
+              Container(
+                decoration: BoxDecoration(
+                  color: _visaoDistancia ? AppColors.accentAmber.withOpacity(0.1) : AppColors.surfaceCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _visaoDistancia ? AppColors.accentAmber.withOpacity(0.5) : AppColors.borderLight,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      title: const Text(
+                        'Estou reportando à distância',
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                      subtitle: const Text(
+                        'Marque se você não está no local exato do GPS, mas tem contato visual',
+                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      activeColor: AppColors.accentAmber,
+                      value: _visaoDistancia,
+                      onChanged: (val) => setState(() => _visaoDistancia = val),
+                    ),
+                    if (_visaoDistancia)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _distanciaController.value,
+                                decoration: InputDecoration(
+                                  labelText: 'Distância estimada',
+                                  hintText: 'Ex: 500m, 2km',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _direcaoController.value,
+                                decoration: InputDecoration(
+                                  labelText: 'Direção / Lado',
+                                  hintText: 'Ex: Norte, Direita',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
 
@@ -634,7 +714,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                       borderRadius: BorderRadius.circular(18),
                     ),
                     elevation: 4,
-                    shadowColor: AppColors.accentAmber.withValues(alpha: 0.4),
+                    shadowColor: AppColors.accentAmber.withOpacity(0.4),
                   ),
                   child: _carregando
                       ? const SizedBox(
@@ -681,7 +761,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: AppColors.primaryTeal.withValues(alpha: 0.1),
+            color: AppColors.primaryTeal.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, size: 18, color: AppColors.primaryTeal),
@@ -755,7 +835,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
+                      color: Colors.black.withOpacity(0.2),
                       blurRadius: 6,
                     ),
                   ],
@@ -788,7 +868,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primaryTeal.withValues(alpha: 0.08),
+                color: AppColors.primaryTeal.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(

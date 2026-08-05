@@ -33,7 +33,7 @@ class LocalizacaoService {
       // Obter posição atual
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit:  const Duration(seconds: 10),
+        timeLimit: const Duration(seconds: 5),
       );
 
       return position;
