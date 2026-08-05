@@ -113,3 +113,6 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
+dependency_overrides:
+  webview_flutter_wkwebview: '>=3.0.0 <3.9.0'
+
