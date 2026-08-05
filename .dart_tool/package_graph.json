@@ -20,13 +20,11 @@
         "hive_flutter",
         "http",
         "image_picker",
-        "intl",
         "latlong2",
         "onesignal_flutter",
         "permission_handler",
         "provider",
         "shared_preferences",
-        "stomp_dart_client",
         "url_launcher",
         "uuid"
       ],
@@ -167,13 +165,6 @@
       ]
     },
     {
-      "name": "stomp_dart_client",
-      "version": "3.0.1",
-      "dependencies": [
-        "web_socket"
-      ]
-    },
-    {
       "name": "onesignal_flutter",
       "version": "5.6.6",
       "dependencies": [
@@ -278,15 +269,6 @@
       "dependencies": [
         "crypto",
         "fixnum"
-      ]
-    },
-    {
-      "name": "intl",
-      "version": "0.19.0",
-      "dependencies": [
-        "clock",
-        "meta",
-        "path"
       ]
     },
     {
@@ -792,13 +774,6 @@
       ]
     },
     {
-      "name": "web_socket",
-      "version": "1.0.1",
-      "dependencies": [
-        "web"
-      ]
-    },
-    {
       "name": "url_launcher_windows",
       "version": "3.1.5",
       "dependencies": [
@@ -990,6 +965,15 @@
         "flutter",
         "meta",
         "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "intl",
+      "version": "0.19.0",
+      "dependencies": [
+        "clock",
+        "meta",
+        "path"
       ]
     },
     {
@@ -1282,6 +1266,13 @@
         "collection",
         "path",
         "term_glyph"
+      ]
+    },
+    {
+      "name": "web_socket",
+      "version": "1.0.1",
+      "dependencies": [
+        "web"
       ]
     },
     {
