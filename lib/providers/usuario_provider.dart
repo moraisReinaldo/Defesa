@@ -75,13 +75,15 @@ class UsuarioProvider extends ChangeNotifier {
     try {
       // 1. Obter coordenadas com timeout agressivo
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.low, 
-        timeLimit: const Duration(seconds: 4),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 4),
+        ),
       );
 
       // 2. Tentar geocoding com timeout manual (pois a lib geocoding não tem nativo)
       final placemarks = await Future.any(<Future<List<Placemark>>>[
-        placemarkFromCoordinates(position.latitude, position.longitude),
+        GeocodingPlatform.instance!.placemarkFromCoordinates(position.latitude, position.longitude),
         Future.delayed(const Duration(seconds: 3)).then((_) => <Placemark>[])
       ]);
 

@@ -29,7 +29,7 @@ class NotificationService {
     );
 
     await _localNotifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
@@ -109,10 +109,10 @@ class NotificationService {
     );
     const details = NotificationDetails(android: androidDetails);
     await _localNotifications.show(
-      id,
-      titulo,
-      corpo,
-      details,
+      id: id,
+      title: titulo,
+      body: corpo,
+      notificationDetails: details,
     );
   }
 
