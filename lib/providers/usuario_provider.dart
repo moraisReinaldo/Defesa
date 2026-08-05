@@ -309,6 +309,21 @@ class UsuarioProvider extends ChangeNotifier {
     }
   }
 
+  /// Exclui a própria conta do usuário autenticado.
+  /// Chama a API primeiro (precisa do token), depois faz logout local.
+  Future<void> excluirMinhaConta() async {
+    _setLoading(true);
+    try {
+      await _apiService.excluirMinhaConta();
+      await logout();
+    } catch (e) {
+      if (kDebugMode) print('Erro ao excluir conta: $e');
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> logout() async {
     await _storageService.limparSessao();
     // Limpar prefer\u00eancias do Hive ao sair [CR2 - Recursos Nativos]

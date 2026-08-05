@@ -374,6 +374,19 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
+                // Botão Excluir Conta (Apple Guideline 5.1.1v)
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => _confirmarExclusaoConta(prov),
+                    icon: const Icon(Icons.delete_forever_rounded, size: 18),
+                    label: const Text('Excluir minha conta'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -625,6 +638,135 @@ class _PerfilScreenState extends State<PerfilScreen> {
         ),
       ),
     );
+  }
+
+  void _confirmarExclusaoConta(UsuarioProvider prov) {
+    // Etapa 1: Aviso inicial
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 48),
+        title: const Text('Excluir conta?'),
+        content: const Text(
+          'Esta ação é irreversível. Todos os seus dados pessoais serão removidos permanentemente.\n\n'
+          'Suas ocorrências registradas serão mantidas de forma anônima para fins de histórico público.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _confirmarExclusaoEtapa2(prov);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmarExclusaoEtapa2(UsuarioProvider prov) {
+    final confirmController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Confirmação final', style: TextStyle(fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Para confirmar, digite EXCLUIR abaixo:',
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmController,
+              textCapitalization: TextCapitalization.characters,
+              decoration: InputDecoration(
+                hintText: 'EXCLUIR',
+                filled: true,
+                fillColor: AppColors.backgroundOffWhite,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.red.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.red.shade700, width: 2),
+                ),
+              ),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 4),
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (confirmController.text.trim().toUpperCase() != 'EXCLUIR') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Digite EXCLUIR para confirmar.'),
+                    backgroundColor: AppColors.statusActive,
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(context); // Fecha diálogo
+              await _executarExclusaoConta(prov);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Excluir definitivamente'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _executarExclusaoConta(UsuarioProvider prov) async {
+    try {
+      await prov.excluirMinhaConta();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Conta excluída com sucesso.'),
+          backgroundColor: AppColors.statusResolved,
+        ),
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoadingScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao excluir conta: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.statusActive,
+        ),
+      );
+    }
   }
 
   void _promoverUsuario(UsuarioProvider prov) async {
