@@ -13,6 +13,7 @@
         "flutter_local_notifications",
         "flutter_map",
         "flutter_secure_storage",
+        "geocoding",
         "geolocator",
         "google_mobile_ads",
         "hive",
@@ -229,6 +230,16 @@
         "http_parser",
         "meta",
         "web"
+      ]
+    },
+    {
+      "name": "geocoding",
+      "version": "3.0.0",
+      "dependencies": [
+        "flutter",
+        "geocoding_android",
+        "geocoding_ios",
+        "geocoding_platform_interface"
       ]
     },
     {
@@ -1580,6 +1591,31 @@
         "collection",
         "meta",
         "pub_semver"
+      ]
+    },
+    {
+      "name": "geocoding_platform_interface",
+      "version": "3.2.0",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "geocoding_ios",
+      "version": "3.1.0",
+      "dependencies": [
+        "flutter",
+        "geocoding_platform_interface"
+      ]
+    },
+    {
+      "name": "geocoding_android",
+      "version": "3.3.1",
+      "dependencies": [
+        "flutter",
+        "geocoding_platform_interface"
       ]
     }
   ],
