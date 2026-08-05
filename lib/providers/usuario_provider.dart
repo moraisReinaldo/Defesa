@@ -83,7 +83,7 @@ class UsuarioProvider extends ChangeNotifier {
 
       // 2. Tentar geocoding com timeout manual (pois a lib geocoding não tem nativo)
       final placemarks = await Future.any(<Future<List<Placemark>>>[
-        GeocodingPlatform.instance!.placemarkFromCoordinates(position.latitude, position.longitude),
+        Geocoding().placemarkFromCoordinates(position.latitude, position.longitude),
         Future.delayed(const Duration(seconds: 3)).then((_) => <Placemark>[])
       ]);
 
