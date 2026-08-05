@@ -181,7 +181,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     AppColors.getTipoColor(ocorrencia.tipo),
-                    AppColors.getTipoColor(ocorrencia.tipo).withValues(alpha: 0.8),
+                    AppColors.getTipoColor(ocorrencia.tipo).withOpacity(0.8),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
@@ -191,7 +191,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   Container(
                     width: 56, height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
+                      color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -329,7 +329,7 @@ class _MapaScreenState extends State<MapaScreen> {
                                       }
                                     }
                                   },
-                                  selectedColor: AppColors.primaryTeal.withValues(alpha: 0.2),
+                                  selectedColor: AppColors.primaryTeal.withOpacity(0.2),
                                   checkmarkColor: AppColors.primaryTeal,
                                 );
                               }).toList(),
@@ -494,7 +494,7 @@ class _MapaScreenState extends State<MapaScreen> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-        decoration: BoxDecoration(color: AppColors.primaryTeal.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2))),
+        decoration: BoxDecoration(color: AppColors.primaryTeal.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.primaryTeal.withOpacity(0.2))),
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 16, color: AppColors.primaryTeal), const SizedBox(width: 6), Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryTeal))]),
       ),
     );

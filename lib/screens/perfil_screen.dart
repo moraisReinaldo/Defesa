@@ -67,7 +67,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primaryTeal.withValues(alpha: 0.3),
+                        color: AppColors.primaryTeal.withOpacity(0.3),
                         blurRadius: 16,
                         offset:  const Offset(0, 6),
                       ),
@@ -187,9 +187,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     margin: const EdgeInsets.only(bottom: 20),
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withValues(alpha: 0.05),
+                      color: AppColors.primaryTeal.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
+                      border: Border.all(color: AppColors.primaryTeal.withOpacity(0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,7 +465,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 width: 100,
                 height: 100,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                  color: AppColors.primaryTeal.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.account_circle_rounded,
