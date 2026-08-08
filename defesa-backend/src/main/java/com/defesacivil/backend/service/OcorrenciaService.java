@@ -99,7 +99,8 @@ public class OcorrenciaService {
         oc.setDescricao(sanitizeInput(request.getDescricao()));
         oc.setLatitude(request.getLatitude());
         oc.setLongitude(request.getLongitude());
-        oc.setCidade(sanitizeInput(request.getCidade()));
+        String cidade = sanitizeInput(request.getCidade());
+        oc.setCidade(cidade != null ? cidade.toUpperCase() : null);
         oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
         
         // CORRETO - Segurança (Backend Bug 4)
@@ -280,7 +281,10 @@ public class OcorrenciaService {
         
         if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
         if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
-        if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
+        if (request.getCidade() != null) {
+            String cidadeEditada = sanitizeInput(request.getCidade());
+            oc.setCidade(cidadeEditada != null ? cidadeEditada.toUpperCase() : null);
+        }
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
 
         return processarUrl(ocorrenciaRepository.save(oc));
