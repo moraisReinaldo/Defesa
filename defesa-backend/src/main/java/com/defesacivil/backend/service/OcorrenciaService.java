@@ -157,7 +157,7 @@ public class OcorrenciaService {
             List<Usuario> admins = usuarioRepository.findByCidadeAndRole(oc.getCidade(), Role.ADMINISTRADOR.name());
             for (Usuario admin : admins) {
                 notificationService.sendPushNotification(
-                    admin.getFcmToken(),
+                    admin.getId(),
                     "Nova Ocorrência Pendente",
                     "Uma nova ocorrência aguarda aprovação em " + oc.getCidade() + "."
                 );
@@ -179,7 +179,7 @@ public class OcorrenciaService {
         if (oc.getUsuarioId() != null) {
             usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
                 notificationService.sendPushNotification(
-                    user.getFcmToken(),
+                    user.getId(),
                     "Ocorrência Aprovada",
                     "Sua ocorrência '" + oc.getTipo() + "' foi verificada e publicada."
                 )
@@ -224,7 +224,7 @@ public class OcorrenciaService {
         if (oc.getUsuarioId() != null) {
             usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
                 notificationService.sendPushNotification(
-                    user.getFcmToken(),
+                    user.getId(),
                     "Caso Resolvido!",
                     "A ocorrência em " + oc.getCidade() + " foi marcada como resolvida."
                 )
@@ -270,7 +270,19 @@ public class OcorrenciaService {
     public Ocorrencia atualizarOcorrencia(String id, OcorrenciaRequest request) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
+        
         checkJurisdiction(oc.getCidade());
+        
+        if (!hasAnyRole("ADMINISTRADOR", "AGENTE")) {
+            String email = getAuthenticatedEmail();
+            if (email == null) {
+                throw new SecurityException("Acesso negado: Usuário não autenticado.");
+            }
+            Usuario currentUser = usuarioRepository.findByEmail(email).orElse(null);
+            if (currentUser == null || oc.getUsuarioId() == null || !oc.getUsuarioId().equals(currentUser.getId())) {
+                throw new SecurityException("Acesso negado: Você só pode editar suas próprias ocorrências.");
+            }
+        }
 
         if (request.getTipo() != null) oc.setTipo(sanitizeInput(request.getTipo()));
         if (request.getDescricao() != null) oc.setDescricao(sanitizeInput(request.getDescricao()));
@@ -344,6 +356,8 @@ public class OcorrenciaService {
         copia.setDataResolucao(oc.getDataResolucao());
         copia.setCriadoPorAgente(oc.isCriadoPorAgente());
         copia.setDescricaoSituacao(oc.getDescricaoSituacao());
+        copia.setCidadeEntidade(oc.getCidadeEntidade());
+        copia.setAutor(oc.getAutor());
         
         String foto = oc.getCaminhoFoto();
         if (foto == null || foto.isBlank()) {

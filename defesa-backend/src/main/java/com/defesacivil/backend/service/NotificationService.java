@@ -29,29 +29,32 @@ public class NotificationService {
         this.restTemplate = new RestTemplate();
     }
 
-    public void sendPushNotification(String token, String title, String body) {
-        if (token == null || token.isEmpty()) return;
+    public void sendPushNotification(String userId, String title, String body) {
+        if (userId == null || userId.isEmpty()) return;
         
-        try {
-            String url = "https://onesignal.com/api/v1/notifications";
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization", "Key " + onesignalRestKey);
-            headers.set("accept", "application/json");
-            
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("app_id", onesignalAppId);
-            payload.put("include_player_ids", List.of(token));
-            payload.put("headings", Map.of("en", title, "pt", title));
-            payload.put("contents", Map.of("en", body, "pt", body));
-            
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
-            
-            log.info("[OneSignal] Notificação enviada para {}. Status: {}", token, response.getStatusCode());
-        } catch (Exception e) {
-            log.error("[OneSignal] Erro ao enviar notificação: {}", e.getMessage());
-        }
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                String url = "https://onesignal.com/api/v1/notifications";
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                headers.set("Authorization", "Basic " + onesignalRestKey);
+                headers.set("accept", "application/json");
+                
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("app_id", onesignalAppId);
+                payload.put("target_channel", "push");
+                payload.put("include_aliases", Map.of("external_id", List.of(userId)));
+                payload.put("headings", Map.of("en", title, "pt", title));
+                payload.put("contents", Map.of("en", body, "pt", body));
+                
+                HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
+                
+                log.info("[OneSignal] Notificação enviada para {}. Status: {}", userId, response.getStatusCode());
+            } catch (Exception e) {
+                log.error("[OneSignal] Erro ao enviar notificação: {}", e.getMessage());
+            }
+        });
     }
 }

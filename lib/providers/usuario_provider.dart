@@ -303,7 +303,12 @@ class UsuarioProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) print('Erro no cadastro: $e');
-      return {'sucesso': false, 'message': 'Erro de conexão ou servidor.'};
+      // Pass the actual error message if possible to improve user feedback
+      String erroMsg = 'Erro de conexão ou servidor. Verifique sua internet.';
+      if (e.toString().contains('E-mail já cadastrado') || e.toString().contains('Exception:')) {
+        erroMsg = e.toString().replaceAll('Exception: ', '');
+      }
+      return {'sucesso': false, 'message': erroMsg};
     } finally {
       _setLoading(false);
     }
@@ -372,6 +377,13 @@ class UsuarioProvider extends ChangeNotifier {
       if (_isAdmin) {
         carregarAgentes();
       }
+      
+      // Registrar ID no OneSignal para usuários que já estavam logados
+      OneSignal.login(logado.id);
+      if (logado.cidade != null && logado.cidade!.isNotEmpty) {
+        OneSignal.User.addTagWithKey('cidade', logado.cidade!);
+      }
+
       notifyListeners();
     }
   }
