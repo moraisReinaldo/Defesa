@@ -157,7 +157,7 @@ public class OcorrenciaService {
             List<Usuario> admins = usuarioRepository.findByCidadeAndRole(oc.getCidade(), Role.ADMINISTRADOR.name());
             for (Usuario admin : admins) {
                 notificationService.sendPushNotification(
-                    admin.getId(),
+                    admin.getFcmToken(),
                     "Nova Ocorrência Pendente",
                     "Uma nova ocorrência aguarda aprovação em " + oc.getCidade() + "."
                 );
@@ -179,7 +179,7 @@ public class OcorrenciaService {
         if (oc.getUsuarioId() != null) {
             usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
                 notificationService.sendPushNotification(
-                    user.getId(),
+                    user.getFcmToken(),
                     "Ocorrência Aprovada",
                     "Sua ocorrência '" + oc.getTipo() + "' foi verificada e publicada."
                 )
@@ -224,7 +224,7 @@ public class OcorrenciaService {
         if (oc.getUsuarioId() != null) {
             usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
                 notificationService.sendPushNotification(
-                    user.getId(),
+                    user.getFcmToken(),
                     "Caso Resolvido!",
                     "A ocorrência em " + oc.getCidade() + " foi marcada como resolvida."
                 )
