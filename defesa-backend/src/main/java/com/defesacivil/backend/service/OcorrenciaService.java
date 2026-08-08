@@ -223,7 +223,7 @@ public class OcorrenciaService {
         if (oc.getUsuarioId() != null) {
             usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
                 notificationService.sendPushNotification(
-                    user.getFcmToken(),
+                    user.getId(),
                     "Caso Resolvido!",
                     "A ocorrência em " + oc.getCidade() + " foi marcada como resolvida."
                 )
