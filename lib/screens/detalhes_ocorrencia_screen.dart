@@ -333,20 +333,21 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
       );
       final codigoAdmin = correspondente.isNotEmpty ? correspondente['codigo'] : cidadeUsuario;
 
-      if (codigoAdmin != _codigoCidadeDetectada) {
+      if (codigoAdmin != null && codigoAdmin != _codigoCidadeDetectada) {
         String nomeCidadeAdmin = correspondente.isNotEmpty ? correspondente['nome']! : (cidadeUsuario ?? 'Sua Cidade');
         
-        // Em vez de bloquear, apenas avisamos que ele está registrando como munícipe (não-administrativo)
+        // Avisar que a ocorrência será vinculada à cidade do administrador
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Saindo de "$nomeCidadeAdmin": Ocorrência registrada como munícipe local.'),
+              content: Text('Aviso: Ocorrência vinculada à sua base ($nomeCidadeAdmin), mesmo detectada em outra região.'),
               backgroundColor: AppColors.primaryTeal,
               duration: const Duration(seconds: 4),
             ),
           );
         }
-        // NÃO damos 'return;', permitindo o fluxo seguir como solicitado: "fora da minha area sou só um municipe"
+        // Forçar a cidade a ser a do admin
+        _codigoCidadeDetectada = codigoAdmin;
       }
     }
 

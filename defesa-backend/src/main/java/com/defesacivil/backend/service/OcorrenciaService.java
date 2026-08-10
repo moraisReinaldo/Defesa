@@ -105,26 +105,52 @@ public class OcorrenciaService {
         
         // CORRETO - Segurança (Backend Bug 4)
         String emailAutenticado = getAuthenticatedEmail();
+        boolean isAdminOuAgente = false;
+        String cidadeUsuario = null;
         if (emailAutenticado != null && !"anonymousUser".equals(emailAutenticado)) {
             // Usuário autenticado: sempre usa o ID do JWT — nunca confia no body
             usuarioRepository.findByEmail(emailAutenticado).ifPresent(u -> {
                 oc.setUsuarioId(u.getId());
                 oc.setAutor(u);
+                if (Role.ADMINISTRADOR.name().equals(u.getRole()) || Role.AGENTE.name().equals(u.getRole())) {
+                    // REGRA DE NEGÓCIO: O admin só pode inserir ocorrências (do passado ou não) na sua própria cidade.
+                    // Mesmo que o GPS o coloque em Bragança, a ocorrência será de Joanópolis.
+                    if (u.getCidade() != null && !u.getCidade().isBlank()) {
+                        oc.setCidade(u.getCidade().toUpperCase());
+                    }
+                }
             });
+            // Reavalia isAdminOuAgente baseado no role do contexto spring security
+            isAdminOuAgente = hasAnyRole("ADMINISTRADOR", "AGENTE");
         } else {
             // Usuário anônimo (sem conta): não tem ID para associar
             oc.setUsuarioId(null);
             oc.setAutor(null);
         }
 
-        if (request.getCidade() != null && !request.getCidade().isBlank()) {
-            cidadeRepository.findByNomeIgnoreCase(request.getCidade()).ifPresent(oc::setCidadeEntidade);
+        if (oc.getCidade() != null && !oc.getCidade().isBlank()) {
+            cidadeRepository.findByNomeIgnoreCase(oc.getCidade()).ifPresent(oc::setCidadeEntidade);
         }
 
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
         // Criador (agente/admin) já vem pré-escalado pelo app
         if (request.getAgentes() != null && !request.getAgentes().isBlank()) {
             oc.setAgentes(sanitizeInput(request.getAgentes()));
+        }
+
+        // Verifica se é uma ocorrência lançada no passado (dataHora foi fornecida)
+        boolean isPassado = false;
+        if (request.getDataHora() != null) {
+            try {
+                // Se a data informada for muito no passado (e.g. mais de 2 minutos atrás), 
+                // consideramos como um registro passado (Data Customizada do Admin)
+                LocalDateTime dt = LocalDateTime.parse(request.getDataHora());
+                if (dt.isBefore(LocalDateTime.now().minusMinutes(2))) {
+                    isPassado = true;
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
         }
 
         // Upload de foto Base64 para MinIO
@@ -149,8 +175,15 @@ public class OcorrenciaService {
         }
 
         if (autoAprovado) {
-            oc.setStatus(OcorrenciaStatus.APROVADA.name());
-            log.info("Ocorrência criada com auto-aprovação para usuário com privilégios.");
+            if (isPassado) {
+                // REGRA DE NEGÓCIO: Se lançada no passado (data customizada), já entra como resolvida
+                oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
+                oc.setDataResolucao(LocalDateTime.now().toString()); // Pode ser a data do ocorrido também, mas manteremos today para timestamp do fechamento
+                log.info("Ocorrência lançada no passado e automaticamente definida como RESOLVIDA.");
+            } else {
+                oc.setStatus(OcorrenciaStatus.APROVADA.name());
+                log.info("Ocorrência criada com auto-aprovação para usuário com privilégios.");
+            }
         } else {
             oc.setStatus(OcorrenciaStatus.PENDENTE_APROVACAO.name());
             // Notificar admins da cidade
