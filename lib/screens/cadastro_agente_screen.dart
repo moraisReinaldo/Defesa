@@ -116,7 +116,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.arrow_back_rounded, size: 20),
@@ -288,7 +288,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.backgroundOffWhite,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.borderLight.withOpacity(0.5)),
+                            border: Border.all(color: AppColors.borderLight.withValues(alpha: 0.5)),
                           ),
                           child: Row(
                             children: [
@@ -435,7 +435,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withOpacity(0.1),
+                            color: AppColors.primaryTeal.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.person_rounded,

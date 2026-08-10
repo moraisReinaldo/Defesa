@@ -24,7 +24,7 @@ class StatusBadge extends StatelessWidget {
     // Lógica prioritária: Resolução
     if (status == OcorrenciaStatus.resolvida) {
       label = 'Resolvida';
-      bgColor = AppColors.statusResolved.withOpacity(0.15);
+      bgColor = AppColors.statusResolved.withValues(alpha: 0.15);
       textColor = AppColors.statusResolved;
       icon = Icons.check_circle_rounded;
     } 
@@ -32,34 +32,34 @@ class StatusBadge extends StatelessWidget {
     else if (status == OcorrenciaStatus.trabalhandoAtualmente) {
       label = 'Em ação';
       const limeColor = Color(0xFF8BC34A); 
-      bgColor = limeColor.withOpacity(0.15);
+      bgColor = limeColor.withValues(alpha: 0.15);
       textColor = limeColor;
       icon = Icons.engineering_rounded;
     }
     // "Em caminho" se houver agentes associados e ainda estiver "Aprovada"
     else if (status == OcorrenciaStatus.aprovada && agentes != null && agentes!.isNotEmpty) {
       label = 'A caminho';
-      bgColor = AppColors.statusEnRoute.withOpacity(0.15);
+      bgColor = AppColors.statusEnRoute.withValues(alpha: 0.15);
       textColor = AppColors.statusEnRoute;
       icon = Icons.directions_run_rounded;
     }
     // Padrão para aprovada: "Ativa"
     else if (status == OcorrenciaStatus.aprovada) {
       label = 'Ativa';
-      bgColor = AppColors.statusActive.withOpacity(0.15);
+      bgColor = AppColors.statusActive.withValues(alpha: 0.15);
       textColor = AppColors.statusActive;
       icon = Icons.error_rounded;
     }
     // Outros status
     else if (status == OcorrenciaStatus.pendenteAprovacao) {
       label = 'Pendente';
-      bgColor = Colors.grey.withOpacity(0.15);
+      bgColor = Colors.grey.withValues(alpha: 0.15);
       textColor = Colors.grey;
       icon = Icons.hourglass_empty_rounded;
     }
     else {
       label = status.name;
-      bgColor = Colors.grey.withOpacity(0.15);
+      bgColor = Colors.grey.withValues(alpha: 0.15);
       textColor = Colors.grey;
       icon = Icons.info_outline;
     }

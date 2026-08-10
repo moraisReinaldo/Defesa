@@ -266,26 +266,54 @@ class OcorrenciaProvider extends ChangeNotifier {
   }
 
   Future<void> resolverOcorrencia(String id, {String? parecer}) async {
-    final vindoDaApi = await _apiService.resolverOcorrencia(id, parecer: parecer);
-    if (vindoDaApi != null) {
-      final index = _ocorrencias.indexWhere((o) => o.id == id);
-      if (index != -1) {
+    final index = _ocorrencias.indexWhere((o) => o.id == id);
+    Ocorrencia? backup;
+    
+    if (index != -1) {
+      backup = _ocorrencias[index];
+      _ocorrencias[index] = backup.copyWith(status: OcorrenciaStatus.resolvida);
+      notifyListeners();
+    }
+
+    try {
+      final vindoDaApi = await _apiService.resolverOcorrencia(id, parecer: parecer);
+      if (vindoDaApi != null && index != -1) {
         _ocorrencias[index] = vindoDaApi;
         await _storageService.atualizarOcorrencia(vindoDaApi);
         notifyListeners();
       }
+    } catch (e) {
+      if (backup != null && index != -1) {
+        _ocorrencias[index] = backup;
+        notifyListeners();
+      }
+      rethrow;
     }
   }
 
   Future<void> reativarOcorrencia(String id) async {
-    final vindoDaApi = await _apiService.reativarOcorrencia(id);
-    if (vindoDaApi != null) {
-      final index = _ocorrencias.indexWhere((o) => o.id == id);
-      if (index != -1) {
+    final index = _ocorrencias.indexWhere((o) => o.id == id);
+    Ocorrencia? backup;
+
+    if (index != -1) {
+      backup = _ocorrencias[index];
+      _ocorrencias[index] = backup.copyWith(status: OcorrenciaStatus.aprovada);
+      notifyListeners();
+    }
+
+    try {
+      final vindoDaApi = await _apiService.reativarOcorrencia(id);
+      if (vindoDaApi != null && index != -1) {
         _ocorrencias[index] = vindoDaApi;
         await _storageService.atualizarOcorrencia(vindoDaApi);
         notifyListeners();
       }
+    } catch (e) {
+      if (backup != null && index != -1) {
+        _ocorrencias[index] = backup;
+        notifyListeners();
+      }
+      rethrow;
     }
   }
 

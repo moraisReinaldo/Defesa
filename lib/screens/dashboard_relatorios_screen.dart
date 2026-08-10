@@ -227,7 +227,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
             barRods: [
               BarChartRodData(
                 toY: sorted[i].value.toDouble(),
-                color: AppColors.primaryTeal,
+                color: OcorrenciaTipos.getTipoColor(sorted[i].key),
                 width: 22,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                 backDrawRodData: BackgroundBarChartRodData(
@@ -256,12 +256,13 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
         centerSpaceRadius: 50,
         sections: counts.entries.map((e) {
           Color color;
+          String label;
           switch (e.key) {
-            case OcorrenciaStatus.resolvida: color = AppColors.statusResolved; break;
-            case OcorrenciaStatus.pendenteAprovacao: color = AppColors.accentAmber; break;
-            case OcorrenciaStatus.aprovada: color = AppColors.primaryTealLight; break;
-            case OcorrenciaStatus.trabalhandoAtualmente: color = Colors.blue; break;
-            case OcorrenciaStatus.recusada: color = AppColors.statusActive; break;
+            case OcorrenciaStatus.resolvida: color = AppColors.statusResolved; label = 'Resolvida'; break;
+            case OcorrenciaStatus.pendenteAprovacao: color = AppColors.accentAmber; label = 'Pendente'; break;
+            case OcorrenciaStatus.aprovada: color = AppColors.primaryTealLight; label = 'Aprovada'; break;
+            case OcorrenciaStatus.trabalhandoAtualmente: color = AppColors.statusEnRoute; label = 'Em Andamento'; break;
+            case OcorrenciaStatus.recusada: color = AppColors.statusActive; label = 'Recusada'; break;
           }
           final percentage = (e.value / ocorrencias.length) * 100;
           return PieChartSectionData(
@@ -273,7 +274,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
             badgeWidget: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: color)),
-              child: Text(e.key.name.split('.').last, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
+              child: Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
             ),
             badgePositionPercentageOffset: 1.4,
           );
@@ -342,7 +343,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
             dotData: const FlDotData(show: true),
             belowBarData: BarAreaData(
               show: true,
-              color: AppColors.primaryTeal.withOpacity(0.15),
+              color: AppColors.primaryTeal.withValues(alpha: 0.15),
             ),
           ),
         ],

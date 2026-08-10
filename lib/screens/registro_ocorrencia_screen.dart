@@ -30,7 +30,7 @@ class _SelecaoTipoOcorrenciaScreenState
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(Icons.arrow_back_rounded, size: 20),
@@ -49,7 +49,7 @@ class _SelecaoTipoOcorrenciaScreenState
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryTeal.withOpacity(0.1),
+                    color: AppColors.primaryTeal.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.category_rounded,
@@ -84,8 +84,8 @@ class _SelecaoTipoOcorrenciaScreenState
             GridView.builder(
               shrinkWrap: true,
               physics:  const NeverScrollableScrollPhysics(),
-              gridDelegate:  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+              gridDelegate:  const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 180,
                 childAspectRatio: 1.0,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,

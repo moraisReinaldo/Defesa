@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class LocalizacaoService {
   static final LocalizacaoService _instance = LocalizacaoService._internal();

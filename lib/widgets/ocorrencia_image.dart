@@ -121,7 +121,7 @@ class OcorrenciaImage extends StatelessWidget {
           children: [
             Icon(
               Icons.broken_image_rounded, 
-              color: AppColors.textLight.withOpacity(0.5), 
+              color: AppColors.textLight.withValues(alpha: 0.5), 
               size: isSmall ? 22 : 32
             ),
             if (!isSmall) ...[
