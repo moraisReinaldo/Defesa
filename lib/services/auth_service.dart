@@ -109,9 +109,12 @@ class AuthService {
         options: Options(extra: {'secure': false}),
       );
       return true;
+    } on DioException catch (e) {
+      if (kDebugMode) print('Erro ao solicitar reset: $e');
+      throw _client.handleDioError(e);
     } catch (e) {
       if (kDebugMode) print('Erro ao solicitar reset: $e');
-      return false;
+      throw Exception('Erro inesperado ao solicitar recuperação: $e');
     }
   }
 

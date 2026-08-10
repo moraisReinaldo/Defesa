@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 /// Serviço de preferências locais usando Hive.
@@ -19,7 +20,17 @@ class HiveService {
   /// Deve ser chamado antes de qualquer uso do serviço.
   Future<void> init() async {
     await Hive.initFlutter();
-    _box = await Hive.openBox<dynamic>(_boxName);
+    try {
+      _box = await Hive.openBox<dynamic>(_boxName);
+    } catch (e) {
+      debugPrint('Erro ao abrir Hive box, tentando limpar banco corrompido: $e');
+      try {
+        await Hive.deleteBoxFromDisk(_boxName);
+        _box = await Hive.openBox<dynamic>(_boxName);
+      } catch (e2) {
+        debugPrint('Falha extrema no Hive: $e2');
+      }
+    }
   }
 
   // =========================================================================
