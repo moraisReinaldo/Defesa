@@ -21,6 +21,7 @@
         "hive_flutter",
         "http",
         "image_picker",
+        "intl",
         "latlong2",
         "onesignal_flutter",
         "permission_handler",
@@ -134,6 +135,15 @@
         "stream_channel",
         "test_api",
         "vector_math"
+      ]
+    },
+    {
+      "name": "intl",
+      "version": "0.20.3",
+      "dependencies": [
+        "clock",
+        "meta",
+        "path"
       ]
     },
     {
@@ -972,15 +982,6 @@
         "flutter",
         "meta",
         "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "intl",
-      "version": "0.19.0",
-      "dependencies": [
-        "clock",
-        "meta",
-        "path"
       ]
     },
     {

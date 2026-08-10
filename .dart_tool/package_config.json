@@ -489,9 +489,9 @@
     },
     {
       "name": "intl",
-      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.19.0",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.20.3",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.9"
     },
     {
       "name": "io",

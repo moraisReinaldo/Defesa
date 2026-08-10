@@ -644,11 +644,15 @@ class _MapaScreenState extends State<MapaScreen> {
       ));
     }
 
-    final bodyContent = _indiceAbaAtual == 0
-        ? _construirTelaMapa(nomeUsuario, markers, usuarioProvider)
-        : _indiceAbaAtual == 1 ?  const HistoricoScreen() :  const PerfilScreen();
-        
-    final fabContent = (_indiceAbaAtual == 0 && !ResponsiveLayout.isDesktop(context))
+    final bodyContent = IndexedStack(
+      index: _indiceAbaAtual,
+      children: [
+        _construirTelaMapa(nomeUsuario, markers, usuarioProvider),
+        const HistoricoScreen(),
+        const PerfilScreen(),
+      ],
+    );
+    final fabContent = _indiceAbaAtual == 0
         ? Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -692,67 +696,155 @@ class _MapaScreenState extends State<MapaScreen> {
             setState(() => _indiceAbaAtual = i);
           },
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'), 
-            BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'), 
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil')
+            BottomNavigationBarItem(icon: Icon(Icons.map_rounded), label: 'Mapa'), 
+            BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Histórico'), 
+            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Perfil')
           ],
         ),
       ),
       desktop: Scaffold(
         body: Row(
           children: [
-            NavigationRail(
-              selectedIndex: _indiceAbaAtual,
-              onDestinationSelected: (i) {
-                if (i == 0) _inicializarMapa();
-                setState(() => _indiceAbaAtual = i);
-              },
-              labelType: NavigationRailLabelType.all,
-              backgroundColor: AppColors.surfaceCard,
-              selectedIconTheme: const IconThemeData(color: AppColors.primaryTeal),
-              selectedLabelTextStyle: const TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.bold),
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Column(
-                  children: [
-                    FloatingActionButton.extended(
-                      heroTag: 'nav_fab_ocorrencia',
-                      elevation: 0,
-                      onPressed: () => _onNovaOcorrenciaPressed(usuarioProvider),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Nova Ocorrência'),
-                      backgroundColor: AppColors.primaryTeal,
-                      foregroundColor: Colors.white,
-                    ),
-                    if (usuarioProvider.isAdmin) ...[
-                      const SizedBox(height: 12),
-                      FloatingActionButton.extended(
-                        heroTag: 'nav_fab_poi',
-                        elevation: 0,
-                        onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
-                        icon: const Icon(Icons.add_location_alt_rounded),
-                        label: const Text('Ponto Interesse'),
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              destinations: const [
-                NavigationRailDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: Text('Mapa')),
-                NavigationRailDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history), label: Text('Histórico')),
-                NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: Text('Perfil')),
-              ],
-            ),
-            const VerticalDivider(thickness: 1, width: 1, color: AppColors.borderLight),
+            _buildModernSidebar(usuarioProvider),
             Expanded(
               child: Scaffold(
                 body: bodyContent,
-                // O FAB flutuante é ocultado no desktop (tratado via fabContent null)
+                // O FAB flutuante no desktop agora é o botão da sidebar
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernSidebar(UsuarioProvider usuarioProvider) {
+    return Container(
+      width: 260,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: const Border(
+          right: BorderSide(color: AppColors.borderLight, width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(4, 0),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Logo e Título
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.shield_rounded, color: AppColors.primaryTeal, size: 28),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'Defesa em Foco',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Itens de Navegação
+          _buildSidebarItem(0, Icons.map_rounded, 'Mapa', Icons.map_outlined),
+          _buildSidebarItem(1, Icons.history_rounded, 'Histórico', Icons.history_outlined),
+          _buildSidebarItem(2, Icons.person_rounded, 'Meu Perfil', Icons.person_outline_rounded),
+          
+          const Spacer(),
+          
+          // Ações Rápidas
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (usuarioProvider.isAdmin) ...[
+                  ElevatedButton.icon(
+                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
+                    icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                    label: const Text('Ponto Interesse'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade500,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                ElevatedButton.icon(
+                  onPressed: () => _onNovaOcorrenciaPressed(usuarioProvider),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Nova Ocorrência'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebarItem(int index, IconData iconSelected, String label, IconData iconUnselected) {
+    final isSelected = _indiceAbaAtual == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (index == 0) _inicializarMapa();
+          setState(() => _indiceAbaAtual = index);
+        },
+        hoverColor: AppColors.primaryTeal.withValues(alpha: 0.05),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryTeal.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(isSelected ? iconSelected : iconUnselected, 
+                  size: 24, 
+                  color: isSelected ? AppColors.primaryTeal : AppColors.textSecondary),
+              const SizedBox(width: 16),
+              Text(label, style: TextStyle(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppColors.primaryTeal : AppColors.textSecondary,
+              )),
+            ],
+          ),
         ),
       ),
     );
