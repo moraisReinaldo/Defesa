@@ -39,7 +39,7 @@ class LocalizacaoService {
       // Se não tiver, pedir a localização atual (com precisão menor na Web para evitar timeout)
       position ??= await Geolocator.getCurrentPosition(
         desiredAccuracy: kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
+        timeLimit: kIsWeb ? const Duration(seconds: 60) : const Duration(seconds: 15),
       );
 
       return position;

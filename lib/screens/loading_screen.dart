@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
 import 'mapa_screen.dart';
@@ -49,6 +50,8 @@ class _LoadingScreenState extends State<LoadingScreen> {
   }
 
   Future<void> _solicitarPermissoesIniciais() async {
+    if (kIsWeb) return; // Web permissions are handled natively by the browser
+
     setState(() {
       _mensagem = 'Verificando acesso...';
       _subMensagem = 'Preparando sua localização';

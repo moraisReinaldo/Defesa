@@ -49,9 +49,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
   String? _codigoCidadeDetectada;
   DateTime? _dataCustomizada;
 
-  // Getter de conveniência para o File atual
-  File? get _fotoSelecionada =>
-      _fotoPath.value != null ? File(_fotoPath.value!) : null;
+  // Usamos _fotoPath.value diretamente para evitar File() no Web
 
   @override
   String? get restorationId => 'detalhes_ocorrencia_screen';
@@ -372,7 +370,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
         latitude: _posicaoAtual!.latitude,
         longitude: _posicaoAtual!.longitude,
         cidade: _codigoCidadeDetectada, // Sempre usa o CÓDIGO
-        caminhoFoto: _fotoSelecionada?.path,
+        caminhoFoto: _fotoPath.value,
         usuarioId: usuarioLogado?.id,
         // Se for agente/admin, ele já é parte da ocorrência e ela é marcada como 'criada por agente'
         agentes: isAgenteOuAdmin ? usuarioLogado?.nome : null,
@@ -892,7 +890,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                     size: 20,
                   ),
                   label: Text(
-                    _fotoSelecionada != null
+                    _fotoPath.value != null
                         ? 'Trocar foto'
                         : usuarioOuAdminLogado
                             ? 'Adicionar Foto'
@@ -1028,7 +1026,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
   }
 
   Widget _buildFotoSection() {
-    if (_fotoSelecionada != null) {
+    if (_fotoPath.value != null) {
       return Stack(
         children: [
           Container(
@@ -1044,12 +1042,19 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
-              child: Image.file(
-                _fotoSelecionada!,
-                height: 220,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+              child: kIsWeb
+                  ? Image.network(
+                      _fotoPath.value!,
+                      height: 220,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : Image.file(
+                      File(_fotoPath.value!),
+                      height: 220,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
           Positioned(

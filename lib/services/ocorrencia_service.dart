@@ -43,10 +43,24 @@ class OcorrenciaService {
     final Map<String, dynamic> body = ocorrencia.toJson();
 
     if (ocorrencia.caminhoFoto != null && ocorrencia.caminhoFoto!.isNotEmpty) {
-      final file = File(ocorrencia.caminhoFoto!);
-      if (await file.exists()) {
-        final bytes = await file.readAsBytes();
-        body['caminhoFoto'] = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      if (kIsWeb) {
+        try {
+          final response = await _client.dio.get(
+            ocorrencia.caminhoFoto!,
+            options: Options(responseType: ResponseType.bytes),
+          );
+          if (response.statusCode == 200) {
+            body['caminhoFoto'] = 'data:image/jpeg;base64,${base64Encode(response.data)}';
+          }
+        } catch (e) {
+          debugPrint('Erro ao converter imagem no Web: $e');
+        }
+      } else {
+        final file = File(ocorrencia.caminhoFoto!);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          body['caminhoFoto'] = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+        }
       }
     }
 
