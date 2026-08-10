@@ -12,8 +12,11 @@ class LocalizacaoService {
   LocalizacaoService._internal();
 
   Future<bool> verificarPermissoes() async {
-    final status = await Permission.location.request();
-    return status.isGranted;
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    return permission == LocationPermission.whileInUse || permission == LocationPermission.always;
   }
 
   Future<Position?> obterPosicaoAtual() async {
@@ -30,10 +33,13 @@ class LocalizacaoService {
         return null;
       }
 
-      // Obter posição atual
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 5),
+      // Tentar pegar a última localização conhecida primeiro (muito mais rápido na Web)
+      Position? position = await Geolocator.getLastKnownPosition();
+      
+      // Se não tiver, pedir a localização atual (com precisão menor na Web para evitar timeout)
+      position ??= await Geolocator.getCurrentPosition(
+        desiredAccuracy: kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
       );
 
       return position;

@@ -20,6 +20,7 @@ import '../widgets/status_badge.dart';
 import '../widgets/ocorrencia_card.dart';
 import '../widgets/ocorrencia_image.dart';
 import '../widgets/aviso_comunitario_dialog.dart';
+import '../widgets/responsive_layout.dart';
 import 'registro_ocorrencia_screen.dart'; // Contém SelecaoTipoOcorrenciaScreen
 import 'historico_screen.dart';
 import 'perfil_screen.dart';
@@ -142,14 +143,16 @@ class _MapaScreenState extends State<MapaScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        decoration:  const BoxDecoration(
-          color: AppColors.backgroundOffWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
+      builder: (context) => Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxWidth: 600,
+          ),
+          decoration:  const BoxDecoration(
+            color: AppColors.backgroundOffWhite,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
         child: Builder(
           builder: (context) {
             final usuarioLogado = usuarioProvider.usuarioLogado;
@@ -463,6 +466,7 @@ class _MapaScreenState extends State<MapaScreen> {
           }
         ),
       ),
+      ),
     ).then((_) {
       // Ao fechar o painel de detalhes, recarregar para refletir mudanças de status
       if (mounted) _inicializarMapa();
@@ -615,51 +619,93 @@ class _MapaScreenState extends State<MapaScreen> {
       ));
     }
 
-    return Scaffold(
-      body: _indiceAbaAtual == 0
-          ? _construirTelaMapa(nomeUsuario, markers, usuarioProvider)
-          : _indiceAbaAtual == 1 ?  const HistoricoScreen() :  const PerfilScreen(),
-      floatingActionButton: _indiceAbaAtual == 0 
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (usuarioProvider.isAdmin) ...[
-                  FloatingActionButton.extended(
-                    heroTag: 'fab_poi',
-                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
-                    icon: const Icon(Icons.add_location_alt_rounded),
-                    label: const Text('Ponto de Interesse'),
-                    backgroundColor: Colors.orange,
-                  ),
-                  const SizedBox(height: 12),
-                ],
+    final bodyContent = _indiceAbaAtual == 0
+        ? _construirTelaMapa(nomeUsuario, markers, usuarioProvider)
+        : _indiceAbaAtual == 1 ?  const HistoricoScreen() :  const PerfilScreen();
+        
+    final fabContent = _indiceAbaAtual == 0 
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (usuarioProvider.isAdmin) ...[
                 FloatingActionButton.extended(
-                  heroTag: 'fab_ocorrencia',
-                  onPressed: () async {
-                    final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) =>  const SelecaoTipoOcorrenciaScreen()));
-                    if (res == true && mounted) {
-                      _inicializarMapa();
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Nova Ocorrência'),
+                  heroTag: 'fab_poi',
+                  onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
+                  icon: const Icon(Icons.add_location_alt_rounded),
+                  label: const Text('Ponto de Interesse'),
+                  backgroundColor: Colors.orange,
                 ),
                 const SizedBox(height: 12),
-                FloatingActionButton(
-                  mini: true,
-                  heroTag: 'fab_gps',
-                  onPressed: () => _centralizarLocalizacao(),
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primaryTeal,
-                  child: const Icon(Icons.my_location_rounded),
-                ),
               ],
-            )
-          : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indiceAbaAtual,
-        onTap: (i) => setState(() => _indiceAbaAtual = i),
-        items: const [BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'), BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'), BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil')],
+              FloatingActionButton.extended(
+                heroTag: 'fab_ocorrencia',
+                onPressed: () async {
+                  final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) =>  const SelecaoTipoOcorrenciaScreen()));
+                  if (res == true && mounted) {
+                    _inicializarMapa();
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Nova Ocorrência'),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton(
+                mini: true,
+                heroTag: 'fab_gps',
+                onPressed: () => _centralizarLocalizacao(),
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primaryTeal,
+                child: const Icon(Icons.my_location_rounded),
+              ),
+            ],
+          )
+        : null;
+
+    return ResponsiveLayout(
+      mobile: Scaffold(
+        body: bodyContent,
+        floatingActionButton: fabContent,
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _indiceAbaAtual,
+          onTap: (i) {
+            if (i == 0) _inicializarMapa();
+            setState(() => _indiceAbaAtual = i);
+          },
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'), 
+            BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'), 
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil')
+          ],
+        ),
+      ),
+      desktop: Scaffold(
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _indiceAbaAtual,
+              onDestinationSelected: (i) {
+                if (i == 0) _inicializarMapa();
+                setState(() => _indiceAbaAtual = i);
+              },
+              labelType: NavigationRailLabelType.all,
+              backgroundColor: AppColors.surfaceCard,
+              selectedIconTheme: const IconThemeData(color: AppColors.primaryTeal),
+              selectedLabelTextStyle: const TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.bold),
+              destinations: const [
+                NavigationRailDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: Text('Mapa')),
+                NavigationRailDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history), label: Text('Histórico')),
+                NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: Text('Perfil')),
+              ],
+            ),
+            const VerticalDivider(thickness: 1, width: 1, color: AppColors.borderLight),
+            Expanded(
+              child: Scaffold(
+                body: bodyContent,
+                floatingActionButton: fabContent,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -695,13 +741,24 @@ class _MapaScreenState extends State<MapaScreen> {
         ),
         Positioned(
           top: 0, left: 0, right: 0,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration:  const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
-            child: SafeArea(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa)]), const SizedBox(height: 16), SearchBarWidget(controller: _searchController, hintText: 'Buscar...', onChanged: (v) => setState(() { _searchQuery = v; _showSearchResults = v.isNotEmpty; }))])),
+          child: ResponsiveContainer(
+            maxWidth: 800,
+            centerContent: false, // O mapa alinha no topo, mas o container pode limitar o máximo. 
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration:  const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
+              child: SafeArea(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa)]), const SizedBox(height: 16), SearchBarWidget(controller: _searchController, hintText: 'Buscar...', onChanged: (v) => setState(() { _searchQuery = v; _showSearchResults = v.isNotEmpty; }))])),
+            ),
           ),
         ),
-        if (_showSearchResults && searchResults.isNotEmpty) Positioned(top: 180, left: 16, right: 16, bottom: 100, child: Container(color: Colors.white, child: ListView.builder(itemCount: searchResults.length, itemBuilder: (_, i) => OcorrenciaCard(ocorrencia: searchResults[i], onTap: () { setState(() { _showSearchResults = false; _searchController.clear(); _searchQuery = ''; }); _mapController.move(LatLng(searchResults[i].latitude, searchResults[i].longitude), 16); _mostrarDetalhesOcorrencia(searchResults[i]); })))),
+        if (_showSearchResults && searchResults.isNotEmpty) 
+          Positioned(
+            top: 180, left: 16, right: 16, bottom: 100, 
+            child: ResponsiveContainer(
+              maxWidth: 600,
+              child: Container(color: Colors.white, child: ListView.builder(itemCount: searchResults.length, itemBuilder: (_, i) => OcorrenciaCard(ocorrencia: searchResults[i], onTap: () { setState(() { _showSearchResults = false; _searchController.clear(); _searchQuery = ''; }); _mapController.move(LatLng(searchResults[i].latitude, searchResults[i].longitude), 16); _mostrarDetalhesOcorrencia(searchResults[i]); })))
+            ),
+          ),
       ],
     );
   }
@@ -721,12 +778,14 @@ class _MapaScreenState extends State<MapaScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 24),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
+      builder: (context) => Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 24),
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -764,6 +823,7 @@ class _MapaScreenState extends State<MapaScreen> {
             ],
           ],
         ),
+      ),
       ),
     );
   }

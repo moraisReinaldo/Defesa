@@ -1,8 +1,11 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import '../services/geocoding_service.dart';
 
 import '../constants/app_colors.dart';
@@ -44,6 +47,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
   String? _cidadeDetectada;
   bool _carregando = false;
   String? _codigoCidadeDetectada;
+  DateTime? _dataCustomizada;
 
   // Getter de conveniência para o File atual
   File? get _fotoSelecionada =>
@@ -154,10 +158,10 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
     final usuarioLogado = usuarioProvider.estaLogado || usuarioProvider.isAdmin;
 
     if (!usuarioLogado) {
-      // Usuário sem cadastro: somente câmera
+      // Usuário sem cadastro: câmera no mobile, galeria no PC
       try {
         final foto = await _imagePicker.pickImage(
-          source: ImageSource.camera,
+          source: kIsWeb ? ImageSource.gallery : ImageSource.camera,
           imageQuality: 50,
           maxWidth: 1024,
           maxHeight: 1024,
@@ -183,11 +187,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
+        return Material(
+          color: AppColors.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           child: SafeArea(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -212,23 +214,24 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                     ),
                   ),
                 ),
-                ListTile(
-                  leading: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryTeal.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                if (!kIsWeb)
+                  ListTile(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded,
+                          color: AppColors.primaryTeal),
                     ),
-                    child: const Icon(Icons.camera_alt_rounded,
-                        color: AppColors.primaryTeal),
+                    title: const Text('Tirar foto',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Usar a câmera do dispositivo',
+                        style: TextStyle(fontSize: 12)),
+                    onTap: () => Navigator.pop(context, ImageSource.camera),
                   ),
-                  title: const Text('Tirar foto',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: const Text('Usar a câmera do dispositivo',
-                      style: TextStyle(fontSize: 12)),
-                  onTap: () => Navigator.pop(context, ImageSource.camera),
-                ),
                 ListTile(
                   leading: Container(
                     width: 44,
@@ -374,6 +377,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
         // Se for agente/admin, ele já é parte da ocorrência e ela é marcada como 'criada por agente'
         agentes: isAgenteOuAdmin ? usuarioLogado?.nome : null,
         criadoPorAgente: isAgenteOuAdmin,
+        dataHora: _dataCustomizada,
       );
 
       await context.read<OcorrenciaProvider>().adicionarOcorrencia(ocorrencia);
@@ -439,6 +443,175 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
     }
   }
 
+  Future<void> _mostrarDialogLocalizacaoManual(UsuarioProvider usuarioProvider) async {
+    ll.LatLng center = const ll.LatLng(-23.55052, -46.63330);
+    if (_posicaoAtual != null) {
+      center = ll.LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude);
+    }
+    
+    ll.LatLng? selectedLocation = center;
+    final latController = TextEditingController(text: center.latitude.toString());
+    final lngController = TextEditingController(text: center.longitude.toString());
+    
+    final mapController = MapController();
+    bool buscando = false;
+    
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: const Text('Localização Manual'),
+            content: SizedBox(
+              width: 500,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Clique no mapa ou digite as coordenadas exatas.'),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 300,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: FlutterMap(
+                          mapController: mapController,
+                          options: MapOptions(
+                            initialCenter: center,
+                            initialZoom: 13,
+                            onTap: (tapPosition, point) {
+                              setStateDialog(() {
+                                selectedLocation = point;
+                                latController.text = point.latitude.toString();
+                                lngController.text = point.longitude.toString();
+                              });
+                            },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.defesacivil.app',
+                            ),
+                            if (selectedLocation != null)
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: selectedLocation!,
+                                    width: 40,
+                                    height: 40,
+                                    child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: latController,
+                            decoration: const InputDecoration(labelText: 'Latitude', border: OutlineInputBorder()),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                            onChanged: (val) {
+                              final lat = double.tryParse(val);
+                              if (lat != null && selectedLocation != null) {
+                                setStateDialog(() {
+                                  selectedLocation = ll.LatLng(lat, selectedLocation!.longitude);
+                                  mapController.move(selectedLocation!, mapController.camera.zoom);
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: lngController,
+                            decoration: const InputDecoration(labelText: 'Longitude', border: OutlineInputBorder()),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                            onChanged: (val) {
+                              final lng = double.tryParse(val);
+                              if (lng != null && selectedLocation != null) {
+                                setStateDialog(() {
+                                  selectedLocation = ll.LatLng(selectedLocation!.latitude, lng);
+                                  mapController.move(selectedLocation!, mapController.camera.zoom);
+                                });
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (buscando) ...[
+                      const SizedBox(height: 16),
+                      const CircularProgressIndicator(),
+                    ]
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton(
+                onPressed: buscando ? null : () async {
+                  if (selectedLocation == null) return;
+                  
+                  setStateDialog(() => buscando = true);
+                  
+                  final lat = selectedLocation!.latitude;
+                  final lng = selectedLocation!.longitude;
+                  final cidade = await _geocodingService.obterCidade(lat, lng);
+                  
+                  if (mounted) {
+                    setStateDialog(() => buscando = false);
+                    setState(() {
+                      _posicaoAtual = Position(
+                        latitude: lat,
+                        longitude: lng,
+                        timestamp: DateTime.now(),
+                        accuracy: 0,
+                        altitude: 0,
+                        heading: 0,
+                        speed: 0,
+                        speedAccuracy: 0,
+                        altitudeAccuracy: 0,
+                        headingAccuracy: 0,
+                      );
+                      _cidadeDetectada = cidade;
+                      
+                      _codigoCidadeDetectada = null;
+                      if (cidade != null) {
+                        for (var c in usuarioProvider.cidadesSuportadas) {
+                          String nome = c['nome'] ?? '';
+                          if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
+                              nome.toLowerCase().contains(cidade.toLowerCase())) {
+                            _codigoCidadeDetectada = c['codigo'];
+                            break;
+                          }
+                        }
+                      }
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Localização definida: ${cidade ?? "Desconhecida"}')),
+                    );
+                  }
+                },
+                child: const Text('Confirmar Local'),
+              ),
+            ],
+          );
+        }
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final usuarioProvider = context.watch<UsuarioProvider>();
@@ -499,6 +672,67 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                 ),
               ),
               const SizedBox(height: 16),
+              
+              if (kIsWeb && usuarioOuAdminLogado && usuarioProvider.isAdmin) ...[
+                _buildSectionHeader(
+                  icon: Icons.admin_panel_settings_rounded,
+                  title: 'Ferramentas de Administrador',
+                  subtitle: 'Opções avançadas exclusivas para web',
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primaryTeal.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryTeal),
+                        title: const Text('Data e Hora Personalizada'),
+                        subtitle: Text(_dataCustomizada != null 
+                          ? '${_dataCustomizada!.day.toString().padLeft(2, '0')}/${_dataCustomizada!.month.toString().padLeft(2, '0')}/${_dataCustomizada!.year} às ${_dataCustomizada!.hour.toString().padLeft(2, '0')}:${_dataCustomizada!.minute.toString().padLeft(2, '0')}'
+                          : 'Usar momento atual'),
+                        trailing: const Icon(Icons.edit_calendar_rounded, size: 20),
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _dataCustomizada ?? DateTime.now(),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                          );
+                          if (date != null && mounted) {
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.fromDateTime(_dataCustomizada ?? DateTime.now()),
+                            );
+                            if (time != null) {
+                              setState(() {
+                                _dataCustomizada = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                              });
+                            }
+                          }
+                        },
+                      ),
+                      const Divider(height: 24),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.map_rounded, color: AppColors.primaryTeal),
+                        title: const Text('Localização Manual'),
+                        subtitle: Text(_posicaoAtual != null ? '${_posicaoAtual!.latitude.toStringAsFixed(5)}, ${_posicaoAtual!.longitude.toStringAsFixed(5)}\n${_cidadeDetectada ?? ""}' : 'Sem localização definida'),
+                        trailing: const Icon(Icons.edit_location_alt_rounded, size: 20),
+                        onTap: () {
+                          _mostrarDialogLocalizacaoManual(usuarioProvider);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Mostrar Card do tipo selecionado
               Container(

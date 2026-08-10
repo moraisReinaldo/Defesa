@@ -34,4 +34,30 @@ class GeocodingService {
     }
     return null;
   }
+
+  /// Busca as coordenadas a partir de um endereço
+  Future<Map<String, double>?> obterCoordenadas(String endereco) async {
+    try {
+      final url = Uri.parse('https://nominatim.openstreetmap.org/search?format=jsonv2&q=${Uri.encodeComponent(endereco)}&limit=1');
+      
+      final response = await http.get(url, headers: {
+        'User-Agent': 'DefesaCivilApp/1.0',
+        'Accept-Language': 'pt-BR',
+      }).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List;
+        if (data.isNotEmpty) {
+          final lat = double.tryParse(data[0]['lat'] ?? '');
+          final lon = double.tryParse(data[0]['lon'] ?? '');
+          if (lat != null && lon != null) {
+            return {'lat': lat, 'lng': lon};
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) print('Erro no forward geocoding: $e');
+    }
+    return null;
+  }
 }

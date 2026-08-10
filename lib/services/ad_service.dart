@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -23,9 +22,9 @@ class AdService extends ChangeNotifier {
   static const String _iosNativeAdUnitId = 'ca-app-pub-7666166064406107/7110776785';
 
   // Getters públicos para os IDs (usados pelos widgets)
-  String get bannerAdUnitId => Platform.isAndroid ? _androidBannerAdUnitId : _iosBannerAdUnitId;
-  String get interstitialAdUnitId => Platform.isAndroid ? _androidInterstitialAdUnitId : _iosInterstitialAdUnitId;
-  String get nativeAdUnitId => Platform.isAndroid ? _androidNativeAdUnitId : _iosNativeAdUnitId;
+  String get bannerAdUnitId => defaultTargetPlatform == TargetPlatform.android ? _androidBannerAdUnitId : _iosBannerAdUnitId;
+  String get interstitialAdUnitId => defaultTargetPlatform == TargetPlatform.android ? _androidInterstitialAdUnitId : _iosInterstitialAdUnitId;
+  String get nativeAdUnitId => defaultTargetPlatform == TargetPlatform.android ? _androidNativeAdUnitId : _iosNativeAdUnitId;
   bool get isInterstitialReady => _isInterstitialReady;
 
   /// Inicializa o SDK do Google Mobile Ads.

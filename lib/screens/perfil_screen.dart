@@ -6,6 +6,9 @@ import 'login_screen.dart';
 import 'cadastro_agente_screen.dart';
 import 'gerenciar_poi_screen.dart';
 import 'loading_screen.dart';
+import '../widgets/responsive_layout.dart';
+import 'package:flutter/foundation.dart';
+import 'dashboard_relatorios_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
    const PerfilScreen({super.key});
@@ -50,8 +53,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
           appBar: AppBar(
             title: const Text('Meu Perfil'),
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+          body: ResponsiveContainer(
+            maxWidth: 600,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 // Avatar
@@ -246,7 +251,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             label: const Text('Gerenciar Pontos de Apoio'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primaryTeal,
-                              side:  const BorderSide(color: AppColors.primaryTeal),
+                              side: const BorderSide(color: AppColors.primaryTeal),
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -254,6 +259,33 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             ),
                           ),
                         ),
+                        if (kIsWeb) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const DashboardRelatoriosScreen(),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.analytics_rounded, size: 18),
+                              label: const Text('Ver Dashboard de Relatórios'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.purple,
+                                side: const BorderSide(color: Colors.purple),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+
                         const SizedBox(height: 12),
                         const Divider(height: 32),
                         const Text('Promover Usuário a Agente', 
@@ -390,6 +422,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
               ],
             ),
           ),
+          ),
         );
       },
     );
@@ -455,7 +488,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundOffWhite,
       appBar: AppBar(title: const Text('Perfil')),
-      body: Center(
+      body: ResponsiveContainer(
+        maxWidth: 600,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -532,7 +566,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundOffWhite,
       appBar: AppBar(title: const Text('Perfil')),
-      body: Center(
+      body: ResponsiveContainer(
+        maxWidth: 600,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(

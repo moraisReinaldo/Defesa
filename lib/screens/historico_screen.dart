@@ -11,6 +11,9 @@ import '../widgets/search_bar_widget.dart';
 import '../widgets/ocorrencia_card.dart';
 import '../widgets/ocorrencia_image.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/responsive_layout.dart';
+import 'package:flutter/foundation.dart';
+import 'dashboard_relatorios_screen.dart';
 
 class HistoricoScreen extends StatefulWidget {
    const HistoricoScreen({super.key});
@@ -91,6 +94,25 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             : const Text('Histórico'),
         elevation: 0,
         actions: [
+          if (kIsWeb && context.watch<UsuarioProvider>().isAdmin)
+            IconButton(
+              icon: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.analytics_rounded, size: 20),
+              ),
+              tooltip: 'Ver Dashboard Analítico',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DashboardRelatoriosScreen()),
+                );
+              },
+            ),
           if (context.watch<UsuarioProvider>().isAdmin)
             IconButton(
               icon: Container(
@@ -116,8 +138,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
+      body: ResponsiveContainer(
+        maxWidth: 800,
+        child: Column(
+          children: [
           // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -374,63 +398,65 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           ),
         ],
       ),
+      ),
       bottomNavigationBar:
           _selectionMode && _selecionadas.isNotEmpty
               ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCard,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 12,
-                        offset:  const Offset(0, -4),
+                  color: AppColors.surfaceCard,
+                  child: ResponsiveContainer(
+                    maxWidth: 800,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCard,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 12,
+                            offset:  const Offset(0, -4),
+                          ),
+                        ],
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                       ),
-                    ],
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _apagarSelecionadas,
-                            icon: const Icon(Icons.delete_rounded, size: 18),
-                            label: const Text('Excluir'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.statusActive,
+                      child: SafeArea(
+                        top: false,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _apagarSelecionadas,
+                                icon: const Icon(Icons.delete_rounded, size: 18),
+                                label: const Text('Excluir'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusActive,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                _marcarSelecionadasResolvidas(true),
-                            icon: const Icon(Icons.check_circle_rounded,
-                                size: 18),
-                            label: const Text('Resolver'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.statusResolved,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _marcarSelecionadasResolvidas(true),
+                                icon: const Icon(Icons.check_circle_rounded, size: 18),
+                                label: const Text('Resolver'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusResolved,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                _marcarSelecionadasResolvidas(false),
-                            icon: const Icon(Icons.refresh_rounded, size: 18),
-                            label: const Text('Reativar'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.statusEnRoute,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _marcarSelecionadasResolvidas(false),
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text('Reativar'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusEnRoute,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 )
@@ -548,17 +574,19 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        decoration:  const BoxDecoration(
-          color: AppColors.backgroundOffWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      builder: (context) => Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxWidth: 600,
+          ),
+          decoration:  const BoxDecoration(
+            color: AppColors.backgroundOffWhite,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // Handle
             Container(
               margin: const EdgeInsets.only(top: 12),
@@ -848,6 +876,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
