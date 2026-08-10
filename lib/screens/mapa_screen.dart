@@ -100,9 +100,7 @@ class _MapaScreenState extends State<MapaScreen> {
         isAdmin: usuarioProv.isAdmin,
       );
       if (!mounted) return;
-      if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
-        await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
-      }
+      await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
     } else {
       debugPrint('⚠️ Mapa inicializado sem cidade de contexto. Nada será exibido.');
     }
@@ -581,6 +579,8 @@ class _MapaScreenState extends State<MapaScreen> {
     for (final p in poiProvider.pontos) {
       final color = poiColors[p.tipo] ?? Colors.grey;
       markers.add(Marker(
+        width: 36,
+        height: 36,
         point: LatLng(p.latitude, p.longitude), 
         child: GestureDetector(
           onTap: () => _mostrarDetalhesPOI(p), 
@@ -595,6 +595,8 @@ class _MapaScreenState extends State<MapaScreen> {
     for (final o in ocorrenciaProvider.ocorrenciasAtivas) {
       final color = AppColors.getTipoColor(o.tipo);
       markers.add(Marker(
+        width: 36,
+        height: 36,
         point: LatLng(o.latitude, o.longitude), 
         child: GestureDetector(
           onTap: () => _mostrarDetalhesOcorrencia(o), 
