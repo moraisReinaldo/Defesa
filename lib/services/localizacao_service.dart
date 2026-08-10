@@ -27,10 +27,12 @@ class LocalizacaoService {
         return null;
       }
 
-      // Verificar se o serviço de localização está habilitado
-      bool servicoHabilitado = await Geolocator.isLocationServiceEnabled();
-      if (!servicoHabilitado) {
-        return null;
+      // Verificar se o serviço de localização está habilitado (pular na web)
+      if (!kIsWeb) {
+        bool servicoHabilitado = await Geolocator.isLocationServiceEnabled();
+        if (!servicoHabilitado) {
+          return null;
+        }
       }
 
       // Tentar pegar a última localização conhecida primeiro (muito mais rápido na Web)

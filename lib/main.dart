@@ -46,9 +46,11 @@ void main() async {
   adService.initialize();
 
   // Inicializar OneSignal
-  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-  OneSignal.initialize("6537856b-c264-42af-b2a9-583652a175d2");
-  OneSignal.Notifications.requestPermission(true);
+  if (!kIsWeb) {
+    OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+    OneSignal.initialize("6537856b-c264-42af-b2a9-583652a175d2");
+    OneSignal.Notifications.requestPermission(true);
+  }
 
   final notificationService = NotificationService();
   try {

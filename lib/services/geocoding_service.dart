@@ -11,10 +11,14 @@ class GeocodingService {
     try {
       final url = Uri.parse('$_baseUrl?format=jsonv2&lat=$lat&lon=$lng&addressdetails=1');
       
-      final response = await http.get(url, headers: {
-        'User-Agent': 'DefesaCivilApp/1.0', // Nominatim requer User-Agent
+      final headers = {
         'Accept-Language': 'pt-BR',
-      }).timeout( const Duration(seconds: 10));
+      };
+      if (!kIsWeb) {
+        headers['User-Agent'] = 'DefesaCivilApp/1.0'; // Nominatim requer User-Agent (mas web não permite alterar)
+      }
+
+      final response = await http.get(url, headers: headers).timeout( const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -40,10 +44,14 @@ class GeocodingService {
     try {
       final url = Uri.parse('https://nominatim.openstreetmap.org/search?format=jsonv2&q=${Uri.encodeComponent(endereco)}&limit=1');
       
-      final response = await http.get(url, headers: {
-        'User-Agent': 'DefesaCivilApp/1.0',
+      final headers = {
         'Accept-Language': 'pt-BR',
-      }).timeout(const Duration(seconds: 10));
+      };
+      if (!kIsWeb) {
+        headers['User-Agent'] = 'DefesaCivilApp/1.0';
+      }
+
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;

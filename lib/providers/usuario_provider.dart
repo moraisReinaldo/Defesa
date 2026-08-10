@@ -73,10 +73,10 @@ class UsuarioProvider extends ChangeNotifier {
   /// Determina a cidade atual via GPS para usuários não logados.
   Future<void> determinarCidadePorGps() async {
     try {
-      // 1. Obter coordenadas com timeout agressivo
+      // 1. Obter coordenadas com timeout adaptado (maior na Web para dar tempo de aceitar a permissão)
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low, 
-        timeLimit: const Duration(seconds: 4),
+        timeLimit: kIsWeb ? const Duration(seconds: 30) : const Duration(seconds: 4),
       );
 
       // 2. Tentar geocoding com timeout manual (pois a lib geocoding não tem nativo)
@@ -259,10 +259,12 @@ class UsuarioProvider extends ChangeNotifier {
         _isAdmin = usuario.role == Role.administrador;
         
         // Registrar ID no OneSignal para receber push diretos
-        OneSignal.login(usuario.id);
-        // Tag de cidade para segmentação de notificações [CR3 - Recursos Nativos]
-        if (usuario.cidade != null && usuario.cidade!.isNotEmpty) {
-          OneSignal.User.addTagWithKey('cidade', usuario.cidade!);
+        if (!kIsWeb) {
+          OneSignal.login(usuario.id);
+          // Tag de cidade para segmentação de notificações [CR3 - Recursos Nativos]
+          if (usuario.cidade != null && usuario.cidade!.isNotEmpty) {
+            OneSignal.User.addTagWithKey('cidade', usuario.cidade!);
+          }
         }
         
         notifyListeners();
@@ -339,7 +341,9 @@ class UsuarioProvider extends ChangeNotifier {
     _todosAgentes = [];
     _cidadesSuportadas = [];
     _cidadeDetectadaGps = null;
-    OneSignal.logout();
+    if (!kIsWeb) {
+      OneSignal.logout();
+    }
     notifyListeners();
   }
 
@@ -379,9 +383,11 @@ class UsuarioProvider extends ChangeNotifier {
       }
       
       // Registrar ID no OneSignal para usuários que já estavam logados
-      OneSignal.login(logado.id);
-      if (logado.cidade != null && logado.cidade!.isNotEmpty) {
-        OneSignal.User.addTagWithKey('cidade', logado.cidade!);
+      if (!kIsWeb) {
+        OneSignal.login(logado.id);
+        if (logado.cidade != null && logado.cidade!.isNotEmpty) {
+          OneSignal.User.addTagWithKey('cidade', logado.cidade!);
+        }
       }
 
       notifyListeners();
