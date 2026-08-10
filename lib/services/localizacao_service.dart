@@ -35,8 +35,16 @@ class LocalizacaoService {
         }
       }
 
-      // Tentar pegar a última localização conhecida primeiro (muito mais rápido na Web)
-      Position? position = await Geolocator.getLastKnownPosition();
+      Position? position;
+      
+      try {
+        if (!kIsWeb) {
+          // getLastKnownPosition() geralmente não é suportado na Web e pode lançar exceção
+          position = await Geolocator.getLastKnownPosition();
+        }
+      } catch (e) {
+        if (kDebugMode) print('Erro ao obter última posição: $e');
+      }
       
       // Se não tiver, pedir a localização atual (com precisão menor na Web para evitar timeout)
       position ??= await Geolocator.getCurrentPosition(
