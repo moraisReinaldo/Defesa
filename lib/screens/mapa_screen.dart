@@ -6,6 +6,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
@@ -134,14 +136,32 @@ class _MapaScreenState extends State<MapaScreen> {
     }).toList();
   }
 
+  Future<void> _showResponsiveModal(BuildContext context, Widget Function(BuildContext) builder) async {
+    if (ResponsiveLayout.isDesktop(context)) {
+      await showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          child: builder(context),
+        ),
+      );
+    } else {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: builder,
+      );
+    }
+  }
+
   void _mostrarDetalhesOcorrencia(Ocorrencia pOcorrencia) {
     Ocorrencia ocorrencia = pOcorrencia;
     final usuarioProvider = context.read<UsuarioProvider>();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Center(
+    _showResponsiveModal(
+      context,
+      (context) => Center(
         child: Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
@@ -628,7 +648,7 @@ class _MapaScreenState extends State<MapaScreen> {
         ? _construirTelaMapa(nomeUsuario, markers, usuarioProvider)
         : _indiceAbaAtual == 1 ?  const HistoricoScreen() :  const PerfilScreen();
         
-    final fabContent = _indiceAbaAtual == 0 
+    final fabContent = (_indiceAbaAtual == 0 && !ResponsiveLayout.isDesktop(context))
         ? Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -644,12 +664,7 @@ class _MapaScreenState extends State<MapaScreen> {
               ],
               FloatingActionButton.extended(
                 heroTag: 'fab_ocorrencia',
-                onPressed: () async {
-                  final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) =>  const SelecaoTipoOcorrenciaScreen()));
-                  if (res == true && mounted) {
-                    _inicializarMapa();
-                  }
-                },
+                onPressed: () => _onNovaOcorrenciaPressed(usuarioProvider),
                 icon: const Icon(Icons.add),
                 label: const Text('Nova Ocorrência'),
               ),
@@ -696,6 +711,34 @@ class _MapaScreenState extends State<MapaScreen> {
               backgroundColor: AppColors.surfaceCard,
               selectedIconTheme: const IconThemeData(color: AppColors.primaryTeal),
               selectedLabelTextStyle: const TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.bold),
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    FloatingActionButton.extended(
+                      heroTag: 'nav_fab_ocorrencia',
+                      elevation: 0,
+                      onPressed: () => _onNovaOcorrenciaPressed(usuarioProvider),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Nova Ocorrência'),
+                      backgroundColor: AppColors.primaryTeal,
+                      foregroundColor: Colors.white,
+                    ),
+                    if (usuarioProvider.isAdmin) ...[
+                      const SizedBox(height: 12),
+                      FloatingActionButton.extended(
+                        heroTag: 'nav_fab_poi',
+                        elevation: 0,
+                        onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
+                        icon: const Icon(Icons.add_location_alt_rounded),
+                        label: const Text('Ponto Interesse'),
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
               destinations: const [
                 NavigationRailDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: Text('Mapa')),
                 NavigationRailDestination(icon: Icon(Icons.history_outlined), selectedIcon: Icon(Icons.history), label: Text('Histórico')),
@@ -706,7 +749,7 @@ class _MapaScreenState extends State<MapaScreen> {
             Expanded(
               child: Scaffold(
                 body: bodyContent,
-                floatingActionButton: fabContent,
+                // O FAB flutuante é ocultado no desktop (tratado via fabContent null)
               ),
             ),
           ],
@@ -714,6 +757,108 @@ class _MapaScreenState extends State<MapaScreen> {
       ),
     );
   }
+
+  void _onNovaOcorrenciaPressed(UsuarioProvider usuarioProvider) async {
+    if (kIsWeb) {
+      if (!usuarioProvider.isAdmin) {
+        // Exibe modal QR Code para usuários comuns na web
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              width: 400,
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.app_shortcut_rounded, size: 64, color: AppColors.primaryTeal),
+                  const SizedBox(height: 16),
+                  const Text('Aplicativo Necessário', 
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 16),
+                  const Text('Para registrar ocorrências em tempo real com precisão de GPS e envio de mídia, utilize nosso aplicativo para Android ou iOS.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.5)),
+                  const SizedBox(height: 32),
+                  
+                  // Botões para as Lojas
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=defesa.civil.foco&hl=pt_BR'));
+                      },
+                      icon: const Icon(Icons.android, color: Colors.white),
+                      label: const Text('Baixar no Google Play'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3DDC84), // Android Green
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        launchUrl(Uri.parse('https://apps.apple.com/br/app/defesa-em-foco/id6782083182'));
+                      },
+                      icon: const Icon(Icons.apple, color: Colors.white),
+                      label: const Text('Baixar na App Store'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black, // Apple Black
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: const Text('Entendi'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      } else {
+        // Web & Admin: Abre o fluxo de registro em um Dialog
+        final res = await showDialog<bool>(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(24),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 850),
+              decoration: BoxDecoration(color: AppColors.backgroundOffWhite, borderRadius: BorderRadius.circular(24)),
+              clipBehavior: Clip.antiAlias,
+              child: Navigator(
+                onGenerateRoute: (settings) => MaterialPageRoute(
+                  builder: (context) => const SelecaoTipoOcorrenciaScreen(),
+                ),
+              ),
+            ),
+          ),
+        );
+        if (res == true && mounted) _inicializarMapa();
+      }
+    } else {
+      // Mobile flow normal
+      final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen()));
+      if (res == true && mounted) _inicializarMapa();
+    }
+  }
+
 
   Widget _construirTelaMapa(String nomeUsuario, List<Marker> markers, UsuarioProvider userProv) {
     final searchResults = _getFilteredOcorrencias();
@@ -780,10 +925,9 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   void _mostrarDetalhesPOI(PontoInteresse p) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Center(
+    _showResponsiveModal(
+      context,
+      (context) => Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 600),
           padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 24),

@@ -348,31 +348,63 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             ],
                           ),
                         ),
-                        // Cards com Native Ad intercalado (Regra Mestra)
-                        ...entry.value.asMap().entries.expand((cardEntry) {
-                          final idx = cardEntry.key;
-                          final ocorrencia = cardEntry.value;
-                          return [
-                            OcorrenciaCard(
-                              ocorrencia: ocorrencia,
-                              selectable: _selectionMode,
-                              selected: _selecionadas.contains(ocorrencia.id),
-                              onSelectToggle: () {
-                                setState(() {
-                                  if (_selecionadas.contains(ocorrencia.id)) {
-                                    _selecionadas.remove(ocorrencia.id);
-                                  } else {
-                                    _selecionadas.add(ocorrencia.id);
-                                  }
-                                });
-                              },
-                              onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
+                        // Cards
+                        ResponsiveLayout.isDesktop(context)
+                          ? Wrap(
+                              spacing: 16,
+                              runSpacing: 16,
+                              children: entry.value.asMap().entries.expand((cardEntry) {
+                                final idx = cardEntry.key;
+                                final ocorrencia = cardEntry.value;
+                                return [
+                                  SizedBox(
+                                    width: 350,
+                                    child: OcorrenciaCard(
+                                      ocorrencia: ocorrencia,
+                                      selectable: _selectionMode,
+                                      selected: _selecionadas.contains(ocorrencia.id),
+                                      onSelectToggle: () {
+                                        setState(() {
+                                          if (_selecionadas.contains(ocorrencia.id)) {
+                                            _selecionadas.remove(ocorrencia.id);
+                                          } else {
+                                            _selecionadas.add(ocorrencia.id);
+                                          }
+                                        });
+                                      },
+                                      onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
+                                    ),
+                                  ),
+                                  if ((idx + 1) % 5 == 0 && !context.read<UsuarioProvider>().estaLogado)
+                                    SizedBox(width: 350, child: _buildNativeAdPlaceholder()),
+                                ];
+                              }).toList(),
+                            )
+                          : Column(
+                              children: entry.value.asMap().entries.expand((cardEntry) {
+                                final idx = cardEntry.key;
+                                final ocorrencia = cardEntry.value;
+                                return [
+                                  OcorrenciaCard(
+                                    ocorrencia: ocorrencia,
+                                    selectable: _selectionMode,
+                                    selected: _selecionadas.contains(ocorrencia.id),
+                                    onSelectToggle: () {
+                                      setState(() {
+                                        if (_selecionadas.contains(ocorrencia.id)) {
+                                          _selecionadas.remove(ocorrencia.id);
+                                        } else {
+                                          _selecionadas.add(ocorrencia.id);
+                                        }
+                                      });
+                                    },
+                                    onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
+                                  ),
+                                  if ((idx + 1) % 5 == 0 && !context.read<UsuarioProvider>().estaLogado)
+                                    _buildNativeAdPlaceholder(),
+                                ];
+                              }).toList(),
                             ),
-                            // Inserir Native Ad a cada 5 cards (só para não-logados)
-                            if ((idx + 1) % 5 == 0 && !context.read<UsuarioProvider>().estaLogado)
-                              _buildNativeAdPlaceholder(),
-                          ];
-                        }),
                       ];
                     }),
                     if (provider.carregandoMais)
@@ -567,14 +599,32 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     return ocorrencias;
   }
 
+  Future<void> _showResponsiveModal(BuildContext context, Widget Function(BuildContext) builder) async {
+    if (ResponsiveLayout.isDesktop(context)) {
+      await showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          child: builder(context),
+        ),
+      );
+    } else {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: builder,
+      );
+    }
+  }
+
   void _mostrarDetalhesOcorrencia(
       BuildContext context, Ocorrencia pOcorrencia) {
     Ocorrencia ocorrencia = pOcorrencia;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Center(
+    _showResponsiveModal(
+      context,
+      (context) => Center(
         child: Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,

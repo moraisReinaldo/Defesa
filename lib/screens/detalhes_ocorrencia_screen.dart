@@ -356,6 +356,19 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
       final usuarioLogado = usuarioProvider.usuarioLogado;
       final isAgenteOuAdmin = usuarioProvider.isAdmin || (usuarioLogado?.role == Role.agente);
 
+      if (kIsWeb && usuarioProvider.isAdmin && _dataCustomizada == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Administradores no Web devem obrigatoriamente informar uma Data e Hora no passado.'),
+              backgroundColor: AppColors.statusActive,
+            ),
+          );
+          setState(() => _carregando = false);
+        }
+        return;
+      }
+
       String descricaoFinal = _descricaoController.value.text;
       if (_visaoDistancia) {
         final dist = _distanciaController.value.text.trim();
@@ -691,10 +704,10 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryTeal),
-                        title: const Text('Data e Hora Personalizada'),
+                        title: const Text('Data e Hora Personalizada (Obrigatório)'),
                         subtitle: Text(_dataCustomizada != null 
                           ? '${_dataCustomizada!.day.toString().padLeft(2, '0')}/${_dataCustomizada!.month.toString().padLeft(2, '0')}/${_dataCustomizada!.year} às ${_dataCustomizada!.hour.toString().padLeft(2, '0')}:${_dataCustomizada!.minute.toString().padLeft(2, '0')}'
-                          : 'Usar momento atual'),
+                          : 'Toque para selecionar uma data no passado'),
                         trailing: const Icon(Icons.edit_calendar_rounded, size: 20),
                         onTap: () async {
                           final date = await showDatePicker(
