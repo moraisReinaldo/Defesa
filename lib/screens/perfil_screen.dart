@@ -7,7 +7,6 @@ import 'cadastro_agente_screen.dart';
 import 'gerenciar_poi_screen.dart';
 import 'loading_screen.dart';
 import '../widgets/responsive_layout.dart';
-import 'package:flutter/foundation.dart';
 import 'dashboard_relatorios_screen.dart';
 import '../models/usuario.dart';
 
