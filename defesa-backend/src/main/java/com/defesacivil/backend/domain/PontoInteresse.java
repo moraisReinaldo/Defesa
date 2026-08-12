@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "pontos_interesse")
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class PontoInteresse {
 
     @Id

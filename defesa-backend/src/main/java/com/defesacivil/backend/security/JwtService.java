@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,13 +26,10 @@ public class JwtService {
 
     @PostConstruct
     public void init() {
-        if (secret == null || secret.isEmpty() || secret.length() < 32) {
-            // Usa uma chave fixa de desenvolvimento para não invalidar tokens ao reiniciar o servidor
-            String devSecret = "DefesaCivilBackendSecretKeyForDevEnv!2026";
-            this.signingKey = Keys.hmacShaKeyFor(devSecret.getBytes());
-        } else {
-            this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
+        if (secret == null || secret.isBlank() || secret.length() < 32) {
+            throw new IllegalStateException("app.jwt.secret deve conter pelo menos 32 caracteres e ser configurado via variável de ambiente.");
         }
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String email, String role) {

@@ -15,13 +15,7 @@ public class UsuarioRequest {
 
     private String telefone;
 
-    @NotBlank(message = "A senha é obrigatória")
-    @Size(min = 8, message = "A senha deve ter no mínimo 8 caracteres")
-    @jakarta.validation.constraints.Pattern(
-        regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).*$",
-        message = "A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número"
-    )
-    private String senha;
+    private String senha; // Opcional na atualização; validada manualmente no cadastro
 
     private String cidade; // Pode ser nulo para cidadãos em certas telas, mas validado no Service para Admins
 

@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        if (log.isDebugEnabled() || true) { // Forçar log para depuração
+        if (log.isDebugEnabled()) {
             log.info("🌐 [Auditoria] Request: {} {} | IP: {} | Auth Header: {}", 
                 request.getMethod(), request.getRequestURI(), request.getRemoteAddr(), 
                 (authHeader != null ? "PRESENTE" : "AUSENTE"));

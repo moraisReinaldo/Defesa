@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'usuario.dart';
 
 enum OcorrenciaStatus {
   pendenteAprovacao,
@@ -27,6 +28,8 @@ class Ocorrencia {
   final bool agenteNoLocal;
   final DateTime? dataChegadaAgente;
   final String? descricaoSituacao;
+  final Usuario? autor;
+  final List<Usuario>? agentesAtribuidos;
   /// true = salvo apenas localmente, não sincronizado com o servidor
   final bool isLocal;
 
@@ -47,9 +50,26 @@ class Ocorrencia {
     this.agenteNoLocal = false,
     this.dataChegadaAgente,
     this.descricaoSituacao,
+    this.autor,
+    this.agentesAtribuidos,
     this.isLocal = false,
   })  : id = id ?? const Uuid().v4(),
         dataHora = dataHora ?? DateTime.now();
+
+  static String _statusToString(OcorrenciaStatus s) {
+    switch (s) {
+      case OcorrenciaStatus.pendenteAprovacao:
+        return 'PENDENTE_APROVACAO';
+      case OcorrenciaStatus.aprovada:
+        return 'APROVADA';
+      case OcorrenciaStatus.trabalhandoAtualmente:
+        return 'TRABALHANDO_ATUALMENTE';
+      case OcorrenciaStatus.recusada:
+        return 'RECUSADA';
+      case OcorrenciaStatus.resolvida:
+        return 'RESOLVIDA';
+    }
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -62,16 +82,16 @@ class Ocorrencia {
       'caminhoFoto': caminhoFoto,
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
-      'status': status.name.replaceAllMapped(
-        RegExp(r'([A-Z])'),
-        (m) => '_${m.group(0)!}',
-      ).toUpperCase(),
+      'status': _statusToString(status),
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
       'criadoPorAgente': criadoPorAgente,
       'agenteNoLocal': agenteNoLocal,
       'dataChegadaAgente': dataChegadaAgente?.toIso8601String(),
       'descricaoSituacao': descricaoSituacao,
+      if (autor != null) 'autor': autor!.toJson(),
+      if (agentesAtribuidos != null)
+        'agentesAtribuidos': agentesAtribuidos!.map((a) => a.toJson()).toList(),
     };
   }
 
@@ -100,6 +120,12 @@ class Ocorrencia {
       agenteNoLocal: json['agenteNoLocal'] ?? false,
       dataChegadaAgente: _parseSafe(json['dataChegadaAgente']),
       descricaoSituacao: json['descricaoSituacao'],
+      autor: json['autor'] != null ? Usuario.fromJson(json['autor']) : null,
+      agentesAtribuidos: json['agentesAtribuidos'] != null
+          ? (json['agentesAtribuidos'] as List)
+              .map((a) => Usuario.fromJson(a as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 
@@ -136,6 +162,8 @@ class Ocorrencia {
     bool? agenteNoLocal,
     Object? dataChegadaAgente = _omit,
     String? descricaoSituacao,
+    Usuario? autor,
+    List<Usuario>? agentesAtribuidos,
     bool? isLocal,
   }) {
     return Ocorrencia(
@@ -159,6 +187,8 @@ class Ocorrencia {
           ? this.dataChegadaAgente
           : dataChegadaAgente as DateTime?,
       descricaoSituacao: descricaoSituacao ?? this.descricaoSituacao,
+      autor: autor ?? this.autor,
+      agentesAtribuidos: agentesAtribuidos ?? this.agentesAtribuidos,
       isLocal: isLocal ?? this.isLocal,
     );
   }

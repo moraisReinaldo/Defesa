@@ -1,16 +1,18 @@
 package com.defesacivil.backend.domain;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "tb_alertas")
 public class Alerta {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
     private String cidade;
     private String titulo;
@@ -20,13 +22,11 @@ public class Alerta {
     private boolean ativo;
 
     public Alerta() {
-        this.id = UUID.randomUUID().toString();
         this.dataCriacao = LocalDateTime.now();
         this.ativo = true;
     }
 
     public Alerta(String cidade, String titulo, String mensagem, String nivel) {
-        this.id = UUID.randomUUID().toString();
         this.cidade = cidade;
         this.titulo = titulo;
         this.mensagem = mensagem;

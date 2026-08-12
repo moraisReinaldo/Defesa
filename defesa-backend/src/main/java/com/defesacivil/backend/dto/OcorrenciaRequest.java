@@ -16,7 +16,6 @@ public class OcorrenciaRequest {
     @NotNull(message = "A longitude é obrigatória")
     private Double longitude;
     
-    @NotBlank(message = "A cidade é obrigatória")
     private String cidade;
 
     private String caminhoFoto;

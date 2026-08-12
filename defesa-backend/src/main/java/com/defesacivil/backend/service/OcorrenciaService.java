@@ -105,8 +105,6 @@ public class OcorrenciaService {
         
         // CORRETO - Segurança (Backend Bug 4)
         String emailAutenticado = getAuthenticatedEmail();
-        boolean isAdminOuAgente = false;
-        String cidadeUsuario = null;
         if (emailAutenticado != null && !"anonymousUser".equals(emailAutenticado)) {
             // Usuário autenticado: sempre usa o ID do JWT — nunca confia no body
             usuarioRepository.findByEmail(emailAutenticado).ifPresent(u -> {
@@ -120,8 +118,6 @@ public class OcorrenciaService {
                     }
                 }
             });
-            // Reavalia isAdminOuAgente baseado no role do contexto spring security
-            isAdminOuAgente = hasAnyRole("ADMINISTRADOR", "AGENTE");
         } else {
             // Usuário anônimo (sem conta): não tem ID para associar
             oc.setUsuarioId(null);
@@ -391,6 +387,7 @@ public class OcorrenciaService {
         copia.setDescricaoSituacao(oc.getDescricaoSituacao());
         copia.setCidadeEntidade(oc.getCidadeEntidade());
         copia.setAutor(oc.getAutor());
+        copia.setAgentesAtribuidos(oc.getAgentesAtribuidos());
         
         String foto = oc.getCaminhoFoto();
         if (foto == null || foto.isBlank()) {

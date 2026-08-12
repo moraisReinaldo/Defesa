@@ -231,8 +231,11 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
               icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
               label: const Text('ENCERRAR ALERTA', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
               onPressed: () async {
+                final cidade = context.read<UsuarioProvider>().cidadeAtiva;
+                final alertaProv = context.read<AlertaProvider>();
                 Navigator.pop(ctx);
-                await context.read<AlertaProvider>().cancelarAlerta(alerta.id);
+                await alertaProv.cancelarAlerta(alerta.id);
+                await alertaProv.carregarAlertas(cidade: cidade);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

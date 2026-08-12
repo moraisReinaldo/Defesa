@@ -1,7 +1,9 @@
 package com.defesacivil.backend.controller;
 
 import com.defesacivil.backend.domain.Alerta;
+import com.defesacivil.backend.dto.AlertaRequest;
 import com.defesacivil.backend.service.AlertaService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,8 +25,8 @@ public class AlertaController {
     }
 
     @PostMapping
-    public ResponseEntity<Alerta> emitirAlerta(@RequestBody Alerta alerta) {
-        Alerta salvo = alertaService.emitirAlerta(alerta);
+    public ResponseEntity<Alerta> emitirAlerta(@Valid @RequestBody AlertaRequest request) {
+        Alerta salvo = alertaService.emitirAlerta(request);
         return ResponseEntity.ok(salvo);
     }
 
@@ -34,3 +36,4 @@ public class AlertaController {
         return ResponseEntity.noContent().build();
     }
 }
+

@@ -28,7 +28,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
 
-    @Value("${spring.web.cors.allowed-origin-patterns:*}")
+    @Value("${spring.web.cors.allowed-origin-patterns:http://localhost:3000,http://localhost:8080,http://localhost:5173,https://localhost:3000,https://localhost:8080,https://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:8080,http://127.0.0.1:5173}")
     private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, RateLimitingFilter rateLimitingFilter) {
@@ -56,7 +56,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/esqueci-senha").permitAll()
                 .requestMatchers("/api/usuarios/resetar-senha").permitAll()
                 .requestMatchers("/api/cidades").permitAll()
-                .requestMatchers("/api/alertas/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/alertas").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/alertas/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()
@@ -82,6 +83,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/ocorrencias/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/marcacoes").hasAnyRole("ADMINISTRADOR", "AGENTE")
                 .requestMatchers(HttpMethod.PUT, "/api/marcacoes/**").hasAnyRole("ADMINISTRADOR", "AGENTE")
+                .requestMatchers(HttpMethod.POST, "/api/alertas").hasAnyRole("ADMINISTRADOR", "AGENTE")
+                .requestMatchers(HttpMethod.DELETE, "/api/alertas/**").hasAnyRole("ADMINISTRADOR", "AGENTE")
                 .requestMatchers("/api/usuarios/agentes").hasAnyRole("AGENTE", "ADMINISTRADOR")
 
                 // ===== DEMAIS ROTAS (Perfil, Edição, etc.) =====
@@ -102,16 +105,29 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Configura origens permitidas com base no arquivo de propriedades
-        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
-            configuration.setAllowedOriginPatterns(List.of(allowedOrigins.split(",")));
+        List<String> origins = List.of(allowedOrigins.split(",")).stream()
+            .map(String::trim)
+            .filter(origin -> !origin.isEmpty())
+            .toList();
+
+        if (!origins.isEmpty()) {
+            configuration.setAllowedOriginPatterns(origins);
         } else {
-            configuration.setAllowedOriginPatterns(List.of("*"));
+            configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:3000",
+                "http://localhost:8080",
+                "http://localhost:5173",
+                "https://localhost:3000",
+                "https://localhost:8080",
+                "https://localhost:5173",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:8080",
+                "http://127.0.0.1:5173"
+            ));
         }
+
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        // IMPORTANTE: allowCredentials=false permite o uso de wildcard em allowedOriginPatterns
-        // O app Flutter envia o JWT no header Authorization, não em cookies
         configuration.setAllowCredentials(false);
         configuration.setMaxAge(3600L);
 

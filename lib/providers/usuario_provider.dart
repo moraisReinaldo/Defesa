@@ -399,9 +399,9 @@ class UsuarioProvider extends ChangeNotifier {
       String? originalCidade = _usuarioLogado?.cidade;
       String? cidadeBusca = originalCidade;
       
-      // Mapeamento de Nome para Código (Garante que enviamos o código pro backend)
+      // Mapeamento de Nome para Código
       if (cidadeBusca != null && cidadeBusca.isNotEmpty) {
-        final searchCidade = cidadeBusca; // Captura para estabilizar o null-safety
+        final searchCidade = cidadeBusca;
         final cidades = await _apiService.listarCidades();
         final correspondente = cidades.firstWhere(
           (c) => c['nome']?.toLowerCase() == searchCidade.toLowerCase() || 
@@ -417,8 +417,11 @@ class UsuarioProvider extends ChangeNotifier {
       
       var agentes = await _apiService.listarAgentes(cidade: cidadeBusca);
       
-      // (Fallback global removido a pedido do usuário: agentes fora da jurisdição não devem ser exibidos/vistos na listagem)
-
+      // Fallback: se não encontrou com o código (ex: PIR), tenta pelo nome completo original (ex: PIRACAIA)
+      if (agentes.isEmpty && originalCidade != null && originalCidade != cidadeBusca) {
+        if (kDebugMode) print('🔄 Tentando fallback com nome original da cidade: $originalCidade');
+        agentes = await _apiService.listarAgentes(cidade: originalCidade);
+      }
 
       _todosAgentes = agentes;
       if (kDebugMode) print('✅ Agentes carregados: ${agentes.length}');

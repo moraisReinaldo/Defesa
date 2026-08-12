@@ -49,9 +49,14 @@ class ClimaProvider extends ChangeNotifier {
     if (_cidadeAtual != null) {
       _carregando = true;
       notifyListeners();
-      _dados = await _climaService.buscarClimaCidade(_cidadeAtual);
-      _carregando = false;
-      notifyListeners();
+      try {
+        _dados = await _climaService.buscarClimaCidade(_cidadeAtual);
+      } catch (e) {
+        if (kDebugMode) print('Erro ao atualizar clima: $e');
+      } finally {
+        _carregando = false;
+        notifyListeners();
+      }
     }
   }
 }

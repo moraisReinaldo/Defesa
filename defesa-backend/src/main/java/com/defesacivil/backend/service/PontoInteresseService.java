@@ -63,6 +63,9 @@ public class PontoInteresseService {
     }
 
     public void deletar(String id) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("Ponto de Interesse não encontrado: " + id);
+        }
         repository.deleteById(id);
     }
 }

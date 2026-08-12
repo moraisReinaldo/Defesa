@@ -29,7 +29,7 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
 
     // Carregada de variável de ambiente — nunca hardcoded
-    @Value("${app.admin.password:#{null}}")
+    @Value("${app.admin.password:}")
     private String adminPasswordHash;
 
     public UsuarioService(UsuarioRepository repository,
@@ -46,6 +46,17 @@ public class UsuarioService {
         }
         if (!request.isConcordaLGPD()) {
             throw new RuntimeException("É obrigatório concordar com os Termos de Privacidade (LGPD).");
+        }
+
+        // Validação manual de senha (obrigatória no cadastro, opcional na atualização)
+        if (request.getSenha() == null || request.getSenha().isBlank()) {
+            throw new RuntimeException("A senha é obrigatória");
+        }
+        if (request.getSenha().length() < 8) {
+            throw new RuntimeException("A senha deve ter no mínimo 8 caracteres");
+        }
+        if (!request.getSenha().matches("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).*$")) {
+            throw new RuntimeException("A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número");
         }
 
         Role roleReq;
@@ -108,23 +119,17 @@ public class UsuarioService {
 
     /**
      * Valida a senha master do administrador.
-     * SEGURANÇA: A senha no application.properties deve estar em BCrypt para produção.
-     * Em desenvolvimento, aceita texto plano como fallback.
+     * A senha deve ser um hash BCrypt válido configurado via variável de ambiente.
      */
     public boolean validarSenhaAdmin(String senhaDigitada) {
-        if (adminPasswordHash == null || adminPasswordHash.isEmpty()) {
-            log.warn("Senha de admin não configurada em app.admin.password!");
-            return false;
-        }
-        // Tenta comparação BCrypt primeiro (produção); fallback para texto plano (dev)
-        if (adminPasswordHash.startsWith("$2")) {
-            return passwordEncoder.matches(senhaDigitada, adminPasswordHash);
-        }
-        // Comparação de tempo constante para evitar timing attacks
-        return java.security.MessageDigest.isEqual(
-            adminPasswordHash.getBytes(),
-            senhaDigitada.getBytes()
-        );
+       if (adminPasswordHash == null || adminPasswordHash.isBlank()) {
+           log.warn("Senha de admin não configurada em app.admin.password!");
+           return false;
+       }
+       if (!adminPasswordHash.startsWith("$2")) {
+           throw new IllegalStateException("app.admin.password deve ser um hash BCrypt válido configurado via variável de ambiente.");
+       }
+       return passwordEncoder.matches(senhaDigitada, adminPasswordHash);
     }
 
     public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
@@ -259,7 +264,7 @@ public class UsuarioService {
 
         Usuario user = userOpt.get();
         // Gerar código de 6 dígitos
-        String codigo = String.format("%06d", new java.util.Random().nextInt(999999));
+        String codigo = String.format("%06d", new java.security.SecureRandom().nextInt(999999));
         user.setResetSenhaCodigo(codigo);
         user.setResetSenhaExpiracao(LocalDateTime.now().plusMinutes(15));
         repository.save(user);
@@ -277,7 +282,7 @@ public class UsuarioService {
             return false;
         }
 
-        if (user.getResetSenhaExpiracao().isBefore(LocalDateTime.now())) {
+        if (user.getResetSenhaExpiracao() == null || user.getResetSenhaExpiracao().isBefore(LocalDateTime.now())) {
             return false;
         }
 
