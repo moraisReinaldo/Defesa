@@ -296,32 +296,30 @@ class _PerfilScreenState extends State<PerfilScreen> {
               ),
             ),
           ),
-          if (kIsWeb) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const DashboardRelatoriosScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.analytics_rounded, size: 18),
-                label: const Text('Ver Dashboard de Relatórios'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.purple,
-                  side: const BorderSide(color: Colors.purple),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DashboardRelatoriosScreen(),
                   ),
+                );
+              },
+              icon: const Icon(Icons.analytics_rounded, size: 18),
+              label: const Text('Ver Dashboard de Relatórios'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.purple,
+                side: const BorderSide(color: Colors.purple),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
             ),
-          ],
+          ),
           const SizedBox(height: 12),
           const Divider(height: 32),
           const Text('Promover Usuário a Agente', 

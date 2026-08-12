@@ -81,7 +81,6 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
           _posicaoAtual = posicao;
         });
         
-        // Tentar obter a cidade (Reverse Geocoding usando nosso serviço)
         try {
           final cidade = await _geocodingService.obterCidade(
             posicao.latitude, 
@@ -92,8 +91,6 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
           if (cidade != null) {
             setState(() {
               _cidadeDetectada = cidade;
-              
-              // Mapear para código usando a lista do provider
               for (var c in prov.cidadesSuportadas) {
                 String nome = c['nome'] ?? '';
                 if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
@@ -108,11 +105,47 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
           debugPrint("Erro ao obter cidade: $e");
         }
       }
+
+      // Fallback seguro se o GPS estiver desativado ou bloqueado
+      if (_posicaoAtual == null) {
+        final cidadeCod = prov.cidadeAtiva ?? 'PIR';
+        final coordsFallback = ClimaService.obterCoordenadasCidade(cidadeCod);
+        setState(() {
+          _posicaoAtual = Position(
+            latitude: coordsFallback['lat']!,
+            longitude: coordsFallback['lng']!,
+            timestamp: DateTime.now(),
+            accuracy: 10,
+            altitude: 0,
+            heading: 0,
+            speed: 0,
+            speedAccuracy: 0,
+            altitudeAccuracy: 0,
+            headingAccuracy: 0,
+          );
+          _codigoCidadeDetectada ??= cidadeCod;
+        });
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao obter localização: $e")),
-        );
+        final prov = context.read<UsuarioProvider>();
+        final cidadeCod = prov.cidadeAtiva ?? 'PIR';
+        final coordsFallback = ClimaService.obterCoordenadasCidade(cidadeCod);
+        setState(() {
+          _posicaoAtual = Position(
+            latitude: coordsFallback['lat']!,
+            longitude: coordsFallback['lng']!,
+            timestamp: DateTime.now(),
+            accuracy: 10,
+            altitude: 0,
+            heading: 0,
+            speed: 0,
+            speedAccuracy: 0,
+            altitudeAccuracy: 0,
+            headingAccuracy: 0,
+          );
+          _codigoCidadeDetectada ??= cidadeCod;
+        });
       }
     } finally {
       if (mounted) setState(() => _carregando = false);

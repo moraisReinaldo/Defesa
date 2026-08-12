@@ -667,6 +667,14 @@ class _MapaScreenState extends State<MapaScreen> {
             children: [
               if (usuarioProvider.isAdmin) ...[
                 FloatingActionButton.extended(
+                  heroTag: 'fab_dashboard',
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRelatoriosScreen())),
+                  icon: const Icon(Icons.analytics_rounded),
+                  label: const Text('Dashboard Operacional'),
+                  backgroundColor: Colors.purple,
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.extended(
                   heroTag: 'fab_poi',
                   onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
                   icon: const Icon(Icons.add_location_alt_rounded),

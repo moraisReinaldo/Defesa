@@ -30,6 +30,23 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
   String _filtroAnoMapa = 'TODOS';
   String _filtroStatusMapa = 'TODOS';
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProv = context.read<UsuarioProvider>();
+      final cidade = userProv.cidadeAtiva;
+      final userId = userProv.usuarioLogado?.id;
+      final isAdmin = userProv.isAdmin;
+      context.read<OcorrenciaProvider>().carregarOcorrencias(
+        cidade: cidade,
+        userId: userId,
+        isAdmin: isAdmin,
+      );
+      context.read<PontoInteresseProvider>().carregarPontos(cidade: cidade);
+    });
+  }
+
   void _abrirModalEmitirAlerta(BuildContext context, String cidade) {
     final tituloC = TextEditingController();
     final msgC = TextEditingController();

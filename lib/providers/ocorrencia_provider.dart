@@ -47,6 +47,21 @@ class OcorrenciaProvider extends ChangeNotifier {
   List<Ocorrencia> get ocorrenciasResolvidas =>
       _ocorrencias.where((o) => o.status == OcorrenciaStatus.resolvida).toList();
 
+  bool _mesmaCidade(String? c1, String? c2) {
+    if (c1 == null || c2 == null || c1.isEmpty || c2.isEmpty) return false;
+    final a = c1.trim().toUpperCase();
+    final b = c2.trim().toUpperCase();
+    if (a == b) return true;
+    if ((a == 'PIR' || a == 'PIRACAIA') && (b == 'PIR' || b == 'PIRACAIA')) return true;
+    if ((a == 'JOA' || a == 'JOANOPOLIS' || a == 'JOANÓPOLIS') && (b == 'JOA' || b == 'JOANOPOLIS' || b == 'JOANÓPOLIS')) return true;
+    if ((a == 'ATI' || a == 'ATIBAIA') && (b == 'ATI' || b == 'ATIBAIA')) return true;
+    if ((a == 'BP' || a.contains('BRAG')) && (b == 'BP' || b.contains('BRAG'))) return true;
+    if ((a == 'NAZ' || a.contains('NAZA')) && (b == 'NAZ' || b.contains('NAZA'))) return true;
+    if ((a == 'TUI' || a == 'TUIUTI') && (b == 'TUI' || b == 'TUIUTI')) return true;
+    if ((a == 'VAR' || a == 'VARGEM') && (b == 'VAR' || b == 'VARGEM')) return true;
+    return a.contains(b) || b.contains(a);
+  }
+
   Future<void> carregarOcorrencias({String? cidade, String? userId, bool isAdmin = false}) async {
     _paginaAtual = 0;
     _temMais = true;
@@ -69,7 +84,7 @@ class OcorrenciaProvider extends ChangeNotifier {
       _ocorrencias = vindoDaApi
           .where((o) => 
             (cidade == null || cidade.isEmpty) || 
-            (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+            _mesmaCidade(o.cidade, cidade) || 
             (userId != null && o.usuarioId == userId))
           .toList();
       _temMais = vindoDaApi.length >= _pageSize;
@@ -90,7 +105,7 @@ class OcorrenciaProvider extends ChangeNotifier {
       final localNaoSincronizadas = localAntes
           .where((o) => !idsDoServidor.contains(o.id) && o.isLocal &&
               ((cidade == null || cidade.isEmpty) || 
-               (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+               _mesmaCidade(o.cidade, cidade) || 
                (userId != null && o.usuarioId == userId)))
           .map((o) => o.copyWith(isLocal: true))
           .toList();
@@ -109,7 +124,7 @@ class OcorrenciaProvider extends ChangeNotifier {
       _ocorrencias = local
           .where((o) => 
             (cidade == null || cidade.isEmpty) || 
-            (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+            _mesmaCidade(o.cidade, cidade) || 
             (userId != null && o.usuarioId == userId))
           .map((o) => o.copyWith(isLocal: true))
           .toList();
@@ -134,7 +149,7 @@ class OcorrenciaProvider extends ChangeNotifier {
       final novos = vindoDaApi
           .where((o) => 
             (cidade == null || cidade.isEmpty) || 
-            (o.cidade != null && o.cidade!.trim().toUpperCase() == cidade.trim().toUpperCase()) || 
+            _mesmaCidade(o.cidade, cidade) || 
             (userId != null && o.usuarioId == userId))
           .toList();
       
