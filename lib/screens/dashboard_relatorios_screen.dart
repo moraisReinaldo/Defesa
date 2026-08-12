@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../constants/app_colors.dart';
 import '../models/ocorrencia.dart';
+import '../models/ponto_interesse.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
+import '../providers/ponto_interesse_provider.dart';
+import '../providers/alerta_provider.dart';
 import '../widgets/responsive_layout.dart';
+import '../widgets/clima_widget.dart';
+import '../services/clima_service.dart';
 import '../constants/ocorrencia_tipos.dart';
 
 class DashboardRelatoriosScreen extends StatefulWidget {
@@ -18,11 +25,123 @@ class DashboardRelatoriosScreen extends StatefulWidget {
 }
 
 class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
+  final MapController _dashMapController = MapController();
+  String _filtroTipoMapa = 'TODOS';
+  String _filtroAnoMapa = 'TODOS';
+  String _filtroStatusMapa = 'TODOS';
+
+  void _abrirModalEmitirAlerta(BuildContext context, String cidade) {
+    final tituloC = TextEditingController();
+    final msgC = TextEditingController();
+    String nivelSel = 'ATENCAO';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.campaign_rounded, color: Colors.red, size: 28),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Emitir Alerta • $cidade',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Nível de Gravidade:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: nivelSel,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'INFORMATIVO', child: Text('🔵 Informativo (Aviso Geral)')),
+                    DropdownMenuItem(value: 'ATENCAO', child: Text('🟡 Atenção (Risco Moderado)')),
+                    DropdownMenuItem(value: 'CRITICO', child: Text('🔴 Alerta Vermelho / Evacuação')),
+                  ],
+                  onChanged: (v) => setDialogState(() => nivelSel = v!),
+                ),
+                const SizedBox(height: 16),
+                const Text('Título do Alerta:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: tituloC,
+                  decoration: InputDecoration(
+                    hintText: 'Ex: Risco de Alagamento nas Próximas Horas',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text('Mensagem / Orientações:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: msgC,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Evite trafegar por áreas baixas e contate a Defesa Civil se necessário.',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              icon: const Icon(Icons.send_rounded),
+              label: const Text('EMITIR ALERTA'),
+              onPressed: () async {
+                if (tituloC.text.trim().isEmpty || msgC.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Preencha o título e a mensagem.')),
+                  );
+                  return;
+                }
+                Navigator.pop(ctx);
+                final ok = await context.read<AlertaProvider>().emitirAlerta(
+                      cidade: cidade,
+                      titulo: tituloC.text.trim(),
+                      mensagem: msgC.text.trim(),
+                      nivel: nivelSel,
+                    );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(ok ? 'Alerta emitido com sucesso para a população!' : 'Erro ao emitir alerta.'),
+                      backgroundColor: ok ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final ocorrencias = context.watch<OcorrenciaProvider>().ocorrencias;
-    final isAdmin = context.watch<UsuarioProvider>().isAdmin;
-    
+    final userProvider = context.watch<UsuarioProvider>();
+    final ocorrenciaProv = context.watch<OcorrenciaProvider>();
+    final poiProv = context.watch<PontoInteresseProvider>();
+    final isAdmin = userProvider.isAdmin;
+
     if (!isAdmin) {
       return Scaffold(
         appBar: AppBar(title: const Text('Acesso Negado')),
@@ -30,39 +149,294 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
       );
     }
 
+    final cidadeCodigo = userProvider.cidadeAtiva;
+    final cidadeNome = userProvider.cidadesSuportadas.firstWhere(
+      (c) => c['codigo'] == cidadeCodigo,
+      orElse: () => {'nome': cidadeCodigo ?? 'Sua Jurisdição'},
+    )['nome']!;
+
+    final ocorrencias = ocorrenciaProv.ocorrencias;
+    final pontosApoio = poiProv.pontos;
+    final coordsCidade = ClimaService.obterCoordenadasCidade(cidadeCodigo);
+    final centroMapa = LatLng(coordsCidade['lat']!, coordsCidade['lng']!);
+
     return Scaffold(
       backgroundColor: AppColors.backgroundOffWhite,
       appBar: AppBar(
-        title: const Text('Dashboard de Relatórios'),
+        title: Text('Dashboard Operacional • $cidadeNome'),
         elevation: 0,
         backgroundColor: AppColors.primaryTeal,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.campaign_rounded, color: Colors.amberAccent),
+            tooltip: 'Emitir Alerta de Emergência',
+            onPressed: () => _abrirModalEmitirAlerta(context, cidadeNome),
+          )
+        ],
       ),
       body: ResponsiveContainer(
-        maxWidth: 1000,
+        maxWidth: 1200,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: ocorrencias.isEmpty 
-              ? const Center(child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Text('Nenhuma ocorrência encontrada para gerar relatórios.', style: TextStyle(fontSize: 16)),
-                ))
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Monitoramento Climatológico
+              const ClimaWidget(),
+              const SizedBox(height: 24),
+
+              // 2. Indicadores de Gestão (KPI Cards)
+              _buildKPIs(ocorrencias, pontosApoio),
+              const SizedBox(height: 24),
+
+              // 3. MAPA DEDICADO DE RISCOS E OCORRÊNCIAS DA CIDADE
+              _buildMapaDedicadoRisco(context, centroMapa, ocorrencias, pontosApoio, cidadeNome),
+              const SizedBox(height: 24),
+
+              // 4. Gráficos Analíticos
+              _buildRow(
+                context,
+                _buildChartCard('Ocorrências por Tipo', _buildBarChartTipos(ocorrencias)),
+                _buildChartCard('Distribuição por Status', _buildPieChartStatus(ocorrencias)),
+              ),
+              const SizedBox(height: 24),
+              _buildChartCard('Evolução do Volume (Últimos 7 Dias)', _buildLineChartEvolucao(ocorrencias), height: 320),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapaDedicadoRisco(
+    BuildContext context,
+    LatLng centro,
+    List<Ocorrencia> ocorrencias,
+    List<PontoInteresse> pontos,
+    String cidadeNome,
+  ) {
+    // Filtragem dinâmica de ocorrências
+    final ocorrenciasFiltradas = ocorrencias.where((o) {
+      if (_filtroTipoMapa != 'TODOS' && o.tipo != _filtroTipoMapa) return false;
+      if (_filtroStatusMapa != 'TODOS' && o.status.name != _filtroStatusMapa) return false;
+      if (_filtroAnoMapa != 'TODOS' && o.dataHora.year.toString() != _filtroAnoMapa) return false;
+      return true;
+    }).toList();
+
+    // Anos disponíveis para o filtro de ano
+    final anosSet = <String>{'TODOS'};
+    for (final o in ocorrencias) {
+      anosSet.add(o.dataHora.year.toString());
+    }
+    final anosDisponiveis = anosSet.toList()..sort((a, b) => b.compareTo(a));
+
+    final markers = <Marker>[];
+
+    // Alfinetes para Pontos de Apoio / Abrigos
+    for (final p in pontos) {
+      markers.add(
+        Marker(
+          width: 32, height: 32,
+          point: LatLng(p.latitude, p.longitude),
+          child: Container(
+            decoration: BoxDecoration(color: Colors.blue.shade700, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+            child: const Icon(Icons.home_work_rounded, color: Colors.white, size: 16),
+          ),
+        ),
+      );
+    }
+
+    // Alfinetes para Ocorrências Históricas Filtradas
+    for (final o in ocorrenciasFiltradas) {
+      final color = AppColors.getTipoColor(o.tipo);
+      markers.add(
+        Marker(
+          width: 34, height: 34,
+          point: LatLng(o.latitude, o.longitude),
+          child: GestureDetector(
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(OcorrenciaTipos.getTipoNome(o.tipo)),
+                  content: Text('${o.descricao}\n\nData: ${o.dataHora.day}/${o.dataHora.month}/${o.dataHora.year}\nStatus: ${o.status.name}'),
+                  actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Fechar'))],
+                ),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+              child: Icon(OcorrenciaTipos.getTipoIcone(o.tipo), color: Colors.white, size: 18),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final temFiltroAtivo = _filtroTipoMapa != 'TODOS' || _filtroAnoMapa != 'TODOS' || _filtroStatusMapa != 'TODOS';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [BoxShadow(color: AppColors.shadowColor, blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Cabeçalho do Mapa
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 10.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
                   children: [
-                    _buildKPIs(ocorrencias),
-                    const SizedBox(height: 24),
-                    _buildRow(
-                      context,
-                      _buildChartCard('Ocorrências por Tipo', _buildBarChartTipos(ocorrencias)),
-                      _buildChartCard('Distribuição por Status', _buildPieChartStatus(ocorrencias)),
+                    const Icon(Icons.map_rounded, color: AppColors.primaryTeal, size: 24),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('MAPA DE OCORRÊNCIAS & RISCOS HISTÓRICOS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+                        Text('Jurisdição: $cidadeNome', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    _buildChartCard('Volume de Ocorrências (Últimos 7 Dias)', _buildLineChartEvolucao(ocorrencias), height: 350),
-                    const SizedBox(height: 24),
                   ],
                 ),
-        ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: AppColors.primaryTeal.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: Text('${ocorrenciasFiltradas.length} / ${ocorrencias.length} Exibidos', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryTeal)),
+                ),
+              ],
+            ),
+          ),
+
+          // BARRA DE FILTROS INTERATIVOS DO MAPA
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Filtro 1: Tipo de Ocorrência
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundOffWhite,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.borderLight),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _filtroTipoMapa,
+                      isDense: true,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      items: [
+                        const DropdownMenuItem(value: 'TODOS', child: Text('🔥 Todos os Tipos')),
+                        ...OcorrenciaTipos.tipos.entries.map((e) => DropdownMenuItem(
+                              value: e.key,
+                              child: Text(e.value),
+                            )),
+                      ],
+                      onChanged: (v) => setState(() => _filtroTipoMapa = v!),
+                    ),
+                  ),
+                ),
+
+                // Filtro 2: Ano
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundOffWhite,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.borderLight),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _filtroAnoMapa,
+                      isDense: true,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      items: anosDisponiveis.map((a) => DropdownMenuItem(
+                        value: a,
+                        child: Text(a == 'TODOS' ? '📅 Todos os Anos' : '📅 Ano $a'),
+                      )).toList(),
+                      onChanged: (v) => setState(() => _filtroAnoMapa = v!),
+                    ),
+                  ),
+                ),
+
+                // Filtro 3: Status
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundOffWhite,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.borderLight),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _filtroStatusMapa,
+                      isDense: true,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      items: const [
+                        DropdownMenuItem(value: 'TODOS', child: Text('📌 Todos os Status')),
+                        DropdownMenuItem(value: 'resolvida', child: Text('✅ Resolvidas')),
+                        DropdownMenuItem(value: 'pendenteAprovacao', child: Text('🟡 Pendentes')),
+                        DropdownMenuItem(value: 'aprovada', child: Text('🔵 Aprovadas')),
+                        DropdownMenuItem(value: 'trabalhandoAtualmente', child: Text('🚗 Em Andamento')),
+                        DropdownMenuItem(value: 'recusada', child: Text('🔴 Recusadas')),
+                      ],
+                      onChanged: (v) => setState(() => _filtroStatusMapa = v!),
+                    ),
+                  ),
+                ),
+
+                // Botão de Limpar Filtros se algum estiver ativo
+                if (temFiltroAtivo)
+                  TextButton.icon(
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                    icon: const Icon(Icons.clear_all_rounded, size: 16, color: Colors.red),
+                    label: const Text('Limpar Filtros', style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.bold)),
+                    onPressed: () => setState(() {
+                      _filtroTipoMapa = 'TODOS';
+                      _filtroAnoMapa = 'TODOS';
+                      _filtroStatusMapa = 'TODOS';
+                    }),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Canvas do Mapa
+          SizedBox(
+            height: 380,
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+              child: FlutterMap(
+                mapController: _dashMapController,
+                options: MapOptions(
+                  initialCenter: centro,
+                  initialZoom: 13,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag | InteractiveFlag.doubleTapZoom,
+                  ),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.defesacivil.app',
+                  ),
+                  MarkerLayer(markers: markers),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -87,49 +461,39 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
     );
   }
 
-  Widget _buildKPIs(List<Ocorrencia> ocorrencias) {
+  Widget _buildKPIs(List<Ocorrencia> ocorrencias, List<PontoInteresse> pontos) {
     final resolvidas = ocorrencias.where((o) => o.status == OcorrenciaStatus.resolvida).length;
     final pendentes = ocorrencias.where((o) => o.status == OcorrenciaStatus.pendenteAprovacao).length;
-    
-    if (ocorrencias.isEmpty) return const SizedBox.shrink();
-    
-    DateTime minDate = ocorrencias.first.dataHora;
-    for (var o in ocorrencias) {
-      if (o.dataHora.isBefore(minDate)) minDate = o.dataHora;
-    }
-    final days = DateTime.now().difference(minDate).inDays;
-    final avg = days > 0 ? (ocorrencias.length / days) : ocorrencias.length.toDouble();
+    final emAndamento = ocorrencias.where((o) => o.status == OcorrenciaStatus.trabalhandoAtualmente).length;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
-        final kpis = [
-          _buildKPICard('Total Geral', ocorrencias.length.toString(), Icons.analytics_rounded, AppColors.primaryTeal),
-          _buildKPICard('Resolvidas', resolvidas.toString(), Icons.check_circle_rounded, AppColors.statusResolved),
-          _buildKPICard('Pendentes', pendentes.toString(), Icons.pending_actions_rounded, AppColors.accentAmber),
-          _buildKPICard('Média/Dia', avg.toStringAsFixed(1), Icons.show_chart_rounded, Colors.purple),
-        ];
+    return LayoutBuilder(builder: (context, constraints) {
+      final isMobile = constraints.maxWidth < 600;
+      final kpis = [
+        _buildKPICard('Total Geral', ocorrencias.length.toString(), Icons.analytics_rounded, AppColors.primaryTeal),
+        _buildKPICard('Resolvidas', resolvidas.toString(), Icons.check_circle_rounded, AppColors.statusResolved),
+        _buildKPICard('Em Atendimento', emAndamento.toString(), Icons.engineering_rounded, AppColors.statusEnRoute),
+        _buildKPICard('Pendentes', pendentes.toString(), Icons.pending_actions_rounded, AppColors.accentAmber),
+      ];
 
-        if (isMobile) {
-          return Column(
-            children: [
-              Row(children: [Expanded(child: kpis[0]), const SizedBox(width: 12), Expanded(child: kpis[1])]),
-              const SizedBox(height: 12),
-              Row(children: [Expanded(child: kpis[2]), const SizedBox(width: 12), Expanded(child: kpis[3])]),
-            ],
-          );
-        }
-
-        return Row(
+      if (isMobile) {
+        return Column(
           children: [
-            Expanded(child: kpis[0]), const SizedBox(width: 16),
-            Expanded(child: kpis[1]), const SizedBox(width: 16),
-            Expanded(child: kpis[2]), const SizedBox(width: 16),
-            Expanded(child: kpis[3]),
+            Row(children: [Expanded(child: kpis[0]), const SizedBox(width: 12), Expanded(child: kpis[1])]),
+            const SizedBox(height: 12),
+            Row(children: [Expanded(child: kpis[2]), const SizedBox(width: 12), Expanded(child: kpis[3])]),
           ],
         );
       }
-    );
+
+      return Row(
+        children: [
+          Expanded(child: kpis[0]), const SizedBox(width: 16),
+          Expanded(child: kpis[1]), const SizedBox(width: 16),
+          Expanded(child: kpis[2]), const SizedBox(width: 16),
+          Expanded(child: kpis[3]),
+        ],
+      );
+    });
   }
 
   Widget _buildKPICard(String title, String value, IconData icon, Color color) {
@@ -137,7 +501,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: const [BoxShadow(color: AppColors.shadowColor, blurRadius: 10, offset: Offset(0, 4))],
       ),
       child: Column(
@@ -146,7 +510,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
               Icon(icon, color: color, size: 20),
             ],
           ),
@@ -163,14 +527,14 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: const [BoxShadow(color: AppColors.shadowColor, blurRadius: 10, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Expanded(child: chart),
         ],
       ),
@@ -182,11 +546,18 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
     for (var o in ocorrencias) {
       counts[o.tipo] = (counts[o.tipo] ?? 0) + 1;
     }
-    
+
     var sorted = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     if (sorted.length > 5) sorted = sorted.sublist(0, 5);
 
-    if (sorted.isEmpty) return const SizedBox.shrink();
+    if (sorted.isEmpty) {
+      return const Center(
+        child: Text(
+          'Sem dados de ocorrências registrados.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+      );
+    }
 
     double maxY = sorted.first.value.toDouble() * 1.2;
     if (maxY == 0) maxY = 10;
@@ -234,7 +605,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
                   show: true,
                   toY: maxY,
                   color: AppColors.backgroundOffWhite,
-                )
+                ),
               )
             ],
             showingTooltipIndicators: [0],
@@ -250,6 +621,15 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
       counts[o.status] = (counts[o.status] ?? 0) + 1;
     }
 
+    if (counts.isEmpty) {
+      return const Center(
+        child: Text(
+          'Sem dados de status registrados.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+      );
+    }
+
     return PieChart(
       PieChartData(
         sectionsSpace: 2,
@@ -258,11 +638,26 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
           Color color;
           String label;
           switch (e.key) {
-            case OcorrenciaStatus.resolvida: color = AppColors.statusResolved; label = 'Resolvida'; break;
-            case OcorrenciaStatus.pendenteAprovacao: color = AppColors.accentAmber; label = 'Pendente'; break;
-            case OcorrenciaStatus.aprovada: color = AppColors.primaryTealLight; label = 'Aprovada'; break;
-            case OcorrenciaStatus.trabalhandoAtualmente: color = AppColors.statusEnRoute; label = 'Em Andamento'; break;
-            case OcorrenciaStatus.recusada: color = AppColors.statusActive; label = 'Recusada'; break;
+            case OcorrenciaStatus.resolvida:
+              color = AppColors.statusResolved;
+              label = 'Resolvida';
+              break;
+            case OcorrenciaStatus.pendenteAprovacao:
+              color = AppColors.accentAmber;
+              label = 'Pendente';
+              break;
+            case OcorrenciaStatus.aprovada:
+              color = AppColors.primaryTealLight;
+              label = 'Aprovada';
+              break;
+            case OcorrenciaStatus.trabalhandoAtualmente:
+              color = AppColors.statusEnRoute;
+              label = 'Em Andamento';
+              break;
+            case OcorrenciaStatus.recusada:
+              color = AppColors.statusActive;
+              label = 'Recusada';
+              break;
           }
           final percentage = (e.value / ocorrencias.length) * 100;
           return PieChartSectionData(
@@ -300,13 +695,13 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
 
     final keys = counts.keys.toList();
     final values = counts.values.toList();
-    
+
     double maxY = values.reduce((a, b) => a > b ? a : b).toDouble() * 1.5;
     if (maxY == 0) maxY = 5;
 
     return LineChart(
       LineChartData(
-        gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: Colors.black12, strokeWidth: 1)),
+        gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => const FlLine(color: Colors.black12, strokeWidth: 1)),
         titlesData: FlTitlesData(
           show: true,
           bottomTitles: AxisTitles(

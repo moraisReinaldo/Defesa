@@ -22,6 +22,8 @@ class ApiService {
     _ponto = PontoInteresseService(_client);
   }
 
+  ApiClient get client => _client;
+
   // URL atual do backend — usada por getServerRoot() e buildImageUrl()
   static const String baseUrl = ApiClient.baseUrl;
 

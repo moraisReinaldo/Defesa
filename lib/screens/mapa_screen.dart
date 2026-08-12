@@ -17,6 +17,7 @@ import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
 import '../providers/ponto_interesse_provider.dart';
 import '../services/localizacao_service.dart';
+import '../services/clima_service.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ocorrencia_card.dart';
@@ -27,6 +28,11 @@ import 'registro_ocorrencia_screen.dart'; // Contém SelecaoTipoOcorrenciaScreen
 import 'historico_screen.dart';
 import 'perfil_screen.dart';
 import 'registro_ponto_interesse_screen.dart';
+import 'dashboard_relatorios_screen.dart';
+import 'cadastro_agente_screen.dart';
+import 'gerenciar_poi_screen.dart';
+import '../widgets/alerta_banner_widget.dart';
+import '../widgets/mapa_context_menu_widget.dart';
 
 class MapaScreen extends StatefulWidget {
    const MapaScreen({super.key});
@@ -86,15 +92,18 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   Future<void> _inicializarMapa() async {
-    // Buscar localização IMEDIATAMENTE (sem travar a thread)
-    _centralizarLocalizacao(animar: true);
-
     final usuarioProv = context.read<UsuarioProvider>();
     final ocorrenciaProv = context.read<OcorrenciaProvider>();
-    
-    // Prioridade: Cidade Ativa (Logado ou GPS Detectado)
     final cidadeFiltro = usuarioProv.cidadeAtiva;
-    
+
+    // Centraliza o mapa na cidade do Administrador / usuário
+    if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
+      final coords = ClimaService.obterCoordenadasCidade(cidadeFiltro);
+      _mapController.move(LatLng(coords['lat']!, coords['lng']!), 14);
+    } else {
+      _centralizarLocalizacao(animar: true);
+    }
+
     if (usuarioProv.isAdmin || (cidadeFiltro != null && cidadeFiltro.isNotEmpty)) {
       await ocorrenciaProv.carregarOcorrencias(
         cidade: cidadeFiltro, 
@@ -718,9 +727,34 @@ class _MapaScreenState extends State<MapaScreen> {
     );
   }
 
+  void _executarAcaoContextMenu(MapaAction acao, LatLng latlng, UsuarioProvider userProv) {
+    switch (acao) {
+      case MapaAction.novoPontoInteresse:
+        _confirmarNovoPontoInteresse(latlng);
+        break;
+      case MapaAction.novaOcorrencia:
+        _onNovaOcorrenciaPressed(userProv);
+        break;
+      case MapaAction.emitirAlerta:
+        final cidadeCod = userProv.cidadeAtiva;
+        final cidadeNome = userProv.cidadesSuportadas.firstWhere(
+          (c) => c['codigo'] == cidadeCod,
+          orElse: () => {'nome': cidadeCod ?? 'Sua Jurisdição'},
+        )['nome']!;
+        AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome);
+        break;
+    }
+  }
+
   Widget _buildModernSidebar(UsuarioProvider usuarioProvider) {
+    final cidadeCodigo = usuarioProvider.cidadeAtiva;
+    final cidadeNome = usuarioProvider.cidadesSuportadas.firstWhere(
+      (c) => c['codigo'] == cidadeCodigo,
+      orElse: () => {'nome': cidadeCodigo ?? 'Jurisdição Geral'},
+    )['nome']!;
+
     return Container(
-      width: 260,
+      width: 270,
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(
@@ -737,46 +771,116 @@ class _MapaScreenState extends State<MapaScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo e Título
+          // Header com Logo, Título e Jurisdição da Cidade
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-            child: Row(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryTeal.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.shield_rounded, color: AppColors.primaryTeal, size: 28),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.shield_rounded, color: AppColors.primaryTeal, size: 26),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Defesa em Foco',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Text(
-                    'Defesa em Foco',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      letterSpacing: -0.5,
+                if (usuarioProvider.isAdmin) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_city_rounded, size: 14, color: AppColors.primaryTeal),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Jurisdição: $cidadeNome',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryTeal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          
-          // Itens de Navegação
-          _buildSidebarItem(0, Icons.map_rounded, 'Mapa', Icons.map_outlined),
+          const SizedBox(height: 8),
+
+          // Itens Principais de Navegação
+          _buildSidebarItem(0, Icons.map_rounded, 'Mapa Operacional', Icons.map_outlined),
           _buildSidebarItem(1, Icons.history_rounded, 'Histórico', Icons.history_outlined),
           _buildSidebarItem(2, Icons.person_rounded, 'Meu Perfil', Icons.person_outline_rounded),
-          
+
+          // Módulos Exclusivos do Administrador no Web
+          if (usuarioProvider.isAdmin) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Text(
+                'PAINEL DO ADMINISTRADOR',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textLight,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            _buildCustomSidebarAction(
+              icon: Icons.dashboard_rounded,
+              label: 'Dashboard & Clima',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRelatoriosScreen())),
+            ),
+            _buildCustomSidebarAction(
+              icon: Icons.badge_rounded,
+              label: 'Agentes da Cidade',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadastroAgenteScreen())),
+            ),
+            _buildCustomSidebarAction(
+              icon: Icons.roofing_rounded,
+              label: 'Pontos de Apoio / Abrigos',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GerenciarPOIScreen())),
+            ),
+            _buildCustomSidebarAction(
+              icon: Icons.campaign_rounded,
+              label: 'Emitir Alerta Geral',
+              onTap: () => AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome),
+            ),
+          ],
+
           const Spacer(),
-          
-          // Ações Rápidas
+
+          // Ações Rápidas de Cadastro
           Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -786,14 +890,14 @@ class _MapaScreenState extends State<MapaScreen> {
                     icon: const Icon(Icons.add_location_alt_rounded, size: 18),
                     label: const Text('Ponto Interesse'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange.shade500,
+                      backgroundColor: Colors.orange.shade600,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                 ],
                 ElevatedButton.icon(
                   onPressed: () => _onNovaOcorrenciaPressed(usuarioProvider),
@@ -802,7 +906,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryTeal,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
@@ -811,6 +915,37 @@ class _MapaScreenState extends State<MapaScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCustomSidebarAction({required IconData icon, required String label, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        hoverColor: AppColors.primaryTeal.withValues(alpha: 0.05),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.textSecondary),
+              const SizedBox(width: 14),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -959,12 +1094,30 @@ class _MapaScreenState extends State<MapaScreen> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            initialCenter: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
+            initialCenter: LatLng(
+              ClimaService.obterCoordenadasCidade(userProv.cidadeAtiva)['lat']!,
+              ClimaService.obterCoordenadasCidade(userProv.cidadeAtiva)['lng']!,
+            ),
             initialZoom: 14,
             minZoom: 5,
             maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),
-            onLongPress: (_, latlng) { if (userProv.isAdmin) _confirmarNovoPontoInteresse(latlng); },
+            onSecondaryTap: (_, latlng) async {
+              if (userProv.isAdmin) {
+                final acao = await MapaContextMenuWidget.exibir(context, latlng);
+                if (acao != null && mounted) {
+                  _executarAcaoContextMenu(acao, latlng, userProv);
+                }
+              }
+            },
+            onLongPress: (_, latlng) async {
+              if (userProv.isAdmin) {
+                final acao = await MapaContextMenuWidget.exibir(context, latlng);
+                if (acao != null && mounted) {
+                  _executarAcaoContextMenu(acao, latlng, userProv);
+                }
+              }
+            },
             cameraConstraint: CameraConstraint.containCenter(
               bounds: LatLngBounds(
                 const LatLng(-33.0, -73.0),
@@ -985,11 +1138,16 @@ class _MapaScreenState extends State<MapaScreen> {
           top: 0, left: 0, right: 0,
           child: ResponsiveContainer(
             maxWidth: 800,
-            centerContent: false, // O mapa alinha no topo, mas o container pode limitar o máximo. 
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration:  const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
-              child: SafeArea(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa)]), const SizedBox(height: 16), SearchBarWidget(controller: _searchController, hintText: 'Buscar...', onChanged: (v) => setState(() { _searchQuery = v; _showSearchResults = v.isNotEmpty; }))])),
+            centerContent: false, 
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
+                  child: SafeArea(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa)]), const SizedBox(height: 16), SearchBarWidget(controller: _searchController, hintText: 'Buscar...', onChanged: (v) => setState(() { _searchQuery = v; _showSearchResults = v.isNotEmpty; }))])),
+                ),
+                const AlertaBannerWidget(),
+              ],
             ),
           ),
         ),

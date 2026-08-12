@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/esqueci-senha").permitAll()
                 .requestMatchers("/api/usuarios/resetar-senha").permitAll()
                 .requestMatchers("/api/cidades").permitAll()
+                .requestMatchers("/api/alertas/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias/*").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/marcacoes").permitAll()

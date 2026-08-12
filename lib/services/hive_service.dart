@@ -13,6 +13,7 @@ class HiveService {
   static const String _chaveFiltroTipo = 'filtro_tipo';
   static const String _chaveNotificacoesAtivas = 'notificacoes_ativas';
   static const String _chaveUltimaAtualizacao = 'ultima_atualizacao';
+  static const String _chaveLimiteChuvaDiaria = 'limite_chuva_diaria';
 
   late Box<dynamic> _box;
 
@@ -107,6 +108,15 @@ class HiveService {
     if (val == null) return null;
     return DateTime.tryParse(val);
   }
+
+  /// Salva o limite de chuva acumulada no dia (24h) em mm.
+  Future<void> salvarLimiteChuvaDiaria(double limite) async {
+    await _box.put(_chaveLimiteChuvaDiaria, limite);
+  }
+
+  /// Recupera o limite de chuva acumulada no dia. Padrão Defesa Civil: 50.0 mm.
+  double get limiteChuvaDiaria =>
+      (_box.get(_chaveLimiteChuvaDiaria, defaultValue: 50.0) as num).toDouble();
 
   // =========================================================================
   // LIMPEZA
