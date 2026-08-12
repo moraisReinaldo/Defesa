@@ -255,13 +255,35 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<AlertaProvider>();
-    final isAdmin = context.watch<UsuarioProvider>().isAdmin;
+    final usuarioProv = context.watch<UsuarioProvider>();
+    final isAdmin = usuarioProv.isAdmin;
+    final cidadeAtiva = usuarioProv.cidadeAtiva;
 
     if (!provider.temAlertaAtivo) {
       return const SizedBox.shrink();
     }
 
-    final alerta = provider.alertasAtivos.first;
+    // Filtrar alertas para exibir SOMENTE alertas correspondentes à cidade ativa do usuário
+    final alertasLocais = provider.alertasAtivos.where((a) {
+      if (cidadeAtiva == null || cidadeAtiva.isEmpty) return true;
+      final cTarget = cidadeAtiva.toLowerCase().trim();
+      final cAlerta = a.cidade.toLowerCase().trim();
+      if (cAlerta == cTarget) return true;
+      if ((cTarget == 'joa' || cTarget == 'joanopolis' || cTarget == 'joanópolis') && cAlerta.contains('joan')) return true;
+      if ((cTarget == 'pir' || cTarget == 'piracaia') && cAlerta.contains('pira')) return true;
+      if ((cTarget == 'ati' || cTarget == 'atibaia') && cAlerta.contains('atib')) return true;
+      if ((cTarget == 'bp' || cTarget == 'braganca' || cTarget == 'bragança') && cAlerta.contains('brag')) return true;
+      if ((cTarget == 'naz' || cTarget == 'nazare' || cTarget == 'nazaré') && cAlerta.contains('naza')) return true;
+      if ((cTarget == 'tui' || cTarget == 'tuiuti') && cAlerta.contains('tui')) return true;
+      if ((cTarget == 'var' || cTarget == 'vargem') && cAlerta.contains('varg')) return true;
+      return false;
+    }).toList();
+
+    if (alertasLocais.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final alerta = alertasLocais.first;
     final color = _getNivelColor(alerta.nivel);
 
     return AnimatedBuilder(
