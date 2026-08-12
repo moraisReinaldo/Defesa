@@ -667,14 +667,6 @@ class _MapaScreenState extends State<MapaScreen> {
             children: [
               if (usuarioProvider.isAdmin) ...[
                 FloatingActionButton.extended(
-                  heroTag: 'fab_dashboard',
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRelatoriosScreen())),
-                  icon: const Icon(Icons.analytics_rounded),
-                  label: const Text('Dashboard Operacional'),
-                  backgroundColor: Colors.purple,
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.extended(
                   heroTag: 'fab_poi',
                   onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
                   icon: const Icon(Icons.add_location_alt_rounded),
@@ -995,98 +987,26 @@ class _MapaScreenState extends State<MapaScreen> {
 
   void _onNovaOcorrenciaPressed(UsuarioProvider usuarioProvider) async {
     if (kIsWeb) {
-      if (!usuarioProvider.isAdmin) {
-        // Exibe modal QR Code para usuários comuns na web
-        showDialog(
-          context: context,
-          builder: (context) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              width: 400,
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.app_shortcut_rounded, size: 64, color: AppColors.primaryTeal),
-                  const SizedBox(height: 16),
-                  const Text('Aplicativo Necessário', 
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                  const SizedBox(height: 16),
-                  const Text('Para registrar ocorrências em tempo real com precisão de GPS e envio de mídia, utilize nosso aplicativo para Android ou iOS.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.5)),
-                  const SizedBox(height: 32),
-                  
-                  // Botões para as Lojas
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=defesa.civil.foco&hl=pt_BR'));
-                      },
-                      icon: const Icon(Icons.android, color: Colors.white),
-                      label: const Text('Baixar no Google Play'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3DDC84), // Android Green
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        launchUrl(Uri.parse('https://apps.apple.com/br/app/defesa-em-foco/id6782083182'));
-                      },
-                      icon: const Icon(Icons.apple, color: Colors.white),
-                      label: const Text('Baixar na App Store'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black, // Apple Black
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('Entendi'),
-                    ),
-                  ),
-                ],
+      // Web: Abre o fluxo de registro em um Dialog diretamente no navegador
+      final res = await showDialog<bool>(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 850),
+            decoration: BoxDecoration(color: AppColors.backgroundOffWhite, borderRadius: BorderRadius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: Navigator(
+              onGenerateRoute: (settings) => MaterialPageRoute(
+                builder: (context) => const SelecaoTipoOcorrenciaScreen(),
               ),
             ),
           ),
-        );
-      } else {
-        // Web & Admin: Abre o fluxo de registro em um Dialog
-        final res = await showDialog<bool>(
-          context: context,
-          builder: (context) => Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.all(24),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 850),
-              decoration: BoxDecoration(color: AppColors.backgroundOffWhite, borderRadius: BorderRadius.circular(24)),
-              clipBehavior: Clip.antiAlias,
-              child: Navigator(
-                onGenerateRoute: (settings) => MaterialPageRoute(
-                  builder: (context) => const SelecaoTipoOcorrenciaScreen(),
-                ),
-              ),
-            ),
-          ),
-        );
-        if (res == true && mounted) _inicializarMapa();
-      }
+        ),
+      );
+      if (res == true && mounted) _inicializarMapa();
+      return;
     } else {
       // Mobile flow normal
       final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const SelecaoTipoOcorrenciaScreen()));
@@ -1111,7 +1031,7 @@ class _MapaScreenState extends State<MapaScreen> {
             maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),
             onSecondaryTap: (_, latlng) async {
-              if (userProv.isAdmin) {
+              if (kIsWeb || userProv.isAdmin) {
                 final acao = await MapaContextMenuWidget.exibir(context, latlng);
                 if (acao != null && mounted) {
                   _executarAcaoContextMenu(acao, latlng, userProv);
@@ -1119,7 +1039,7 @@ class _MapaScreenState extends State<MapaScreen> {
               }
             },
             onLongPress: (_, latlng) async {
-              if (userProv.isAdmin) {
+              if (kIsWeb || userProv.isAdmin) {
                 final acao = await MapaContextMenuWidget.exibir(context, latlng);
                 if (acao != null && mounted) {
                   _executarAcaoContextMenu(acao, latlng, userProv);

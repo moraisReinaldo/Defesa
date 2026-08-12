@@ -16,6 +16,7 @@ import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
 import '../services/ad_service.dart';
 import '../services/localizacao_service.dart';
+import '../services/clima_service.dart';
 
 class DetalhesOcorrenciaScreen extends StatefulWidget {
   final String tipoOcorrencia;
