@@ -20,8 +20,13 @@ import '../services/clima_service.dart';
 
 class DetalhesOcorrenciaScreen extends StatefulWidget {
   final String tipoOcorrencia;
+  final ll.LatLng? posicaoInicial;
 
-  const DetalhesOcorrenciaScreen({super.key, required this.tipoOcorrencia});
+  const DetalhesOcorrenciaScreen({
+    super.key,
+    required this.tipoOcorrencia,
+    this.posicaoInicial,
+  });
 
   @override
   State<DetalhesOcorrenciaScreen> createState() =>
@@ -74,6 +79,50 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
     setState(() => _carregando = true);
     try {
       final prov = context.read<UsuarioProvider>();
+
+      // Se a posicaoInicial foi informada pelo mapa (clique/context menu), usamos ela diretamente!
+      if (widget.posicaoInicial != null) {
+        final posInit = widget.posicaoInicial!;
+        setState(() {
+          _posicaoAtual = Position(
+            latitude: posInit.latitude,
+            longitude: posInit.longitude,
+            timestamp: DateTime.now(),
+            accuracy: 10,
+            altitude: 0,
+            heading: 0,
+            speed: 0,
+            speedAccuracy: 0,
+            altitudeAccuracy: 0,
+            headingAccuracy: 0,
+          );
+        });
+
+        try {
+          final cidade = await _geocodingService.obterCidade(
+            posInit.latitude, 
+            posInit.longitude
+          );
+          if (!mounted) return;
+          if (cidade != null) {
+            setState(() {
+              _cidadeDetectada = cidade;
+              for (var c in prov.cidadesSuportadas) {
+                String nome = c['nome'] ?? '';
+                if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
+                    nome.toLowerCase().contains(cidade.toLowerCase())) {
+                  _codigoCidadeDetectada = c['codigo'];
+                  break;
+                }
+              }
+            });
+          }
+        } catch (e) {
+          debugPrint("Erro reverse geocoding: $e");
+        }
+        return;
+      }
+
       final posicao = await _localizacaoService.obterPosicaoAtual();
       if (!mounted) return;
       

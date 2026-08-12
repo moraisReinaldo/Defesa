@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
-
+import 'package:latlong2/latlong.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
 import '../widgets/tipo_ocorrencia_card.dart';
-import 'detalhes_ocorrencia_screen.dart'; // Tela do Passo 2 (a ser criada)
+import 'detalhes_ocorrencia_screen.dart';
 
 class SelecaoTipoOcorrenciaScreen extends StatefulWidget {
-   const SelecaoTipoOcorrenciaScreen({super.key});
+  final LatLng? posicaoInicial;
+
+  const SelecaoTipoOcorrenciaScreen({super.key, this.posicaoInicial});
 
   @override
   State<SelecaoTipoOcorrenciaScreen> createState() =>
@@ -109,6 +110,7 @@ class _SelecaoTipoOcorrenciaScreenState
                         MaterialPageRoute(
                           builder: (context) => DetalhesOcorrenciaScreen(
                             tipoOcorrencia: tipo,
+                            posicaoInicial: widget.posicaoInicial,
                           ),
                         ),
                       );
