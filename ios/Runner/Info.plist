@@ -259,5 +259,10 @@
 	<!-- Permissões para galeria -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Este aplicativo precisa acessar sua galeria de fotos para selecionar imagens das ocorrências.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 	</dict>
 </plist>
