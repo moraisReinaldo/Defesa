@@ -10,6 +10,9 @@ cd $CI_PRIMARY_REPOSITORY_PATH
 git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutter
 export PATH="$PATH:$HOME/flutter/bin"
 
+# Disable experimental Swift Package Manager in Flutter
+flutter config --no-enable-swift-package-manager
+
 # Install Flutter artifacts for iOS.
 flutter precache --ios
 
