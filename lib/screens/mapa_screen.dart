@@ -210,12 +210,13 @@ class _MapaScreenState extends State<MapaScreen> {
             maxHeight: MediaQuery.of(context).size.height * 0.85,
             maxWidth: 600,
           ),
-          decoration:  const BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.backgroundOffWhite,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: BorderRadius.all(Radius.circular(28)),
           ),
+          clipBehavior: Clip.antiAlias,
         child: Builder(
-          builder: (context) {
+          builder: (modalCtx) {
             final usuarioLogado = usuarioProvider.usuarioLogado;
             final meuNome = usuarioLogado?.nome.trim().toLowerCase() ?? '';
             final listaAgentes = ocorrencia.agentes?.split(',').map((s) => s.trim().toLowerCase()).toList() ?? [];
@@ -284,6 +285,18 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                    ),
+                    tooltip: 'Fechar',
+                    onPressed: () => Navigator.pop(modalCtx),
                   ),
                 ],
               ),
@@ -581,13 +594,13 @@ class _MapaScreenState extends State<MapaScreen> {
   void _deletarOcorrencia(Ocorrencia ocorrencia) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Excluir?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Não')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Não')),
           ElevatedButton(onPressed: () { 
             context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id); 
-            Navigator.pop(context); 
+            Navigator.pop(ctx); 
             Navigator.pop(context); 
           }, child: const Text('Sim')),
         ],

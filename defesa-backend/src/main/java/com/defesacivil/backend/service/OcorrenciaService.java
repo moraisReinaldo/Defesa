@@ -444,20 +444,20 @@ public class OcorrenciaService {
         // Criamos uma cópia para não correr risco de o Hibernate salvar a URL assinada no banco
         Ocorrencia copia = new Ocorrencia();
         copia.setId(oc.getId());
-        copia.setTipo(oc.getTipo());
-        copia.setDescricao(oc.getDescricao());
+        copia.setTipo(sanitizeInput(oc.getTipo()));
+        copia.setDescricao(sanitizeInput(oc.getDescricao()));
         copia.setLatitude(oc.getLatitude());
         copia.setLongitude(oc.getLongitude());
         copia.setCidade(oc.getCidade());
         copia.setDataHora(oc.getDataHora());
         copia.setStatus(oc.getStatus());
         copia.setUsuarioId(oc.getUsuarioId());
-        copia.setAgentes(oc.getAgentes());
+        copia.setAgentes(sanitizeInput(oc.getAgentes()));
         copia.setAgenteNoLocal(oc.isAgenteNoLocal());
         copia.setDataChegadaAgente(oc.getDataChegadaAgente());
         copia.setDataResolucao(oc.getDataResolucao());
         copia.setCriadoPorAgente(oc.isCriadoPorAgente());
-        copia.setDescricaoSituacao(oc.getDescricaoSituacao());
+        copia.setDescricaoSituacao(sanitizeInput(oc.getDescricaoSituacao()));
         copia.setCidadeEntidade(oc.getCidadeEntidade());
         copia.setAutor(oc.getAutor());
         copia.setAgentesAtribuidos(oc.getAgentesAtribuidos());
@@ -500,6 +500,15 @@ public class OcorrenciaService {
 
     private String sanitizeInput(String input) {
         if (input == null) return null;
-        return HtmlUtils.htmlEscape(input.trim());
+        String text = input.trim();
+        // Desfaz entidades HTML que possam ter sido salvas anteriormente (ex: &quot;, &amp;, &#39;, &lt;, &gt;)
+        String previous;
+        int maxIterations = 3;
+        do {
+            previous = text;
+            text = HtmlUtils.htmlUnescape(text);
+            maxIterations--;
+        } while (!text.equals(previous) && maxIterations > 0);
+        return text;
     }
 }

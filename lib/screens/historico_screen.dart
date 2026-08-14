@@ -624,16 +624,17 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     Ocorrencia ocorrencia = pOcorrencia;
     _showResponsiveModal(
       context,
-      (context) => Center(
+      (modalCtx) => Center(
         child: Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.85,
             maxWidth: 600,
           ),
-          decoration:  const BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.backgroundOffWhite,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: BorderRadius.all(Radius.circular(28)),
           ),
+          clipBehavior: Clip.antiAlias,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -701,6 +702,18 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                    ),
+                    tooltip: 'Fechar',
+                    onPressed: () => Navigator.pop(modalCtx),
                   ),
                 ],
               ),
