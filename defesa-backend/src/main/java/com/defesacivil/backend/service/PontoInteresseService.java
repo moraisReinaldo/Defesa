@@ -1,7 +1,9 @@
 package com.defesacivil.backend.service;
 
+import com.defesacivil.backend.domain.Cidade;
 import com.defesacivil.backend.domain.PontoInteresse;
 import com.defesacivil.backend.domain.Usuario;
+import com.defesacivil.backend.repository.CidadeRepository;
 import com.defesacivil.backend.repository.PontoInteresseRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
 import org.springframework.security.core.Authentication;
@@ -18,10 +20,23 @@ public class PontoInteresseService {
 
     private final PontoInteresseRepository repository;
     private final UsuarioRepository usuarioRepository;
+    private final CidadeRepository cidadeRepository;
 
-    public PontoInteresseService(PontoInteresseRepository repository, UsuarioRepository usuarioRepository) {
+    public PontoInteresseService(PontoInteresseRepository repository,
+                                 UsuarioRepository usuarioRepository,
+                                 CidadeRepository cidadeRepository) {
         this.repository = repository;
         this.usuarioRepository = usuarioRepository;
+        this.cidadeRepository = cidadeRepository;
+    }
+
+    private String normalizarCodigoCidade(String cidade) {
+        if (cidade == null || cidade.isBlank()) return null;
+        String limpa = cidade.trim().toUpperCase();
+        return cidadeRepository.findByCodigoIgnoreCase(limpa)
+            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
+            .map(Cidade::getCodigo)
+            .orElse(limpa);
     }
 
     public List<PontoInteresse> listarTodos() {
@@ -41,13 +56,17 @@ public class PontoInteresseService {
             }
         }
 
-        if (cidade == null || cidade.isBlank()) {
+        String cidadeNorm = normalizarCodigoCidade(cidade);
+        if (cidadeNorm == null || cidadeNorm.isBlank()) {
             return listarTodos();
         }
-        return repository.findByCidadeIgnoreCase(cidade);
+        return repository.findByCidadeIgnoreCase(cidadeNorm);
     }
 
     public PontoInteresse salvar(PontoInteresse ponto) {
+        if (ponto.getCidade() != null) {
+            ponto.setCidade(normalizarCodigoCidade(ponto.getCidade()));
+        }
         return repository.save(ponto);
     }
 
@@ -58,7 +77,9 @@ public class PontoInteresseService {
         existente.setDescricao(dados.getDescricao());
         existente.setLatitude(dados.getLatitude());
         existente.setLongitude(dados.getLongitude());
-        if (dados.getCidade() != null) existente.setCidade(dados.getCidade());
+        if (dados.getCidade() != null) {
+            existente.setCidade(normalizarCodigoCidade(dados.getCidade()));
+        }
         return repository.save(existente);
     }
 

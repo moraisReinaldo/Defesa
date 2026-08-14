@@ -99,8 +99,11 @@ public class OcorrenciaService {
         oc.setDescricao(sanitizeInput(request.getDescricao()));
         oc.setLatitude(request.getLatitude());
         oc.setLongitude(request.getLongitude());
-        String cidade = sanitizeInput(request.getCidade());
-        oc.setCidade(cidade != null ? cidade.toUpperCase() : null);
+        String cidade = normalizarCodigoCidade(request.getCidade());
+        oc.setCidade(cidade);
+        if (cidade != null) {
+            cidadeRepository.findByCodigoIgnoreCase(cidade).ifPresent(oc::setCidadeEntidade);
+        }
         oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
         
         // CORRETO - Segurança (Backend Bug 4)
@@ -112,9 +115,12 @@ public class OcorrenciaService {
                 oc.setAutor(u);
                 if (Role.ADMINISTRADOR.name().equals(u.getRole()) || Role.AGENTE.name().equals(u.getRole())) {
                     // REGRA DE NEGÓCIO: O admin só pode inserir ocorrências (do passado ou não) na sua própria cidade.
-                    // Mesmo que o GPS o coloque em Bragança, a ocorrência será de Joanópolis.
                     if (u.getCidade() != null && !u.getCidade().isBlank()) {
-                        oc.setCidade(u.getCidade().toUpperCase());
+                        String cidAdmin = normalizarCodigoCidade(u.getCidade());
+                        oc.setCidade(cidAdmin);
+                        if (cidAdmin != null) {
+                            cidadeRepository.findByCodigoIgnoreCase(cidAdmin).ifPresent(oc::setCidadeEntidade);
+                        }
                     }
                 }
             });
@@ -122,10 +128,6 @@ public class OcorrenciaService {
             // Usuário anônimo (sem conta): não tem ID para associar
             oc.setUsuarioId(null);
             oc.setAutor(null);
-        }
-
-        if (oc.getCidade() != null && !oc.getCidade().isBlank()) {
-            cidadeRepository.findByNomeIgnoreCase(oc.getCidade()).ifPresent(oc::setCidadeEntidade);
         }
 
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
@@ -283,14 +285,27 @@ public class OcorrenciaService {
         return true;
     }
 
+    public String normalizarCodigoCidade(String cidade) {
+        if (cidade == null || cidade.isBlank()) return null;
+        String limpa = cidade.trim().toUpperCase();
+        return cidadeRepository.findByCodigoIgnoreCase(limpa)
+            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
+            .map(com.defesacivil.backend.domain.Cidade::getCodigo)
+            .orElse(limpa);
+    }
+
     private void checkJurisdiction(String cidadeOcorrencia) {
         if (cidadeOcorrencia == null || cidadeOcorrencia.trim().isEmpty()) return;
         if (hasAnyRole("ADMINISTRADOR", "AGENTE")) {
             String email = getAuthenticatedEmail();
             if (email != null) {
                 Usuario user = usuarioRepository.findByEmail(email).orElse(null);
-                if (user != null && user.getCidade() != null && !user.getCidade().trim().isEmpty() && !user.getCidade().equalsIgnoreCase(cidadeOcorrencia)) {
-                    throw new SecurityException("Acesso negado: Você só pode gerenciar itens de sua própria cidade.");
+                if (user != null && user.getCidade() != null && !user.getCidade().trim().isEmpty()) {
+                    String userCity = normalizarCodigoCidade(user.getCidade());
+                    String ocCity = normalizarCodigoCidade(cidadeOcorrencia);
+                    if (userCity != null && ocCity != null && !userCity.equalsIgnoreCase(ocCity)) {
+                        throw new SecurityException("Acesso negado: Você só pode gerenciar itens de sua própria cidade.");
+                    }
                 }
             }
         }
@@ -323,8 +338,11 @@ public class OcorrenciaService {
         if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
         if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
         if (request.getCidade() != null) {
-            String cidadeEditada = sanitizeInput(request.getCidade());
-            oc.setCidade(cidadeEditada != null ? cidadeEditada.toUpperCase() : null);
+            String cidadeEditada = normalizarCodigoCidade(request.getCidade());
+            oc.setCidade(cidadeEditada);
+            if (cidadeEditada != null) {
+                cidadeRepository.findByCodigoIgnoreCase(cidadeEditada).ifPresent(oc::setCidadeEntidade);
+            }
         }
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
 
@@ -344,7 +362,7 @@ public class OcorrenciaService {
             if (email != null) {
                 Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
                 if (usuario.isPresent()) {
-                    cidadeUsuario = usuario.get().getCidade();
+                    cidadeUsuario = normalizarCodigoCidade(usuario.get().getCidade());
                     currentUserId = usuario.get().getId();
                 }
             }
@@ -352,15 +370,18 @@ public class OcorrenciaService {
 
         // Se for admin ou agente, DEVE ver apenas da própria cidade
         if (admin || agente) {
-            String cidadeParaBuscar = (cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) ? cidadeUsuario : cidade;
+            String cidadeParaBuscar = (cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) 
+                    ? cidadeUsuario 
+                    : normalizarCodigoCidade(cidade);
             if (cidadeParaBuscar == null || cidadeParaBuscar.trim().isEmpty()) {
                 return processarUrls(ocorrenciaRepository.findAll(pageable));
             }
             return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeParaBuscar, pageable));
         }
 
-        // CIDADÃO: vê aprovadas da cidade solicitada + suas próprias (qualquer status)
-        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidade, currentUserId, pageable));
+        // CIDADÃO / ANÔNIMO: vê aprovadas da cidade solicitada (ou todas se cidade for null) + suas próprias (qualquer status)
+        String cidFiltro = normalizarCodigoCidade(cidade);
+        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidFiltro, currentUserId, pageable));
     }
 
     // ========== HELPERS INTERNOS ==========

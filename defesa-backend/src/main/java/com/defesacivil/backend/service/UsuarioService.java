@@ -5,6 +5,7 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.domain.enums.Status;
 import com.defesacivil.backend.dto.UsuarioRequest;
 import com.defesacivil.backend.repository.UsuarioRepository;
+import com.defesacivil.backend.repository.CidadeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +26,7 @@ public class UsuarioService {
     private static final Logger log = LoggerFactory.getLogger(UsuarioService.class);
 
     private final UsuarioRepository repository;
+    private final CidadeRepository cidadeRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
@@ -33,11 +35,22 @@ public class UsuarioService {
     private String adminPasswordHash;
 
     public UsuarioService(UsuarioRepository repository,
+                          CidadeRepository cidadeRepository,
                           EmailService emailService,
                           PasswordEncoder passwordEncoder) {
         this.repository = repository;
+        this.cidadeRepository = cidadeRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    public String normalizarCodigoCidade(String cidade) {
+        if (cidade == null || cidade.isBlank()) return null;
+        String limpa = cidade.trim().toUpperCase();
+        return cidadeRepository.findByCodigoIgnoreCase(limpa)
+            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
+            .map(com.defesacivil.backend.domain.Cidade::getCodigo)
+            .orElse(limpa);
     }
 
     public Usuario cadastrarUsuario(UsuarioRequest request) {
@@ -89,7 +102,7 @@ public class UsuarioService {
         usuario.setEmail(request.getEmail());
         usuario.setTelefone(request.getTelefone());
         usuario.setSenha(passwordEncoder.encode(request.getSenha()));
-        usuario.setCidade(request.getCidade() != null ? request.getCidade().trim().toUpperCase() : null);
+        usuario.setCidade(normalizarCodigoCidade(request.getCidade()));
         usuario.setRole(roleReq.name());
         usuario.setStatus(statusInicial.name());
 
@@ -149,9 +162,9 @@ public class UsuarioService {
         // Se for admin e tiver cidade, ignora o parâmetro e força a busca na jurisdição
         String cidadeBusca;
         if (adminCity != null && !adminCity.trim().isEmpty()) {
-            cidadeBusca = adminCity.trim().toUpperCase();
+            cidadeBusca = normalizarCodigoCidade(adminCity);
         } else {
-            cidadeBusca = (cidade != null && !cidade.isBlank()) ? cidade.trim().toUpperCase() : null;
+            cidadeBusca = normalizarCodigoCidade(cidade);
         }
 
         return repository.findByCidadeAndRole(cidadeBusca, role);
@@ -180,7 +193,9 @@ public class UsuarioService {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null && admin.getCidade() != null && !admin.getCidade().trim().isEmpty()) {
-                if (!admin.getCidade().equalsIgnoreCase(targetUser.getCidade())) {
+                String adminCid = normalizarCodigoCidade(admin.getCidade());
+                String targetCid = normalizarCodigoCidade(targetUser.getCidade());
+                if (adminCid != null && targetCid != null && !adminCid.equalsIgnoreCase(targetCid)) {
                     throw new SecurityException("Acesso negado: Você só pode modificar usuários da sua própria cidade.");
                 }
             }
@@ -244,7 +259,7 @@ public class UsuarioService {
 
         if (request.getNome() != null) usuario.setNome(request.getNome());
         if (request.getTelefone() != null) usuario.setTelefone(request.getTelefone());
-        if (request.getCidade() != null) usuario.setCidade(request.getCidade().trim().toUpperCase());
+        if (request.getCidade() != null) usuario.setCidade(normalizarCodigoCidade(request.getCidade()));
         if (request.getFcmToken() != null) usuario.setFcmToken(request.getFcmToken());
 
         // Apenas admins podem mudar a role de outros usuários

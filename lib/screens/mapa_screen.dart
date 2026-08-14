@@ -18,6 +18,7 @@ import '../providers/usuario_provider.dart';
 import '../providers/ponto_interesse_provider.dart';
 import '../services/localizacao_service.dart';
 import '../services/clima_service.dart';
+import '../services/geocoding_service.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ocorrencia_card.dart';
@@ -44,6 +45,7 @@ class MapaScreen extends StatefulWidget {
 class _MapaScreenState extends State<MapaScreen> {
   final MapController _mapController = MapController();
   final LocalizacaoService _localizacaoService = LocalizacaoService();
+  final GeocodingService _geocodingService = GeocodingService();
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _comentarioController = TextEditingController();
@@ -52,6 +54,11 @@ class _MapaScreenState extends State<MapaScreen> {
   int _indiceAbaAtual = 0;
   String _searchQuery = '';
   bool _showSearchResults = false;
+  List<EnderecoSugestao> _enderecoSugestoes = [];
+  bool _buscandoEnderecos = false;
+  Timer? _searchDebounce;
+  LatLng? _marcadorEnderecoSelecionado;
+  String? _nomeEnderecoSelecionado;
   
   StreamSubscription<Position>? _positionSubscription;
   bool _mapaCentralizadoInicialmente = false;
@@ -86,9 +93,36 @@ class _MapaScreenState extends State<MapaScreen> {
   @override
   void dispose() {
     _positionSubscription?.cancel();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _comentarioController.dispose();
     super.dispose();
+  }
+
+  void _aoAlterarBusca(String v) {
+    setState(() {
+      _searchQuery = v;
+      _showSearchResults = v.isNotEmpty;
+    });
+
+    _searchDebounce?.cancel();
+    if (v.trim().length >= 3) {
+      setState(() => _buscandoEnderecos = true);
+      _searchDebounce = Timer(const Duration(milliseconds: 500), () async {
+        final resultados = await _geocodingService.buscarEnderecos(v);
+        if (mounted && _searchQuery == v) {
+          setState(() {
+            _enderecoSugestoes = resultados;
+            _buscandoEnderecos = false;
+          });
+        }
+      });
+    } else {
+      setState(() {
+        _enderecoSugestoes = [];
+        _buscandoEnderecos = false;
+      });
+    }
   }
 
   Future<void> _inicializarMapa() async {
@@ -1136,7 +1170,32 @@ class _MapaScreenState extends State<MapaScreen> {
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.defesacivil.app',
             ),
-            MarkerLayer(markers: markers),
+            MarkerLayer(markers: [
+              ...markers,
+              if (_marcadorEnderecoSelecionado != null)
+                Marker(
+                  point: _marcadorEnderecoSelecionado!,
+                  width: 44,
+                  height: 44,
+                  child: GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_nomeEnderecoSelecionado ?? 'Local pesquisado'),
+                          action: SnackBarAction(
+                            label: 'REMOVER',
+                            onPressed: () => setState(() {
+                              _marcadorEnderecoSelecionado = null;
+                              _nomeEnderecoSelecionado = null;
+                            }),
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Icon(Icons.location_on_rounded, color: Colors.redAccent, size: 40),
+                  ),
+                ),
+            ]),
             if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), child: const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
           ],
         ),
@@ -1150,22 +1209,197 @@ class _MapaScreenState extends State<MapaScreen> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
-                  child: SafeArea(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa)]), const SizedBox(height: 16), SearchBarWidget(controller: _searchController, hintText: 'Buscar...', onChanged: (v) => setState(() { _searchQuery = v; _showSearchResults = v.isNotEmpty; }))])),
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SearchBarWidget(
+                          controller: _searchController,
+                          hintText: 'Buscar ocorrência ou endereço...',
+                          onChanged: _aoAlterarBusca,
+                          onClear: () => setState(() {
+                            _searchQuery = '';
+                            _enderecoSugestoes = [];
+                            _showSearchResults = false;
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const AlertaBannerWidget(),
               ],
             ),
           ),
         ),
-        if (_showSearchResults && searchResults.isNotEmpty) 
-          Positioned(
-            top: 180, left: 16, right: 16, bottom: 100, 
-            child: ResponsiveContainer(
-              maxWidth: 600,
-              child: Container(color: Colors.white, child: ListView.builder(itemCount: searchResults.length, itemBuilder: (_, i) => OcorrenciaCard(ocorrencia: searchResults[i], onTap: () { setState(() { _showSearchResults = false; _searchController.clear(); _searchQuery = ''; }); _mapController.move(LatLng(searchResults[i].latitude, searchResults[i].longitude), 16); _mostrarDetalhesOcorrencia(searchResults[i]); })))
+        if (_showSearchResults) _buildSearchResultsOverlay(searchResults),
+      ],
+    );
+  }
+
+  Widget _buildSearchResultsOverlay(List<Ocorrencia> searchResults) {
+    final temOcorrencias = searchResults.isNotEmpty;
+    final temEnderecos = _enderecoSugestoes.isNotEmpty;
+    final nenhumResultado = !temOcorrencias && !temEnderecos && !_buscandoEnderecos;
+
+    return Positioned(
+      top: 175,
+      left: 16,
+      right: 16,
+      bottom: 90,
+      child: ResponsiveContainer(
+        maxWidth: 600,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(45),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              children: [
+                if (_buscandoEnderecos)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryTeal),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Buscando endereços...', style: TextStyle(fontSize: 13, color: AppColors.textLight)),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (temEnderecos) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded, size: 16, color: AppColors.primaryTeal),
+                        const SizedBox(width: 6),
+                        Text(
+                          'ENDEREÇOS E LOCAIS (${_enderecoSugestoes.length})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryTeal,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ..._enderecoSugestoes.map((end) => ListTile(
+                    dense: true,
+                    leading: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal.withAlpha(25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.place_rounded, color: AppColors.primaryTeal, size: 18),
+                    ),
+                    title: Text(
+                      end.displayNome,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _showSearchResults = false;
+                        _searchController.text = end.displayNome.split(',').first;
+                        _searchQuery = '';
+                        _marcadorEnderecoSelecionado = LatLng(end.lat, end.lng);
+                        _nomeEnderecoSelecionado = end.displayNome;
+                      });
+                      _mapController.move(LatLng(end.lat, end.lng), 16);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('📍 Localizado: ${end.displayNome.split(',').take(2).join(',')}'),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    },
+                  )),
+                  if (temOcorrencias) const Divider(height: 20),
+                ],
+                if (temOcorrencias) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.deepOrange),
+                        const SizedBox(width: 6),
+                        Text(
+                          'OCORRÊNCIAS (${searchResults.length})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrange,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...searchResults.map((oc) => OcorrenciaCard(
+                    ocorrencia: oc,
+                    onTap: () {
+                      setState(() {
+                        _showSearchResults = false;
+                        _searchController.clear();
+                        _searchQuery = '';
+                      });
+                      _mapController.move(LatLng(oc.latitude, oc.longitude), 16);
+                      _mostrarDetalhesOcorrencia(oc);
+                    },
+                  )),
+                ],
+                if (nenhumResultado)
+                  Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_off_rounded, size: 40, color: Colors.grey.shade400),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Nenhum resultado para "$_searchQuery"',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-      ],
+        ),
+      ),
     );
   }
 

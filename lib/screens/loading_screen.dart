@@ -163,7 +163,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Reinaldo Henrique Morais e Pedro Guedes de Azevedo',
+                    'Reinaldo Henrique Morais',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,

@@ -68,4 +68,51 @@ class GeocodingService {
     }
     return null;
   }
+
+  /// Busca múltiplos endereços correspondentes (geocoding com sugestões)
+  Future<List<EnderecoSugestao>> buscarEnderecos(String query) async {
+    if (query.trim().length < 3) return [];
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?format=jsonv2&q=${Uri.encodeComponent(query)}&countrycodes=br&limit=5&addressdetails=1',
+      );
+
+      final headers = {
+        'Accept-Language': 'pt-BR',
+      };
+      if (!kIsWeb) {
+        headers['User-Agent'] = 'DefesaCivilApp/1.0';
+      }
+
+      final response = await http.get(url, headers: headers).timeout(const Duration(seconds: 8));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as List;
+        return data.map((item) {
+          final lat = double.tryParse(item['lat']?.toString() ?? '') ?? 0.0;
+          final lon = double.tryParse(item['lon']?.toString() ?? '') ?? 0.0;
+          return EnderecoSugestao(
+            displayNome: item['display_name'] ?? '',
+            lat: lat,
+            lng: lon,
+          );
+        }).where((e) => e.lat != 0.0 && e.lng != 0.0).toList();
+      }
+    } catch (e) {
+      if (kDebugMode) print('Erro ao buscar endereços: $e');
+    }
+    return [];
+  }
+}
+
+class EnderecoSugestao {
+  final String displayNome;
+  final double lat;
+  final double lng;
+
+  EnderecoSugestao({
+    required this.displayNome,
+    required this.lat,
+    required this.lng,
+  });
 }
