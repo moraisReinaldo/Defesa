@@ -23,4 +23,7 @@ flutter build ios --config-only --release
 cd ios
 pod install --repo-update
 
+# Resolve Swift Package Manager dependencies
+xcodebuild -resolvePackageDependencies -workspace Runner.xcworkspace -scheme Runner
+
 exit 0
