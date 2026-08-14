@@ -85,7 +85,7 @@ public class MinioService {
         }
         
         try {
-            return minioClient.getPresignedObjectUrl(
+            String url = minioClient.getPresignedObjectUrl(
                 GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)
                     .bucket(bucketName)
@@ -93,9 +93,10 @@ public class MinioService {
                     .expiry(1, TimeUnit.HOURS)
                     .build()
             );
+            return (url != null && !url.isBlank()) ? url : objectKey;
         } catch (Exception e) {
-            log.error("Erro ao gerar presigned URL: {}", e.getMessage(), e);
-            return null;
+            log.error("Erro ao gerar presigned URL para {}: {}", objectKey, e.getMessage());
+            return objectKey;
         }
     }
 }

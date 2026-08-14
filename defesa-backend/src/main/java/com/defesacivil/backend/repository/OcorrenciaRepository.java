@@ -11,24 +11,40 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface OcorrenciaRepository extends JpaRepository<Ocorrencia, String> {
 
-    Page<Ocorrencia> findByCidadeIgnoreCaseOrderByDataHoraDesc(String cidade, Pageable pageable);
-
-    /**
-     * Retorna ocorrências visíveis para cidadãos:
-     * - Ocorrências APROVADAS na cidade informada (visíveis publicamente)
-     * - OU qualquer ocorrência criada pelo próprio usuário (mesmo pendente, para ele acompanhar)
-     *
-     * CORREÇÃO: Usa (:usuarioId IS NULL OR o.usuarioId = :usuarioId) para tratar
-     * o caso onde o usuário não está autenticado sem gerar "WHERE usuarioId = null" inválido.
-     * Também filtra por cidade para as ocorrências do criador, evitando expor dados cross-city.
-     */
     @Query("SELECT o FROM Ocorrencia o WHERE " +
-           "(:cidade IS NULL OR LOWER(o.cidade) = LOWER(:cidade)) AND " +
+           "(:cidade IS NULL OR " +
+           "LOWER(o.cidade) = LOWER(:cidade) OR " +
+           "(:codigo IS NOT NULL AND LOWER(o.cidade) = LOWER(:codigo)) OR " +
+           "(:nome IS NOT NULL AND LOWER(o.cidade) = LOWER(:nome)) OR " +
+           "(o.cidadeEntidade IS NOT NULL AND (" +
+           "  (:codigo IS NOT NULL AND LOWER(o.cidadeEntidade.codigo) = LOWER(:codigo)) OR " +
+           "  (:nome IS NOT NULL AND LOWER(o.cidadeEntidade.nome) = LOWER(:nome))" +
+           "))) " +
+           "ORDER BY o.dataHora DESC")
+    Page<Ocorrencia> findByCidadeFlexible(
+            @Param("cidade") String cidade,
+            @Param("codigo") String codigo,
+            @Param("nome") String nome,
+            Pageable pageable);
+
+    @Query("SELECT o FROM Ocorrencia o WHERE " +
+           "(:cidade IS NULL OR " +
+           "LOWER(o.cidade) = LOWER(:cidade) OR " +
+           "(:codigo IS NOT NULL AND LOWER(o.cidade) = LOWER(:codigo)) OR " +
+           "(:nome IS NOT NULL AND LOWER(o.cidade) = LOWER(:nome)) OR " +
+           "(o.cidadeEntidade IS NOT NULL AND (" +
+           "  (:codigo IS NOT NULL AND LOWER(o.cidadeEntidade.codigo) = LOWER(:codigo)) OR " +
+           "  (:nome IS NOT NULL AND LOWER(o.cidadeEntidade.nome) = LOWER(:nome))" +
+           "))) AND " +
            "((o.status IS NULL OR o.status NOT IN ('PENDENTE_APROVACAO', 'RECUSADA')) " +
            "OR (:usuarioId IS NOT NULL AND o.usuarioId = :usuarioId)) " +
            "ORDER BY o.dataHora DESC")
-    Page<Ocorrencia> findPublicByCidadeOrCreator(
+    Page<Ocorrencia> findPublicByCidadeOrCreatorFlexible(
             @Param("cidade") String cidade,
+            @Param("codigo") String codigo,
+            @Param("nome") String nome,
             @Param("usuarioId") String usuarioId,
             Pageable pageable);
+
+    Page<Ocorrencia> findByCidadeIgnoreCaseOrderByDataHoraDesc(String cidade, Pageable pageable);
 }

@@ -57,7 +57,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
     setState(() => _salvando = true);
 
     try {
-      final sucesso = await context.read<UsuarioProvider>().cadastrarAgente(
+      final res = await context.read<UsuarioProvider>().cadastrarAgente(
             nome: _nomeController.text.trim(),
             email: _emailController.text.trim(),
             telefone: _telefoneController.text.trim(),
@@ -67,7 +67,7 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
           );
 
       if (mounted) {
-        if (sucesso) {
+        if (res['sucesso'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Agente cadastrado com sucesso!'),
@@ -83,9 +83,10 @@ class _CadastroAgenteScreenState extends State<CadastroAgenteScreen> {
           _especialidadeController.clear();
           FocusScope.of(context).unfocus();
         } else {
+          final msg = res['message'] ?? 'Erro no servidor ao cadastrar agente.';
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Erro: Email já cadastrado ou erro no servidor.'),
+            SnackBar(
+              content: Text(msg.toString()),
               backgroundColor: AppColors.statusActive,
             ),
           );

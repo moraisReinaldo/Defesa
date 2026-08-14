@@ -61,15 +61,12 @@ public class UsuarioService {
             throw new RuntimeException("É obrigatório concordar com os Termos de Privacidade (LGPD).");
         }
 
-        // Validação manual de senha (obrigatória no cadastro, opcional na atualização)
+        // Validação de senha
         if (request.getSenha() == null || request.getSenha().isBlank()) {
             throw new RuntimeException("A senha é obrigatória");
         }
-        if (request.getSenha().length() < 8) {
-            throw new RuntimeException("A senha deve ter no mínimo 8 caracteres");
-        }
-        if (!request.getSenha().matches("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).*$")) {
-            throw new RuntimeException("A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número");
+        if (request.getSenha().length() < 6) {
+            throw new RuntimeException("A senha deve ter no mínimo 6 caracteres");
         }
 
         Role roleReq;
@@ -93,7 +90,7 @@ public class UsuarioService {
             }
         }
 
-        // Auto-cadastro de Admin fica PENDENTE; admin criado por outro admin fica ATIVO
+        // Auto-cadastro de Admin fica PENDENTE; admin criado por outro admin ou agente criado por admin fica ATIVO
         Status statusInicial = (roleReq == Role.ADMINISTRADOR && !isSolicitanteAdmin)
             ? Status.PENDENTE : Status.ATIVO;
 
@@ -102,13 +99,27 @@ public class UsuarioService {
         usuario.setEmail(request.getEmail());
         usuario.setTelefone(request.getTelefone());
         usuario.setSenha(passwordEncoder.encode(request.getSenha()));
-        usuario.setCidade(normalizarCodigoCidade(request.getCidade()));
+        usuario.setEspecialidade(request.getEspecialidade());
+
+        String cidNorm = normalizarCodigoCidade(request.getCidade());
+        if (roleReq == Role.AGENTE && isSolicitanteAdmin) {
+            String adminEmail = auth.getName();
+            Usuario admin = repository.findByEmail(adminEmail).orElse(null);
+            if (admin != null && admin.getCidade() != null && !admin.getCidade().isBlank()) {
+                cidNorm = normalizarCodigoCidade(admin.getCidade());
+            }
+        }
+        usuario.setCidade(cidNorm);
+        if (cidNorm != null) {
+            cidadeRepository.findByCodigoIgnoreCase(cidNorm).ifPresent(usuario::setCidadeEntidade);
+        }
+
         usuario.setRole(roleReq.name());
         usuario.setStatus(statusInicial.name());
 
         Usuario salvo = repository.save(usuario);
 
-        if (roleReq == Role.ADMINISTRADOR) {
+        if (roleReq == Role.ADMINISTRADOR && !isSolicitanteAdmin) {
             emailService.enviarEmailAprovacaoAdmin(salvo);
         }
 

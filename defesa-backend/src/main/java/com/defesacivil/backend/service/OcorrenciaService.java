@@ -287,11 +287,47 @@ public class OcorrenciaService {
 
     public String normalizarCodigoCidade(String cidade) {
         if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim().toUpperCase();
-        return cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
-            .map(com.defesacivil.backend.domain.Cidade::getCodigo)
-            .orElse(limpa);
+        String limpa = cidade.trim();
+        Optional<com.defesacivil.backend.domain.Cidade> cidOpt = cidadeRepository.findByCodigoIgnoreCase(limpa)
+            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa));
+        if (cidOpt.isPresent()) {
+            return cidOpt.get().getCodigo();
+        }
+        String upper = limpa.toUpperCase();
+        switch (upper) {
+            case "PIRACAIA": return "PIR";
+            case "JOANOPOLIS":
+            case "JOANÓPOLIS": return "JOA";
+            case "ATIBAIA": return "ATI";
+            case "BRAGANÇA PAULISTA":
+            case "BRAGANCA PAULISTA": return "BP";
+            case "NAZARÉ PAULISTA":
+            case "NAZARE PAULISTA": return "NAZ";
+            case "TUIUTI": return "TUI";
+            case "VARGEM": return "VAR";
+            default: return upper;
+        }
+    }
+
+    public String obterNomeCidade(String cidade) {
+        if (cidade == null || cidade.isBlank()) return null;
+        String limpa = cidade.trim();
+        Optional<com.defesacivil.backend.domain.Cidade> cidOpt = cidadeRepository.findByCodigoIgnoreCase(limpa)
+            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa));
+        if (cidOpt.isPresent()) {
+            return cidOpt.get().getNome();
+        }
+        String upper = limpa.toUpperCase();
+        switch (upper) {
+            case "PIR": return "Piracaia";
+            case "JOA": return "Joanópolis";
+            case "ATI": return "Atibaia";
+            case "BP": return "Bragança Paulista";
+            case "NAZ": return "Nazaré Paulista";
+            case "TUI": return "Tuiuti";
+            case "VAR": return "Vargem";
+            default: return limpa;
+        }
     }
 
     private void checkJurisdiction(String cidadeOcorrencia) {
@@ -346,6 +382,16 @@ public class OcorrenciaService {
         }
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
 
+        if (request.getCaminhoFoto() != null && !request.getCaminhoFoto().isBlank()) {
+            String foto = request.getCaminhoFoto();
+            if (foto.startsWith("data:image")) {
+                String objectKey = minioService.uploadBase64Image(foto, "ocorrencias");
+                oc.setCaminhoFoto(objectKey != null ? objectKey : foto);
+            } else {
+                oc.setCaminhoFoto(foto);
+            }
+        }
+
         return processarUrl(ocorrenciaRepository.save(oc));
     }
 
@@ -362,26 +408,32 @@ public class OcorrenciaService {
             if (email != null) {
                 Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
                 if (usuario.isPresent()) {
-                    cidadeUsuario = normalizarCodigoCidade(usuario.get().getCidade());
+                    cidadeUsuario = usuario.get().getCidade();
                     currentUserId = usuario.get().getId();
                 }
             }
         }
 
-        // Se for admin ou agente, DEVE ver apenas da própria cidade
-        if (admin || agente) {
-            String cidadeParaBuscar = (cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) 
-                    ? cidadeUsuario 
-                    : normalizarCodigoCidade(cidade);
-            if (cidadeParaBuscar == null || cidadeParaBuscar.trim().isEmpty()) {
-                return processarUrls(ocorrenciaRepository.findAll(pageable));
-            }
-            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeParaBuscar, pageable));
+        String cidadeFiltro = (admin || agente)
+                ? ((cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) ? cidadeUsuario : cidade)
+                : cidade;
+
+        if ((admin || agente) && (cidadeFiltro == null || cidadeFiltro.trim().isEmpty())) {
+            return processarUrls(ocorrenciaRepository.findAll(pageable));
         }
 
-        // CIDADÃO / ANÔNIMO: vê aprovadas da cidade solicitada (ou todas se cidade for null) + suas próprias (qualquer status)
-        String cidFiltro = normalizarCodigoCidade(cidade);
-        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidFiltro, currentUserId, pageable));
+        if (cidadeFiltro == null || cidadeFiltro.trim().isEmpty()) {
+            return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreatorFlexible(null, null, null, currentUserId, pageable));
+        }
+
+        String codigo = normalizarCodigoCidade(cidadeFiltro);
+        String nome = obterNomeCidade(cidadeFiltro);
+
+        if (admin || agente) {
+            return processarUrls(ocorrenciaRepository.findByCidadeFlexible(cidadeFiltro, codigo, nome, pageable));
+        }
+
+        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreatorFlexible(cidadeFiltro, codigo, nome, currentUserId, pageable));
     }
 
     // ========== HELPERS INTERNOS ==========
@@ -422,7 +474,8 @@ public class OcorrenciaService {
         }
         
         try {
-            copia.setCaminhoFoto(minioService.getPresignedUrl(foto));
+            String url = minioService.getPresignedUrl(foto);
+            copia.setCaminhoFoto((url != null && !url.isBlank()) ? url : foto);
         } catch (Exception e) {
             log.warn("❌ Erro ao gerar URL do MinIO para {}: {}", foto, e.getMessage());
             copia.setCaminhoFoto(foto);

@@ -73,6 +73,7 @@ class UsuarioRequest {
   final bool concordaLGPD;
   final String status;
   final String? fcmToken;
+  final String? especialidade;
 
   UsuarioRequest({
     required this.nome,
@@ -84,6 +85,7 @@ class UsuarioRequest {
     required this.concordaLGPD,
     this.status = 'ATIVO',
     this.fcmToken,
+    this.especialidade,
   });
 
   Map<String, dynamic> toJson() {
@@ -97,6 +99,7 @@ class UsuarioRequest {
       'concordaLGPD': concordaLGPD,
       'status': status,
       if (fcmToken != null) 'fcmToken': fcmToken,
+      if (especialidade != null && especialidade!.isNotEmpty) 'especialidade': especialidade,
     };
   }
 }

@@ -22,17 +22,54 @@ public class AlertaService {
 
     private String normalizarCodigoCidade(String cidade) {
         if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim().toUpperCase();
+        String limpa = cidade.trim();
         return cidadeRepository.findByCodigoIgnoreCase(limpa)
             .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
             .map(Cidade::getCodigo)
-            .orElse(limpa);
+            .orElseGet(() -> {
+                String upper = limpa.toUpperCase();
+                switch (upper) {
+                    case "PIRACAIA": return "PIR";
+                    case "JOANOPOLIS":
+                    case "JOANÓPOLIS": return "JOA";
+                    case "ATIBAIA": return "ATI";
+                    case "BRAGANÇA PAULISTA":
+                    case "BRAGANCA PAULISTA": return "BP";
+                    case "NAZARÉ PAULISTA":
+                    case "NAZARE PAULISTA": return "NAZ";
+                    case "TUIUTI": return "TUI";
+                    case "VARGEM": return "VAR";
+                    default: return upper;
+                }
+            });
+    }
+
+    private String obterNomeCidade(String cidade) {
+        if (cidade == null || cidade.isBlank()) return null;
+        String limpa = cidade.trim();
+        return cidadeRepository.findByCodigoIgnoreCase(limpa)
+            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
+            .map(Cidade::getNome)
+            .orElseGet(() -> {
+                String upper = limpa.toUpperCase();
+                switch (upper) {
+                    case "PIR": return "Piracaia";
+                    case "JOA": return "Joanópolis";
+                    case "ATI": return "Atibaia";
+                    case "BP": return "Bragança Paulista";
+                    case "NAZ": return "Nazaré Paulista";
+                    case "TUI": return "Tuiuti";
+                    case "VAR": return "Vargem";
+                    default: return limpa;
+                }
+            });
     }
 
     public List<Alerta> buscarAlertasAtivos(String cidade) {
-        String cidadeNorm = normalizarCodigoCidade(cidade);
-        if (cidadeNorm != null && !cidadeNorm.isEmpty()) {
-            return alertaRepository.findByCidadeIgnoreCaseAndAtivoTrueOrderByDataCriacaoDesc(cidadeNorm);
+        if (cidade != null && !cidade.trim().isEmpty()) {
+            String codigo = normalizarCodigoCidade(cidade);
+            String nome = obterNomeCidade(cidade);
+            return alertaRepository.findByCidadeFlexible(cidade.trim(), codigo, nome);
         }
         return alertaRepository.findByAtivoTrueOrderByDataCriacaoDesc();
     }

@@ -212,7 +212,7 @@ class UsuarioProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> cadastrarAgente({
+  Future<Map<String, dynamic>> cadastrarAgente({
     required String nome,
     required String email,
     required String telefone,
@@ -228,11 +228,12 @@ class UsuarioProvider extends ChangeNotifier {
       role: 'AGENTE',
       cidade: cidade ?? _usuarioLogado?.cidade ?? '',
       concordaLGPD: true,
+      especialidade: especialidade,
     ));
     if (res['sucesso'] == true) {
       await carregarAgentes();
     }
-    return res['sucesso'] == true;
+    return res;
   }
 
   // ========== LOGIN & AUTH ==========

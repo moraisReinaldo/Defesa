@@ -24,6 +24,7 @@ public class UsuarioRequest {
 
     private boolean concordaLGPD;
     private String fcmToken;
+    private String especialidade;
 
     // Getters and Setters
     public String getNome() { return nome; }
@@ -42,4 +43,6 @@ public class UsuarioRequest {
     public void setConcordaLGPD(boolean concordaLGPD) { this.concordaLGPD = concordaLGPD; }
     public String getFcmToken() { return fcmToken; }
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    public String getEspecialidade() { return especialidade; }
+    public void setEspecialidade(String especialidade) { this.especialidade = especialidade; }
 }
