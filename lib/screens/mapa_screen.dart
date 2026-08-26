@@ -715,7 +715,7 @@ class _MapaScreenState extends State<MapaScreen> {
               if (usuarioProvider.isAdmin) ...[
                 FloatingActionButton.extended(
                   heroTag: 'fab_poi',
-                  onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
+                  onPressed: _onNovoPontoInteressePressed,
                   icon: const Icon(Icons.add_location_alt_rounded),
                   label: const Text('Ponto de Interesse'),
                   backgroundColor: Colors.orange,
@@ -933,7 +933,7 @@ class _MapaScreenState extends State<MapaScreen> {
               children: [
                 if (usuarioProvider.isAdmin) ...[
                   ElevatedButton.icon(
-                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
+                    onPressed: _onNovoPontoInteressePressed,
                     icon: const Icon(Icons.add_location_alt_rounded, size: 18),
                     label: const Text('Ponto Interesse'),
                     style: ElevatedButton.styleFrom(
@@ -1419,6 +1419,24 @@ class _MapaScreenState extends State<MapaScreen> {
   // _buildOcorrenciaImage removido pois agora usamos o widget OcorrenciaImage
 
   // _buildOcorrenciaImage removido pois agora usamos o widget OcorrenciaImage
+
+  void _onNovoPontoInteressePressed() async {
+    LatLng? coordenadas;
+    if (_posicaoAtual != null) {
+      coordenadas = LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude);
+    } else {
+      final pos = await _localizacaoService.obterPosicaoAtual();
+      if (pos != null) {
+        if (mounted) setState(() => _posicaoAtual = pos);
+        coordenadas = LatLng(pos.latitude, pos.longitude);
+      } else {
+        coordenadas = _mapController.camera.center;
+      }
+    }
+    if (mounted) {
+      _confirmarNovoPontoInteresse(coordenadas);
+    }
+  }
 
   void _confirmarNovoPontoInteresse(LatLng latlng) async {
     final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => RegistroPontoInteresseScreen(posicao: latlng)));
