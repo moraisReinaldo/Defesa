@@ -270,7 +270,13 @@ public class UsuarioService {
 
         if (request.getNome() != null) usuario.setNome(request.getNome());
         if (request.getTelefone() != null) usuario.setTelefone(request.getTelefone());
-        if (request.getCidade() != null) usuario.setCidade(normalizarCodigoCidade(request.getCidade()));
+        if (request.getCidade() != null) {
+            String norm = normalizarCodigoCidade(request.getCidade());
+            usuario.setCidade(norm);
+            if (norm != null) {
+                cidadeRepository.findByCodigoIgnoreCase(norm).ifPresent(usuario::setCidadeEntidade);
+            }
+        }
         if (request.getFcmToken() != null) usuario.setFcmToken(request.getFcmToken());
 
         // Apenas admins podem mudar a role de outros usuários

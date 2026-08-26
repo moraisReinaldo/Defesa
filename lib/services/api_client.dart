@@ -68,7 +68,17 @@ class ApiClient {
     try {
       final response = await dio.get('/cidades', options: Options(extra: {'secure': false}));
       if (response.data is List) {
-        return (response.data as List).map((c) => Map<String, String>.from(c)).toList();
+        final lista = (response.data as List).map((c) {
+          if (c is Map) {
+            return {
+              'id': c['id']?.toString() ?? '',
+              'codigo': c['codigo']?.toString() ?? '',
+              'nome': c['nome']?.toString() ?? '',
+            };
+          }
+          return <String, String>{};
+        }).where((m) => m['codigo'] != null && m['codigo']!.isNotEmpty).toList();
+        if (lista.isNotEmpty) return lista;
       }
       return fallbackCidades;
     } catch (e) {

@@ -103,7 +103,11 @@ public class PontoInteresseService {
 
     public PontoInteresse salvar(PontoInteresse ponto) {
         if (ponto.getCidade() != null) {
-            ponto.setCidade(normalizarCodigoCidade(ponto.getCidade()));
+            String norm = normalizarCodigoCidade(ponto.getCidade());
+            ponto.setCidade(norm);
+            if (norm != null) {
+                cidadeRepository.findByCodigoIgnoreCase(norm).ifPresent(ponto::setCidadeEntidade);
+            }
         }
         return repository.save(ponto);
     }
@@ -116,7 +120,11 @@ public class PontoInteresseService {
         existente.setLatitude(dados.getLatitude());
         existente.setLongitude(dados.getLongitude());
         if (dados.getCidade() != null) {
-            existente.setCidade(normalizarCodigoCidade(dados.getCidade()));
+            String norm = normalizarCodigoCidade(dados.getCidade());
+            existente.setCidade(norm);
+            if (norm != null) {
+                cidadeRepository.findByCodigoIgnoreCase(norm).ifPresent(existente::setCidadeEntidade);
+            }
         }
         return repository.save(existente);
     }
