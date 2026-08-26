@@ -17,10 +17,10 @@ public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
-    @org.springframework.beans.factory.annotation.Value("${onesignal.app.id}")
+    @org.springframework.beans.factory.annotation.Value("${onesignal.app.id:6537856b-c264-42af-b2a9-583652a175d2}")
     private String onesignalAppId;
 
-    @org.springframework.beans.factory.annotation.Value("${onesignal.rest.key}")
+    @org.springframework.beans.factory.annotation.Value("${onesignal.rest.key:}")
     private String onesignalRestKey;
 
     private final RestTemplate restTemplate;
@@ -30,7 +30,7 @@ public class NotificationService {
     }
 
     public void sendPushNotification(String userId, String title, String body) {
-        if (userId == null || userId.isEmpty()) return;
+        if (userId == null || userId.isEmpty() || onesignalRestKey == null || onesignalRestKey.isBlank()) return;
         
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
