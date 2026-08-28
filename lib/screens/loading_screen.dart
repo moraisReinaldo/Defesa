@@ -4,6 +4,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
+import '../providers/ocorrencia_provider.dart';
+import '../providers/ponto_interesse_provider.dart';
 import 'mapa_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -29,12 +31,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
       await _solicitarPermissoesIniciais();
       
       if (mounted) {
+        final ocorrenciaProv = context.read<OcorrenciaProvider>();
+        final pontoProv = context.read<PontoInteresseProvider>();
+
         // 2. Carga Base: Cidades e Sessão (Pilar 2)
-        // Isso garante que temos a lista de cidades suportadas para o 'match' do GPS
         await userProv.carregarTudo();
         
         // 3. Contexto Geográfico (Pilar 3)
-        // Só tentamos o GPS se não houver um usuário logado (que já tem cidade no perfil)
         if (userProv.usuarioLogado == null) {
           setState(() {
             _mensagem = 'Localizando sua região...';
@@ -42,9 +45,17 @@ class _LoadingScreenState extends State<LoadingScreen> {
           });
           await userProv.determinarCidadePorGps();
         }
-        
-        // FIM: A UI reagirá ao 'estaInicializado' setado no final do carregarTudo
-        // ou podemos forçar um notify se necessário.
+
+        // 4. Pré-carregar Ocorrências e Pontos de Interesse para estarem prontos no mapa
+        final cidade = userProv.cidadeAtiva;
+        await Future.wait([
+          ocorrenciaProv.carregarOcorrencias(
+            cidade: cidade,
+            userId: userProv.usuarioLogado?.id,
+            isAdmin: userProv.isAdmin,
+          ),
+          pontoProv.carregarPontos(cidade: cidade),
+        ]);
       }
     });
   }

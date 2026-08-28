@@ -62,16 +62,37 @@ class _MapaScreenState extends State<MapaScreen> {
   
   StreamSubscription<Position>? _positionSubscription;
   bool _mapaCentralizadoInicialmente = false;
+  UsuarioProvider? _usuarioProviderRef;
+  String? _ultimaCidadeCarregada;
+  String? _ultimoUsuarioId;
 
   @override
   void initState() {
     super.initState();
+    _usuarioProviderRef = context.read<UsuarioProvider>();
+    _usuarioProviderRef?.addListener(_onUsuarioProviderChanged);
+    _ultimaCidadeCarregada = _usuarioProviderRef?.cidadeAtiva;
+    _ultimoUsuarioId = _usuarioProviderRef?.usuarioLogado?.id;
+    
     _inicializarMapa();
     _iniciarSeguimentoLocalizacao();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final storage = context.read<UsuarioProvider>().storageService;
       AvisoComunitarioDialog.exibirSeNecessario(context, storage);
     });
+  }
+
+  void _onUsuarioProviderChanged() {
+    if (!mounted) return;
+    final userProv = context.read<UsuarioProvider>();
+    final cidadeAtual = userProv.cidadeAtiva;
+    final userIdAtual = userProv.usuarioLogado?.id;
+
+    if (cidadeAtual != _ultimaCidadeCarregada || userIdAtual != _ultimoUsuarioId) {
+      _ultimaCidadeCarregada = cidadeAtual;
+      _ultimoUsuarioId = userIdAtual;
+      _inicializarMapa();
+    }
   }
 
   void _iniciarSeguimentoLocalizacao() {
@@ -92,6 +113,7 @@ class _MapaScreenState extends State<MapaScreen> {
 
   @override
   void dispose() {
+    _usuarioProviderRef?.removeListener(_onUsuarioProviderChanged);
     _positionSubscription?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
