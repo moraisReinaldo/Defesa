@@ -22,7 +22,7 @@ public class JwtService {
 
     private SecretKey signingKey;
 
-    private static final long EXPIRATION_TIME = 86400000; // 24 horas
+    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24 * 30; // 30 dias
 
     @PostConstruct
     public void init() {
