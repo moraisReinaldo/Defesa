@@ -12,13 +12,9 @@ class ApiClient {
   );
 
   static const List<Map<String, String>> fallbackCidades = [
-    {'nome': 'Atibaia', 'codigo': 'ATI'},
     {'nome': 'Bragança Paulista', 'codigo': 'BP'},
     {'nome': 'Joanópolis', 'codigo': 'JOA'},
-    {'nome': 'Nazaré Paulista', 'codigo': 'NAZ'},
     {'nome': 'Piracaia', 'codigo': 'PIR'},
-    {'nome': 'Tuiuti', 'codigo': 'TUI'},
-    {'nome': 'Vargem', 'codigo': 'VAR'},
   ];
 
   static const Duration _timeout = Duration(seconds: 60);

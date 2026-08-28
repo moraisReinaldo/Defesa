@@ -423,7 +423,7 @@ public class OcorrenciaService {
         }
 
         if (cidadeFiltro == null || cidadeFiltro.trim().isEmpty()) {
-            return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreatorFlexible(null, null, null, currentUserId, pageable));
+            return processarUrls(ocorrenciaRepository.findPublicOcorrencias(currentUserId, pageable));
         }
 
         String codigo = normalizarCodigoCidade(cidadeFiltro);

@@ -18,7 +18,7 @@ class MapaContextMenuWidget extends StatelessWidget {
     required this.onActionSelected,
   });
 
-  static Future<MapaAction?> exibir(BuildContext context, LatLng latlng) {
+  static Future<MapaAction?> exibir(BuildContext context, LatLng latlng, {bool isGestor = false}) {
     return showDialog<MapaAction>(
       context: context,
       barrierColor: Colors.black26,
@@ -78,19 +78,7 @@ class MapaContextMenuWidget extends StatelessWidget {
               const Divider(height: 1, color: AppColors.borderLight),
               const SizedBox(height: 12),
 
-              // Ação 1: Novo Ponto de Apoio / Risco
-              _buildMenuItem(
-                ctx,
-                icon: Icons.add_location_alt_rounded,
-                color: Colors.orange,
-                title: 'Novo Ponto de Apoio / Risco',
-                subtitle: 'Abrigo, zona de risco ou apoio',
-                action: MapaAction.novoPontoInteresse,
-              ),
-
-              const SizedBox(height: 8),
-
-              // Ação 2: Nova Ocorrência
+              // Ação 1: Nova Ocorrência (Visível para todos)
               _buildMenuItem(
                 ctx,
                 icon: Icons.add_alert_rounded,
@@ -100,17 +88,31 @@ class MapaContextMenuWidget extends StatelessWidget {
                 action: MapaAction.novaOcorrencia,
               ),
 
-              const SizedBox(height: 8),
+              if (isGestor) ...[
+                const SizedBox(height: 8),
 
-              // Ação 3: Emitir Alerta nesta Região
-              _buildMenuItem(
-                ctx,
-                icon: Icons.campaign_rounded,
-                color: Colors.red,
-                title: 'Emitir Alerta nesta Região',
-                subtitle: 'Aviso da Defesa Civil',
-                action: MapaAction.emitirAlerta,
-              ),
+                // Ação 2: Novo Ponto de Apoio / Risco (Apenas Administrador e Agente)
+                _buildMenuItem(
+                  ctx,
+                  icon: Icons.add_location_alt_rounded,
+                  color: Colors.orange,
+                  title: 'Novo Ponto de Apoio / Risco',
+                  subtitle: 'Abrigo, zona de risco ou apoio',
+                  action: MapaAction.novoPontoInteresse,
+                ),
+
+                const SizedBox(height: 8),
+
+                // Ação 3: Emitir Alerta nesta Região (Apenas Administrador e Agente)
+                _buildMenuItem(
+                  ctx,
+                  icon: Icons.campaign_rounded,
+                  color: Colors.red,
+                  title: 'Emitir Alerta nesta Região',
+                  subtitle: 'Aviso da Defesa Civil',
+                  action: MapaAction.emitirAlerta,
+                ),
+              ],
             ],
           ),
         ),

@@ -10,7 +10,7 @@ import '../services/geocoding_service.dart';
 class RegistroPontoInteresseScreen extends StatefulWidget {
   final LatLng posicao;
 
-   const RegistroPontoInteresseScreen({super.key, required this.posicao});
+  const RegistroPontoInteresseScreen({super.key, required this.posicao});
 
   @override
   State<RegistroPontoInteresseScreen> createState() => _RegistroPontoInteresseScreenState();
@@ -25,8 +25,9 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
   final _geocodingService = GeocodingService();
   
   List<Map<String, String>> _cidadesSuportadas = [];
-  String? _cidadeSelecionada; // Armazena o CÓDIGO
+  String? _cidadeSelecionada; // Armazena o CÓDIGO (ex: BP, PIR, JOA)
   bool _carregandoCidades = true;
+  bool _salvando = false;
 
   final List<Map<String, dynamic>> _tipos = [
     {'valor': 'PONTO_COLETA_AGUA', 'label': 'Coleta de Água', 'icon': Icons.water_drop_rounded, 'color': Colors.blue},
@@ -49,14 +50,25 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
     final prov = context.read<UsuarioProvider>();
     final user = prov.usuarioLogado;
     final isGestor = prov.isAdmin || prov.isAgente;
+
+    // Se não for gestor, não deve acessar esta tela
+    if (!isGestor) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Apenas administradores e agentes da Defesa Civil podem cadastrar pontos de interesse.'),
+          backgroundColor: AppColors.statusActive,
+        ),
+      );
+      Navigator.pop(context);
+      return;
+    }
     
     setState(() {
       _cidadesSuportadas = List<Map<String, String>>.from(prov.cidadesSuportadas);
       _carregandoCidades = false;
       
-      // Se for Gestor (Admin ou Agente), travar na cidade dele
-      if (isGestor && user?.cidade != null) {
-        // Encontrar o código da cidade se o usuário tiver apenas o nome
+      // Fixar na jurisdição do gestor
+      if (user?.cidade != null) {
         final correspondente = _cidadesSuportadas.firstWhere(
           (c) => c['nome']?.toLowerCase() == user?.cidade?.toLowerCase() || 
                  c['codigo'] == user?.cidade,
@@ -64,38 +76,28 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
         );
         _cidadeSelecionada = correspondente.isNotEmpty ? correspondente['codigo'] : user?.cidade;
       }
+      
+      // Fallback para cidade ativa se o gestor não tiver cidade cadastrada
+      _cidadeSelecionada ??= prov.cidadeAtiva ?? 'BP';
     });
   }
 
   Future<void> _detectarCidade() async {
-    final prov = context.read<UsuarioProvider>();
-    final cidade = await _geocodingService.obterCidade(
-      widget.posicao.latitude,
-      widget.posicao.longitude,
-    );
-    if (mounted) {
-      // Tentar mapear para nosso código usando a lista do provider
-      String? codigoCorrespondente;
-      if (cidade != null) {
-        for (var c in prov.cidadesSuportadas) {
-          String nome = c['nome'] ?? '';
-          if (cidade.toLowerCase().contains(nome.toLowerCase()) || 
-              nome.toLowerCase().contains(cidade.toLowerCase())) {
-            codigoCorrespondente = c['codigo'];
-            break;
-          }
-        }
+    try {
+      final cidade = await _geocodingService.obterCidade(
+        widget.posicao.latitude,
+        widget.posicao.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _cidadeDetectada = cidade;
+          _buscandoCidade = false;
+        });
       }
-
-      setState(() {
-        _cidadeDetectada = cidade;
-        // Regra: se NÃO for gestor (Admin ou Agente), preenche a cidade selecionada automaticamente
-        final isGestor = prov.isAdmin || prov.isAgente;
-        if (!isGestor) {
-          _cidadeSelecionada = codigoCorrespondente;
-        }
-        _buscandoCidade = false;
-      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _buscandoCidade = false);
+      }
     }
   }
 
@@ -107,6 +109,14 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
 
   @override
   Widget build(BuildContext context) {
+    final prov = context.watch<UsuarioProvider>();
+    final isGestor = prov.isAdmin || prov.isAgente;
+
+    final nomeCidadeExibicao = _cidadesSuportadas.firstWhere(
+      (c) => c['codigo'] == _cidadeSelecionada,
+      orElse: () => {'nome': _cidadeSelecionada ?? 'Sua Cidade'},
+    )['nome'];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Novo Ponto de Interesse'),
@@ -145,53 +155,67 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
               
               const SizedBox(height: 24),
               
-              // Cidade Detectada
-               if (_carregandoCidades)
-                  const LinearProgressIndicator()
-               else if (context.read<UsuarioProvider>().isAdmin || context.read<UsuarioProvider>().isAgente)
-                 // Para Gestor (Admin ou Agente): Apenas exibe a cidade travada
-                 Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                   decoration: BoxDecoration(color: AppColors.backgroundOffWhite, borderRadius: BorderRadius.circular(12)),
-                   child: Row(
-                     children: [
-                       const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
-                       const SizedBox(width: 12),
-                       Expanded(
-                         child: Text(
-                           'Jurisdição: ${_cidadesSuportadas.firstWhere((c) => c['codigo'] == _cidadeSelecionada, orElse: () => {'nome': _cidadeSelecionada ?? 'Sua Cidade'})['nome']}',
-                           style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                         ),
-                       ),
-                       const Icon(Icons.lock_rounded, size: 16, color: AppColors.textLight),
-                     ],
-                   ),
-                 )
-               else
-                 // Para Cidadão: Dropdown liberado
-                 DropdownButtonFormField<String>(
-                   initialValue: _cidadeSelecionada,
-                   hint: const Text('Selecione a cidade'),
-                   decoration: InputDecoration(
-                     prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
-                     filled: true,
-                     fillColor: AppColors.backgroundOffWhite,
-                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                     contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                   ),
-                   items: _cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
-                   onChanged: (v) => setState(() => _cidadeSelecionada = v),
-                   validator: (v) => v == null ? 'Obrigatório' : null,
-                 ),
+              // Jurisdição / Cidade
+              const Text('Jurisdição / Cidade', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              if (_carregandoCidades)
+                const LinearProgressIndicator()
+              else if (isGestor)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundOffWhite,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderLight),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Jurisdição: $nomeCidadeExibicao',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                      ),
+                      const Icon(Icons.lock_rounded, size: 16, color: AppColors.textLight),
+                    ],
+                  ),
+                )
+              else
+                DropdownButtonFormField<String>(
+                  initialValue: _cidadeSelecionada,
+                  hint: const Text('Selecione a cidade'),
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
+                    filled: true,
+                    fillColor: AppColors.backgroundOffWhite,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  items: _cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
+                  onChanged: (v) => setState(() => _cidadeSelecionada = v),
+                  validator: (v) => v == null ? 'Obrigatório' : null,
+                ),
+
               if (_buscandoCidade)
                 const Padding(
                   padding: EdgeInsets.only(top: 8.0),
-                  child: Row(children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)), SizedBox(width: 8), Text('GPS: Localizando...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary))]),
+                  child: Row(
+                    children: [
+                      SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+                      SizedBox(width: 8),
+                      Text('Verificando localização no mapa...', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                    ],
+                  ),
                 )
-              else if (_cidadeDetectada != null && _cidadeSelecionada == null)
+              else if (_cidadeDetectada != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Text('GPS detectou "$_cidadeDetectada", mas não está na nossa lista. Selecione manualmente.', style: const TextStyle(fontSize: 12, color: Colors.orange)),
+                  child: Text(
+                    'Local detectado: $_cidadeDetectada',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
                 ),
               
               const SizedBox(height: 24),
@@ -201,11 +225,11 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
                 controller: _descricaoController,
                 decoration: InputDecoration(
                   labelText: 'Descrição / Nome do Local',
-                  hintText: 'Ex: Caixa d\'água comunitária, Encosta instável...',
+                  hintText: 'Ex: Base Operacional, Ponto de Coleta, Abrigo Comunitário...',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 maxLines: 3,
-                validator: (v) => (v == null || v.isEmpty) ? 'Obrigatório' : null,
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Informe uma descrição' : null,
               ),
               
               const SizedBox(height: 32),
@@ -214,8 +238,22 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _salvar,
-                  child: const Text('SALVAR PONTO NO MAPA'),
+                  onPressed: _salvando ? null : _salvar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: _salvando
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                        )
+                      : const Text(
+                          'SALVAR PONTO NO MAPA',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                 ),
               ),
             ],
@@ -232,180 +270,69 @@ class _RegistroPontoInteresseScreenState extends State<RegistroPontoInteresseScr
     final user = userProvider.usuarioLogado;
     final isGestor = userProvider.isAdmin || userProvider.isAgente;
 
-    // Se ainda estiver buscando a cidade via GPS, aguardar ou exibir aviso
-    if (_buscandoCidade) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Expanded(child: Text('Verificando jurisdição do ponto selecionado...')),
-            ],
-          ),
+    if (!isGestor) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Apenas administradores e agentes da Defesa Civil podem cadastrar pontos.'),
+          backgroundColor: AppColors.statusActive,
         ),
-      );
-      // Aguarda a detecção terminar
-      int tentativas = 0;
-      while (_buscandoCidade && tentativas < 10) {
-        await Future.delayed(const Duration(milliseconds: 500));
-        tentativas++;
-      }
-      if (!mounted) return;
-      Navigator.pop(context); // fecha o diálogo de carregamento
-    }
-
-    if (!mounted) return;
-
-    // Se for gestor (Admin ou Agente), fazer validação geográfica rigorosa
-    if (isGestor && user?.cidade != null) {
-      final userNotNull = user!;
-      
-      // Tentar obter a cidade novamente se estiver nula
-      if (_cidadeDetectada == null) {
-        try {
-          final cidade = await _geocodingService.obterCidade(
-            widget.posicao.latitude,
-            widget.posicao.longitude,
-          );
-          if (cidade != null) {
-            _cidadeDetectada = cidade;
-          }
-        } catch (_) {}
-      }
-
-      if (!mounted) return;
-
-      if (_cidadeDetectada == null) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Localização Indeterminada'),
-            content: const Text('Não foi possível verificar a cidade deste ponto no mapa. Por favor, verifique sua conexão com a internet.'),
-            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
-          )
-        );
-        return;
-      }
-
-      final cidadeGestor = userNotNull.cidade!;
-      bool ehMesmaCidade = false;
-
-      // Função de normalização para comparação flexível
-      String normalize(String s) {
-        return s.toLowerCase()
-            .replaceAll('á', 'a').replaceAll('à', 'a').replaceAll('â', 'a').replaceAll('ã', 'a')
-            .replaceAll('é', 'e').replaceAll('ê', 'e')
-            .replaceAll('í', 'i')
-            .replaceAll('ó', 'o').replaceAll('ô', 'o').replaceAll('õ', 'o')
-            .replaceAll('ú', 'u')
-            .replaceAll('ç', 'c')
-            .trim();
-      }
-
-      final normalizedDetectada = normalize(_cidadeDetectada!);
-      final normalizedGestor = normalize(cidadeGestor);
-
-      // 1. Comparação textual direta
-      if (normalizedDetectada.contains(normalizedGestor) || normalizedGestor.contains(normalizedDetectada)) {
-        ehMesmaCidade = true;
-      }
-
-      // 2. Comparação por códigos das cidades suportadas
-      if (!ehMesmaCidade) {
-        String? codigoDetectado;
-        String? codigoGestor;
-
-        for (var c in _cidadesSuportadas) {
-          final nome = c['nome'] ?? '';
-          final codigo = c['codigo'] ?? '';
-          
-          if (normalize(nome).contains(normalizedDetectada) || normalizedDetectada.contains(normalize(nome))) {
-            codigoDetectado = codigo;
-          }
-          if (normalize(nome).contains(normalizedGestor) || normalize(codigo).contains(normalizedGestor)) {
-            codigoGestor = codigo;
-          }
-        }
-
-        if (codigoDetectado != null && codigoGestor != null && codigoDetectado == codigoGestor) {
-          ehMesmaCidade = true;
-        }
-      }
-
-      if (!ehMesmaCidade) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.gpp_bad_rounded, color: Colors.red),
-                SizedBox(width: 8),
-                Expanded(child: Text('Fora da Jurisdição')),
-              ],
-            ),
-            content: Text(
-              'Este ponto está fora da sua jurisdição.\n\n'
-              'Você selecionou um ponto em: "$_cidadeDetectada".\n'
-              'Sua área de atuação é restrita a: "${_cidadesSuportadas.firstWhere((c) => c['codigo'] == _cidadeSelecionada, orElse: () => {'nome': cidadeGestor})['nome']}".'
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              )
-            ],
-          ),
-        );
-        return;
-      }
-    }
-
-    if (!mounted) return;
-
-    // Verificação de Cidade Geral (para todos)
-    if (_cidadeSelecionada == null) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Localização Não Atendida'),
-          content: Text('A cidade detectada "${_cidadeDetectada ?? 'Desconhecida'}" não está na lista de áreas atendidas.'),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
-        )
       );
       return;
     }
+
+    setState(() => _salvando = true);
+
+    // Garantir que _cidadeSelecionada seja preenchida
+    String? codigoCidade = _cidadeSelecionada;
+    if (codigoCidade == null && user?.cidade != null) {
+      final correspondente = _cidadesSuportadas.firstWhere(
+        (c) => c['nome']?.toLowerCase() == user?.cidade?.toLowerCase() || 
+               c['codigo'] == user?.cidade,
+        orElse: () => {},
+      );
+      codigoCidade = correspondente.isNotEmpty ? correspondente['codigo'] : user?.cidade;
+    }
+    codigoCidade ??= userProvider.cidadeAtiva ?? 'BP';
 
     final novoPonto = PontoInteresse(
       tipo: _tipoSelecionado,
       descricao: _descricaoController.text.trim(),
       latitude: widget.posicao.latitude,
       longitude: widget.posicao.longitude,
-      cidade: _cidadeSelecionada,
+      cidade: codigoCidade,
       criadoPor: user?.id,
     );
     
     try {
-      if (!mounted) return;
-      final sucesso = await context.read<PontoInteresseProvider>().adicionarPonto(novoPonto);
+      final pontoProv = context.read<PontoInteresseProvider>();
+      final sucesso = await pontoProv.adicionarPonto(novoPonto);
       if (mounted) {
+        setState(() => _salvando = false);
         if (sucesso) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ponto de interesse adicionado com sucesso!'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Ponto de interesse adicionado com sucesso! ✅'),
+              backgroundColor: Colors.green,
+            ),
           );
           Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Não foi possível salvar o ponto. Verifique os dados.'), backgroundColor: Colors.red),
+            const SnackBar(
+              content: Text('Não foi possível salvar o ponto. Verifique a conexão.'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _salvando = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Erro ao salvar: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

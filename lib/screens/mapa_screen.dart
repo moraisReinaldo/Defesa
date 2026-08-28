@@ -147,7 +147,13 @@ class _MapaScreenState extends State<MapaScreen> {
       if (!mounted) return;
       await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
     } else {
-      debugPrint('⚠️ Mapa inicializado sem cidade de contexto. Nada será exibido.');
+      await ocorrenciaProv.carregarOcorrencias(
+        cidade: null,
+        userId: usuarioProv.usuarioLogado?.id,
+        isAdmin: false,
+      );
+      if (!mounted) return;
+      await context.read<PontoInteresseProvider>().carregarPontos();
     }
   }
 
@@ -1156,19 +1162,17 @@ class _MapaScreenState extends State<MapaScreen> {
             maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),
             onSecondaryTap: (_, latlng) async {
-              if (kIsWeb || userProv.isAdmin) {
-                final acao = await MapaContextMenuWidget.exibir(context, latlng);
-                if (acao != null && mounted) {
-                  _executarAcaoContextMenu(acao, latlng, userProv);
-                }
+              final isGestor = userProv.isAdmin || userProv.isAgente;
+              final acao = await MapaContextMenuWidget.exibir(context, latlng, isGestor: isGestor);
+              if (acao != null && mounted) {
+                _executarAcaoContextMenu(acao, latlng, userProv);
               }
             },
             onLongPress: (_, latlng) async {
-              if (kIsWeb || userProv.isAdmin) {
-                final acao = await MapaContextMenuWidget.exibir(context, latlng);
-                if (acao != null && mounted) {
-                  _executarAcaoContextMenu(acao, latlng, userProv);
-                }
+              final isGestor = userProv.isAdmin || userProv.isAgente;
+              final acao = await MapaContextMenuWidget.exibir(context, latlng, isGestor: isGestor);
+              if (acao != null && mounted) {
+                _executarAcaoContextMenu(acao, latlng, userProv);
               }
             },
             cameraConstraint: CameraConstraint.containCenter(

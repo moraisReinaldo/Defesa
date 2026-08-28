@@ -75,13 +75,9 @@ class ClimaService {
   final Dio _dio = Dio();
 
   static const Map<String, Map<String, double>> _coordenadasCidades = {
-    'ATI': {'lat': -23.1169, 'lng': -46.5503}, // Atibaia
     'BP': {'lat': -22.9525, 'lng': -46.5419},  // Bragança Paulista
     'JOA': {'lat': -22.9292, 'lng': -46.2753}, // Joanópolis
-    'NAZ': {'lat': -23.1811, 'lng': -46.3975}, // Nazaré Paulista
     'PIR': {'lat': -23.0539, 'lng': -46.3575}, // Piracaia
-    'TUI': {'lat': -22.8161, 'lng': -46.6806}, // Tuiuti
-    'VAR': {'lat': -22.8889, 'lng': -46.4131}, // Vargem
   };
 
   static Map<String, double> obterCoordenadasCidade(String? codigoOuNome) {
@@ -95,13 +91,9 @@ class ClimaService {
     }
 
     // Busca aproximada por nome
-    if (key.contains('ATIBAIA')) return _coordenadasCidades['ATI']!;
-    if (key.contains('BRAGAN') || key.contains('PAULISTA')) return _coordenadasCidades['BP']!;
-    if (key.contains('JOAN')) return _coordenadasCidades['JOA']!;
-    if (key.contains('NAZAR')) return _coordenadasCidades['NAZ']!;
-    if (key.contains('PIRACAIA')) return _coordenadasCidades['PIR']!;
-    if (key.contains('TUIUTI')) return _coordenadasCidades['TUI']!;
-    if (key.contains('VARGEM')) return _coordenadasCidades['VAR']!;
+    if (key.contains('BRAGAN') || key.contains('PAULISTA') || key == 'BP') return _coordenadasCidades['BP']!;
+    if (key.contains('JOAN') || key == 'JOA') return _coordenadasCidades['JOA']!;
+    if (key.contains('PIRACAIA') || key == 'PIR') return _coordenadasCidades['PIR']!;
 
     return {'lat': -22.9525, 'lng': -46.5419};
   }

@@ -27,8 +27,10 @@ class GeocodingService {
           // Tenta pegar a cidade de vários campos possíveis retornados pelo Nominatim
           return address['city'] ?? 
                  address['town'] ?? 
+                 address['municipality'] ??
                  address['village'] ?? 
-                 address['municipality'] ?? 
+                 address['county'] ??
+                 address['state_district'] ??
                  address['suburb'] ?? 
                  address['city_district'];
         }

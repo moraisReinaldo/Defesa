@@ -58,6 +58,8 @@ public class MinioService {
             byte[] imageBytes = Base64.getDecoder().decode(pureBase64);
             String objectKey = folder + "/" + UUID.randomUUID().toString() + "." + extension;
 
+            garantirBucketExiste();
+
             minioClient.putObject(
                 PutObjectArgs.builder()
                     .bucket(bucketName)
@@ -71,6 +73,22 @@ public class MinioService {
         } catch (Exception e) {
             log.error("Erro ao fazer upload para o MinIO: {}", e.getMessage(), e);
             return null;
+        }
+    }
+
+    private void garantirBucketExiste() {
+        try {
+            boolean exists = minioClient.bucketExists(
+                io.minio.BucketExistsArgs.builder().bucket(bucketName).build()
+            );
+            if (!exists) {
+                minioClient.makeBucket(
+                    io.minio.MakeBucketArgs.builder().bucket(bucketName).build()
+                );
+                log.info("Bucket MinIO '{}' criado com sucesso.", bucketName);
+            }
+        } catch (Exception e) {
+            log.warn("Verificação de bucket MinIO: {}", e.getMessage());
         }
     }
 

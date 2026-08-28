@@ -181,6 +181,19 @@ public class UsuarioService {
         return repository.findByCidadeAndRole(cidadeBusca, role);
     }
 
+    @Transactional(readOnly = true)
+    public List<Usuario> listarPendentes() {
+        return repository.findByStatus(Status.PENDENTE.name());
+    }
+
+    public Usuario aprovarUsuario(String id) {
+        Usuario usuario = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + id));
+        checkUserJurisdiction(usuario);
+        usuario.setStatus(Status.ATIVO.name());
+        return repository.save(usuario);
+    }
+
     /**
      * Promove um cidadão/usuário a AGENTE.
      * Proteção por ADMINISTRADOR garantida no SecurityConfig.

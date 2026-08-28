@@ -16,8 +16,9 @@ class _GerenciarPOIScreenState extends State<GerenciarPOIScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<UsuarioProvider>().usuarioLogado;
-      context.read<PontoInteresseProvider>().carregarPontos(cidade: user?.cidade);
+      final userProv = context.read<UsuarioProvider>();
+      final cidade = userProv.usuarioLogado?.cidade ?? userProv.cidadeAtiva;
+      context.read<PontoInteresseProvider>().carregarPontos(cidade: cidade);
     });
   }
 

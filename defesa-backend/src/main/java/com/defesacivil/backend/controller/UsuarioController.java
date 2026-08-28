@@ -39,6 +39,22 @@ public class UsuarioController {
         return usuario != null ? ResponseEntity.ok(usuario) : ResponseEntity.notFound().build();
     }
 
+    /** Listar usuários pendentes de aprovação — apenas ADMINISTRADOR */
+    @GetMapping("/pendentes")
+    public ResponseEntity<java.util.List<Usuario>> listarPendentes() {
+        return ResponseEntity.ok(usuarioService.listarPendentes());
+    }
+
+    /** Aprovar usuário pendente — apenas ADMINISTRADOR */
+    @PostMapping("/{id}/aprovar")
+    public ResponseEntity<?> aprovarUsuario(@PathVariable String id) {
+        Usuario aprovado = usuarioService.aprovarUsuario(id);
+        return ResponseEntity.ok(Map.of(
+            "message", "Usuário aprovado com sucesso!",
+            "usuario", aprovado
+        ));
+    }
+
     /** Promover cidadão a agente — apenas ADMINISTRADOR (protegido no SecurityConfig) */
     @PostMapping("/promover")
     public ResponseEntity<?> promoverParaAgente(@RequestBody Map<String, String> payload) {
