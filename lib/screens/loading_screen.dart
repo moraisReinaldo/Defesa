@@ -23,11 +23,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
   void initState() {
     super.initState();
     
-    // Sequência de Inicialização Crítica e Bloqueante
+    // Sequência de Inicialização Crítica e Otimizada
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userProv = context.read<UsuarioProvider>();
       
-      // 1. Permissões (Pilar 1)
+      // 1. Permissões no mobile
       await _solicitarPermissoesIniciais();
       
       if (mounted) {
@@ -37,16 +37,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
         // 2. Carga Base: Cidades e Sessão (Pilar 2)
         await userProv.carregarTudo();
         
-        // 3. Contexto Geográfico (Pilar 3)
-        if (userProv.usuarioLogado == null) {
-          setState(() {
-            _mensagem = 'Localizando sua região...';
-            _subMensagem = 'Isolando ocorrências próximas';
-          });
-          await userProv.determinarCidadePorGps();
-        }
-
-        // 4. Pré-carregar Ocorrências e Pontos de Interesse para estarem prontos no mapa
+        // 3. Pré-carregar Ocorrências e Pontos de Interesse em paralelo instantaneamente
         final cidade = userProv.cidadeAtiva;
         await Future.wait([
           ocorrenciaProv.carregarOcorrencias(
@@ -56,6 +47,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
           ),
           pontoProv.carregarPontos(cidade: cidade),
         ]);
+
+        // 4. Libera a tela do mapa com os pontos e ocorrências já prontos na memória
+        userProv.finalizarInicializacao();
+
+        // 5. Se anônimo e sem GPS prévio, dispara geolocalização em segundo plano
+        if (userProv.usuarioLogado == null && userProv.cidadeAtiva == null) {
+          userProv.determinarCidadePorGps();
+        }
       }
     });
   }

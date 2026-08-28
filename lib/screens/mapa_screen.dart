@@ -91,7 +91,7 @@ class _MapaScreenState extends State<MapaScreen> {
     if (cidadeAtual != _ultimaCidadeCarregada || userIdAtual != _ultimoUsuarioId) {
       _ultimaCidadeCarregada = cidadeAtual;
       _ultimoUsuarioId = userIdAtual;
-      _inicializarMapa();
+      _inicializarMapa(forcar: true);
     }
   }
 
@@ -147,7 +147,7 @@ class _MapaScreenState extends State<MapaScreen> {
     }
   }
 
-  Future<void> _inicializarMapa() async {
+  Future<void> _inicializarMapa({bool forcar = false}) async {
     final usuarioProv = context.read<UsuarioProvider>();
     final ocorrenciaProv = context.read<OcorrenciaProvider>();
     final pontoProv = context.read<PontoInteresseProvider>();
@@ -157,15 +157,16 @@ class _MapaScreenState extends State<MapaScreen> {
     final coords = ClimaService.obterCoordenadasCidade(cidadeFiltro);
     _mapController.move(LatLng(coords['lat']!, coords['lng']!), 14);
 
-    // Carregamento ultrarrápido em paralelo de ocorrências e pontos
-    final carregarOc = ocorrenciaProv.carregarOcorrencias(
-      cidade: cidadeFiltro, 
-      userId: usuarioProv.usuarioLogado?.id,
-      isAdmin: usuarioProv.isAdmin,
-    );
-    final carregarPoi = pontoProv.carregarPontos(cidade: cidadeFiltro);
-    
-    await Future.wait([carregarOc, carregarPoi]);
+    // Se for atualização forçada ou a memória ainda estiver vazia, busca na API
+    if (forcar || (ocorrenciaProv.ocorrenciasAtivas.isEmpty && pontoProv.pontos.isEmpty)) {
+      final carregarOc = ocorrenciaProv.carregarOcorrencias(
+        cidade: cidadeFiltro, 
+        userId: usuarioProv.usuarioLogado?.id,
+        isAdmin: usuarioProv.isAdmin,
+      );
+      final carregarPoi = pontoProv.carregarPontos(cidade: cidadeFiltro);
+      await Future.wait([carregarOc, carregarPoi]);
+    }
 
     // Atualiza GPS em segundo plano sem travar o carregamento inicial
     if (cidadeFiltro == null || cidadeFiltro.isEmpty) {
@@ -783,7 +784,7 @@ class _MapaScreenState extends State<MapaScreen> {
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _indiceAbaAtual,
           onTap: (i) {
-            if (i == 0) _inicializarMapa();
+            if (i == 0) _inicializarMapa(forcar: true);
             setState(() => _indiceAbaAtual = i);
           },
           items: const [
@@ -1038,7 +1039,7 @@ class _MapaScreenState extends State<MapaScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          if (index == 0) _inicializarMapa();
+          if (index == 0) _inicializarMapa(forcar: true);
           setState(() => _indiceAbaAtual = index);
         },
         hoverColor: AppColors.primaryTeal.withValues(alpha: 0.05),
@@ -1262,7 +1263,10 @@ class _MapaScreenState extends State<MapaScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                            IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa),
+                            IconButton(
+                              icon: const Icon(Icons.refresh, color: Colors.white), 
+                              onPressed: () => _inicializarMapa(forcar: true),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),

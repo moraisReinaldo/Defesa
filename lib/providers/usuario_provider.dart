@@ -43,6 +43,11 @@ class UsuarioProvider extends ChangeNotifier {
 
   DateTime? _ultimoSync;
 
+  void finalizarInicializacao() {
+    _estaInicializado = true;
+    notifyListeners();
+  }
+
   Future<void> carregarTudo() async {
     try {
       // 1. Cidades Suportadas (CRÍTICO: essencial para mapear localização)
@@ -51,22 +56,13 @@ class UsuarioProvider extends ChangeNotifier {
       // 2. Verificar Sessão (CRÍTICO: define se usamos perfil ou GPS)
       await verificarUsuarioLogado();
       
-      // Nesse ponto, cidades e usuário estão resolvidos.
-      // O GPS será tratado pela LoadingScreen se necessário.
-    } catch (e) {
-      if (kDebugMode) print('Erro na carga crítica: $e');
-    } finally {
-      // NOTA: O LoadingScreen chamará 'determinarCidadePorGps' antes de liberar,
-      // então 'estaInicializado' pode ser setado aqui ou pela LoadingScreen.
-      // Vamos setar aqui como sinalizador de que a Carga Base acabou.
-      _estaInicializado = true;
-      notifyListeners();
-
       // Tarefas não-críticas rodam silenciosamente em background
       if (_isAdmin) {
         carregarAgentes();
       }
       _ultimoSync = DateTime.now();
+    } catch (e) {
+      if (kDebugMode) print('Erro na carga crítica: $e');
     }
   }
 
