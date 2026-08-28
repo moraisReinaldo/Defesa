@@ -153,9 +153,10 @@ class _MapaScreenState extends State<MapaScreen> {
     final pontoProv = context.read<PontoInteresseProvider>();
     final cidadeFiltro = usuarioProv.cidadeAtiva;
 
-    // Centraliza o mapa imediatamente na cidade do Administrador / usuário sem travar
+    // Centraliza o mapa na cidade selecionada ou no centro da região
     final coords = ClimaService.obterCoordenadasCidade(cidadeFiltro);
-    _mapController.move(LatLng(coords['lat']!, coords['lng']!), 14);
+    final double zoomNivel = (cidadeFiltro == null || cidadeFiltro.isEmpty) ? 11.5 : 14.0;
+    _mapController.move(LatLng(coords['lat']!, coords['lng']!), zoomNivel);
 
     // Se for atualização forçada ou a memória ainda estiver vazia, busca na API
     if (forcar || (ocorrenciaProv.ocorrenciasAtivas.isEmpty && pontoProv.pontos.isEmpty)) {
@@ -1187,7 +1188,7 @@ class _MapaScreenState extends State<MapaScreen> {
               ClimaService.obterCoordenadasCidade(userProv.cidadeAtiva)['lat']!,
               ClimaService.obterCoordenadasCidade(userProv.cidadeAtiva)['lng']!,
             ),
-            initialZoom: 14,
+            initialZoom: (userProv.cidadeAtiva == null || userProv.cidadeAtiva!.isEmpty) ? 11.5 : 14.0,
             minZoom: 5,
             maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),

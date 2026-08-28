@@ -67,24 +67,20 @@ class OcorrenciaProvider extends ChangeNotifier {
     _temMais = true;
     _carregandoMais = false;
 
-    if (!isAdmin && (cidade == null || cidade.isEmpty)) {
-      _ocorrencias = [];
-      notifyListeners();
-      return;
-    }
+    final String? cidadeFiltro = (cidade != null && cidade.trim().isNotEmpty) ? cidade.trim() : null;
 
     try {
       // SEMPRE busca do servidor primeiro — fonte da verdade
       final vindoDaApi = await _apiService.listarOcorrencias(
-        cidade: (cidade == null || cidade.isEmpty) ? null : cidade,
+        cidade: cidadeFiltro,
         page: _paginaAtual,
         size: _pageSize,
       );
 
       _ocorrencias = vindoDaApi
           .where((o) => 
-            (cidade == null || cidade.isEmpty) || 
-            _mesmaCidade(o.cidade, cidade) || 
+            (cidadeFiltro == null) || 
+            _mesmaCidade(o.cidade, cidadeFiltro) || 
             (userId != null && o.usuarioId == userId))
           .toList();
       _temMais = vindoDaApi.length >= _pageSize;
@@ -104,8 +100,8 @@ class OcorrenciaProvider extends ChangeNotifier {
       // Manter apenas ocorrências locais que nunca foram sincronizadas (criadas offline)
       final localNaoSincronizadas = localAntes
           .where((o) => !idsDoServidor.contains(o.id) && o.isLocal &&
-              ((cidade == null || cidade.isEmpty) || 
-               _mesmaCidade(o.cidade, cidade) || 
+              ((cidadeFiltro == null) || 
+               _mesmaCidade(o.cidade, cidadeFiltro) || 
                (userId != null && o.usuarioId == userId)))
           .map((o) => o.copyWith(isLocal: true))
           .toList();
@@ -138,18 +134,20 @@ class OcorrenciaProvider extends ChangeNotifier {
     _carregandoMais = true;
     notifyListeners();
 
+    final String? cidadeFiltro = (cidade != null && cidade.trim().isNotEmpty) ? cidade.trim() : null;
+
     try {
       _paginaAtual++;
       final vindoDaApi = await _apiService.listarOcorrencias(
-        cidade: (cidade == null || cidade.isEmpty) ? null : cidade, 
+        cidade: cidadeFiltro, 
         page: _paginaAtual, 
         size: _pageSize
       );
       
       final novos = vindoDaApi
           .where((o) => 
-            (cidade == null || cidade.isEmpty) || 
-            _mesmaCidade(o.cidade, cidade) || 
+            (cidadeFiltro == null) || 
+            _mesmaCidade(o.cidade, cidadeFiltro) || 
             (userId != null && o.usuarioId == userId))
           .toList();
       

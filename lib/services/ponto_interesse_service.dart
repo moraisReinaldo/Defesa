@@ -10,9 +10,12 @@ class PontoInteresseService {
 
   Future<List<PontoInteresse>> listarPontosInteresse({String? cidade}) async {
     try {
+      final Map<String, dynamic>? query = (cidade != null && cidade.trim().isNotEmpty) 
+          ? {'cidade': cidade.trim()} 
+          : null;
       final res = await _client.dio.get(
         '/marcacoes',
-        queryParameters: cidade != null ? {'cidade': cidade} : null,
+        queryParameters: query,
       );
       if (res.data is List) {
         return (res.data as List).map((p) => PontoInteresse.fromJson(p)).toList();
