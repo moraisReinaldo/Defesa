@@ -76,7 +76,7 @@ class UsuarioProvider extends ChangeNotifier {
       // 1. Obter coordenadas com timeout adaptado (maior na Web para dar tempo de aceitar a permissão)
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low, 
-        timeLimit: kIsWeb ? const Duration(seconds: 30) : const Duration(seconds: 4),
+        timeLimit: const Duration(seconds: 4),
       );
 
       // 2. Tentar geocoding com timeout manual (pois a lib geocoding não tem nativo)

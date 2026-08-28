@@ -128,32 +128,26 @@ class _MapaScreenState extends State<MapaScreen> {
   Future<void> _inicializarMapa() async {
     final usuarioProv = context.read<UsuarioProvider>();
     final ocorrenciaProv = context.read<OcorrenciaProvider>();
+    final pontoProv = context.read<PontoInteresseProvider>();
     final cidadeFiltro = usuarioProv.cidadeAtiva;
 
-    // Centraliza o mapa na cidade do Administrador / usuário
-    if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
-      final coords = ClimaService.obterCoordenadasCidade(cidadeFiltro);
-      _mapController.move(LatLng(coords['lat']!, coords['lng']!), 14);
-    } else {
-      _centralizarLocalizacao(animar: true);
-    }
+    // Centraliza o mapa imediatamente na cidade do Administrador / usuário sem travar
+    final coords = ClimaService.obterCoordenadasCidade(cidadeFiltro);
+    _mapController.move(LatLng(coords['lat']!, coords['lng']!), 14);
 
-    if (usuarioProv.isAdmin || (cidadeFiltro != null && cidadeFiltro.isNotEmpty)) {
-      await ocorrenciaProv.carregarOcorrencias(
-        cidade: cidadeFiltro, 
-        userId: usuarioProv.usuarioLogado?.id,
-        isAdmin: usuarioProv.isAdmin,
-      );
-      if (!mounted) return;
-      await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
-    } else {
-      await ocorrenciaProv.carregarOcorrencias(
-        cidade: null,
-        userId: usuarioProv.usuarioLogado?.id,
-        isAdmin: false,
-      );
-      if (!mounted) return;
-      await context.read<PontoInteresseProvider>().carregarPontos();
+    // Carregamento ultrarrápido em paralelo de ocorrências e pontos
+    final carregarOc = ocorrenciaProv.carregarOcorrencias(
+      cidade: cidadeFiltro, 
+      userId: usuarioProv.usuarioLogado?.id,
+      isAdmin: usuarioProv.isAdmin,
+    );
+    final carregarPoi = pontoProv.carregarPontos(cidade: cidadeFiltro);
+    
+    await Future.wait([carregarOc, carregarPoi]);
+
+    // Atualiza GPS em segundo plano sem travar o carregamento inicial
+    if (cidadeFiltro == null || cidadeFiltro.isEmpty) {
+      _centralizarLocalizacao(animar: false);
     }
   }
 
@@ -189,17 +183,30 @@ class _MapaScreenState extends State<MapaScreen> {
     if (ResponsiveLayout.isDesktop(context)) {
       await showDialog(
         context: context,
-        builder: (context) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(24),
-          child: builder(context),
+        barrierDismissible: true,
+        barrierColor: Colors.black54,
+        builder: (dialogCtx) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(dialogCtx).pop(),
+          child: GestureDetector(
+            onTap: () {}, // Impede que cliques dentro do card fechem o modal
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: builder(dialogCtx),
+            ),
+          ),
         ),
       );
     } else {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
+        isDismissible: true,
+        enableDrag: true,
         backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54,
         builder: builder,
       );
     }

@@ -603,17 +603,30 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     if (ResponsiveLayout.isDesktop(context)) {
       await showDialog(
         context: context,
-        builder: (context) => Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: const EdgeInsets.all(24),
-          child: builder(context),
+        barrierDismissible: true,
+        barrierColor: Colors.black54,
+        builder: (dialogCtx) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(dialogCtx).pop(),
+          child: GestureDetector(
+            onTap: () {}, // Impede que cliques dentro do card fechem o modal
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: builder(dialogCtx),
+            ),
+          ),
         ),
       );
     } else {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
+        isDismissible: true,
+        enableDrag: true,
         backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54,
         builder: builder,
       );
     }
