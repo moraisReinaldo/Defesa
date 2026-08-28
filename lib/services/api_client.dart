@@ -89,6 +89,14 @@ class ApiClient {
   Exception handleDioError(DioException e) {
     final data = e.response?.data;
     final statusCode = e.response?.statusCode;
+    
+    if (statusCode == 401 || statusCode == 403) {
+      if (data is Map && data['message'] != null && data['message'].toString().isNotEmpty) {
+        return Exception(data['message'].toString());
+      }
+      return Exception('Sua sessão expirou. Por favor, acesse a aba Perfil, saia e faça login novamente.');
+    }
+
     String msg = 'Erro ao conectar com o servidor${statusCode != null ? ' (Status: $statusCode)' : ''}.';
     
     if (data is Map && data['message'] != null) {
