@@ -1,65 +1,80 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../models/cidade.dart';
+import '../models/usuario.dart';
 
 /// Serviço centralizado para gerenciar anúncios do Google AdMob.
 ///
-/// Regra Mestra: Anúncios só são exibidos para usuários NÃO logados.
-/// Quando o usuário faz login, todos os anúncios são desativados.
+/// Governança por Plano de Município:
+/// - Plano Base (Gratuito) ou Expirado: Anúncios ativos (feed e detalhes da ocorrência).
+/// - Plano Gestão Municipal, PRO ou Trial PRO (90 Dias): ZERO ANÚNCIOS para toda a cidade.
+/// - Super Admin: ZERO ANÚNCIOS sempre.
+/// - Anúncios de tela cheia (Interstitial) FORAM REMOVIDOS para manter a usabilidade perfeita.
 class AdService extends ChangeNotifier {
   bool _isInitialized = false;
-  InterstitialAd? _interstitialAd;
-  bool _isInterstitialReady = false;
 
-  // --- IDs de Teste do Google (trocar pelos reais antes de publicar) ---
-  // Android IDs do usuário:
+  // --- IDs de Teste do Google (substituíveis pelos IDs reais de produção) ---
+  // Android:
   static const String _androidBannerAdUnitId = 'ca-app-pub-7666166064406107/5984106372';
-  static const String _androidInterstitialAdUnitId = 'ca-app-pub-7666166064406107/6382461548';
   static const String _androidNativeAdUnitId = 'ca-app-pub-7666166064406107/7294308296';
 
-  // iOS IDs (Reais do usuário):
+  // iOS:
   static const String _iosBannerAdUnitId = 'ca-app-pub-7666166064406107/6483101144';
-  static const String _iosInterstitialAdUnitId = 'ca-app-pub-7666166064406107/3804966919';
   static const String _iosNativeAdUnitId = 'ca-app-pub-7666166064406107/7110776785';
 
   // Getters públicos para os IDs (usados pelos widgets)
   String get bannerAdUnitId => defaultTargetPlatform == TargetPlatform.android ? _androidBannerAdUnitId : _iosBannerAdUnitId;
-  String get interstitialAdUnitId => defaultTargetPlatform == TargetPlatform.android ? _androidInterstitialAdUnitId : _iosInterstitialAdUnitId;
   String get nativeAdUnitId => defaultTargetPlatform == TargetPlatform.android ? _androidNativeAdUnitId : _iosNativeAdUnitId;
-  bool get isInterstitialReady => _isInterstitialReady;
+
+  /// Regra Mestra de Governança de Anúncios
+  static bool deveExibirAnuncio({
+    required Usuario? usuarioLogado,
+    required Cidade? cidadeAtiva,
+  }) {
+    // 1. Super Admin NUNCA vê anúncios em hipótese alguma
+    if (usuarioLogado?.isSuperAdmin == true) return false;
+
+    // 2. Se não houver cidade definida, assume Plano Base (exibe)
+    if (cidadeAtiva == null) return true;
+
+    // 3. Se estiver em Trial PRO de 90 dias ativo -> ZERO ANÚNCIOS
+    if (cidadeAtiva.isTrialAtivo) return false;
+
+    // 4. Se o plano for Gestão Municipal ou PRO Municipal -> ZERO ANÚNCIOS
+    if (cidadeAtiva.plano == PlanoCidade.gestaoMunicipal ||
+        cidadeAtiva.plano == PlanoCidade.proMunicipal) {
+      return false;
+    }
+
+    // 5. Plano Base Gratuito ou expirado -> EXIBIR ANÚNCIOS
+    return true;
+  }
 
   /// Inicializa o SDK do Google Mobile Ads.
   Future<void> initialize() async {
     if (_isInitialized) return;
     try {
       await MobileAds.instance.initialize();
-      
-      // Configurar dispositivos de teste (substitua pelo ID do seu dispositivo que aparece no logcat)
-      await MobileAds.instance.updateRequestConfiguration(
-        RequestConfiguration(testDeviceIds: ['COLOQUE_O_ID_DO_SEU_DISPOSITIVO_AQUI']),
-      );
-
       _isInitialized = true;
-      if (kDebugMode) print('✅ AdMob SDK inicializado com sucesso');
-      // Pré-carregar o interstitial
-      _carregarInterstitial();
+      if (kDebugMode) print('✅ AdMob SDK inicializado com sucesso (Modo Discreto)');
     } catch (e) {
       if (kDebugMode) print('⚠️ Erro ao inicializar AdMob: $e');
     }
   }
 
-  /// Cria um BannerAd para o Empty State (Medium Rectangle 300x250).
-  BannerAd criarBannerAd({VoidCallback? onLoaded, VoidCallback? onFailed}) {
+  /// Cria um Banner discreto (320x50) para os Detalhes da Ocorrência.
+  BannerAd criarBannerDetalhesAd({VoidCallback? onLoaded, VoidCallback? onFailed}) {
     return BannerAd(
       adUnitId: bannerAdUnitId,
-      size: AdSize.mediumRectangle,
+      size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          if (kDebugMode) print('📢 Banner Ad carregado');
+          if (kDebugMode) print('📢 Banner de Detalhes carregado');
           onLoaded?.call();
         },
         onAdFailedToLoad: (ad, error) {
-          if (kDebugMode) print('❌ Banner Ad falhou: $error');
+          if (kDebugMode) print('❌ Banner de Detalhes falhou: $error');
           ad.dispose();
           onFailed?.call();
         },
@@ -67,22 +82,22 @@ class AdService extends ChangeNotifier {
     );
   }
 
-  /// Cria um NativeAd para o feed de ocorrências.
+  /// Cria um NativeAd para o feed de ocorrências no histórico.
   NativeAd criarNativeAd({
     required void Function(NativeAd) onLoaded,
     required void Function() onFailed,
   }) {
     return NativeAd(
       adUnitId: nativeAdUnitId,
-      factoryId: 'listTile', // Factory padrão do plugin
+      factoryId: 'listTile',
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
-          if (kDebugMode) print('📢 Native Ad carregado');
+          if (kDebugMode) print('📢 Native Ad do feed carregado');
           onLoaded(ad as NativeAd);
         },
         onAdFailedToLoad: (ad, error) {
-          if (kDebugMode) print('❌ Native Ad falhou: $error');
+          if (kDebugMode) print('❌ Native Ad do feed falhou: $error');
           ad.dispose();
           onFailed();
         },
@@ -90,55 +105,6 @@ class AdService extends ChangeNotifier {
     );
   }
 
-  /// Pré-carrega um Interstitial Ad para exibir após o registro de ocorrência.
-  void _carregarInterstitial() {
-    InterstitialAd.load(
-      adUnitId: interstitialAdUnitId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          _interstitialAd = ad;
-          _isInterstitialReady = true;
-          if (kDebugMode) print('📢 Interstitial Ad pré-carregado');
-
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              _isInterstitialReady = false;
-              _interstitialAd = null;
-              // Recarregar para a próxima vez
-              _carregarInterstitial();
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              if (kDebugMode) print('❌ Interstitial falhou ao exibir: $error');
-              ad.dispose();
-              _isInterstitialReady = false;
-              _interstitialAd = null;
-              _carregarInterstitial();
-            },
-          );
-        },
-        onAdFailedToLoad: (error) {
-          if (kDebugMode) print('❌ Interstitial falhou ao carregar: $error');
-          _isInterstitialReady = false;
-        },
-      ),
-    );
-  }
-
-  /// Exibe o Interstitial se estiver pronto. Retorna true se exibiu.
-  bool mostrarInterstitial() {
-    if (_isInterstitialReady && _interstitialAd != null) {
-      _interstitialAd!.show();
-      return true;
-    }
-    if (kDebugMode) print('⚠️ Interstitial não estava pronto');
-    return false;
-  }
-
-  @override
-  void dispose() {
-    _interstitialAd?.dispose();
-    super.dispose();
-  }
+  /// Mantido para compatibilidade onde for chamado, mas sem travar a tela
+  bool mostrarInterstitial() => false;
 }

@@ -6,6 +6,7 @@ import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
+import '../providers/cidade_provider.dart';
 import '../services/ad_service.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/ocorrencia_card.dart';
@@ -30,32 +31,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   String _searchQuery = '';
   final ScrollController _scrollController = ScrollController();
 
-  // --- AdMob ---
-  BannerAd? _bannerAd;
-  bool _isBannerLoaded = false;
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _carregarBannerAd();
-  }
-
-  void _carregarBannerAd() {
-    // Regra Mestra: só carrega se NÃO estiver logado
-    final usuarioProvider = context.read<UsuarioProvider>();
-    if (usuarioProvider.estaLogado) return;
-
-    final adService = context.read<AdService>();
-    _bannerAd = adService.criarBannerAd(
-      onLoaded: () {
-        if (mounted) setState(() => _isBannerLoaded = true);
-      },
-      onFailed: () {
-        if (mounted) setState(() => _isBannerLoaded = false);
-      },
-    );
-    _bannerAd!.load();
   }
 
   void _onScroll() {
@@ -77,7 +56,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     _scrollController.dispose();
     _comentarioController.dispose();
     _searchController.dispose();
-    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -270,20 +248,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             color: AppColors.textLight,
                           ),
                         ),
-                        // Banner Ad no Empty State (Regra Mestra)
-                        if (!context.read<UsuarioProvider>().estaLogado && _isBannerLoaded && _bannerAd != null) ...[
-                          const SizedBox(height: 24),
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: AppColors.surfaceCard,
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            width: _bannerAd!.size.width.toDouble(),
-                            height: _bannerAd!.size.height.toDouble(),
-                            child: AdWidget(ad: _bannerAd!),
-                          ),
-                        ],
                       ],
                     ),
                   );
@@ -375,7 +339,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                       onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
                                     ),
                                   ),
-                                  if ((idx + 1) % 5 == 0 && !context.read<UsuarioProvider>().estaLogado)
+                                  if ((idx + 1) % 5 == 0 && AdService.deveExibirAnuncio(
+                                     usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
+                                     cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                                   ))
                                     SizedBox(width: 350, child: _buildNativeAdPlaceholder()),
                                 ];
                               }).toList(),
@@ -400,7 +367,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                     },
                                     onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
                                   ),
-                                  if ((idx + 1) % 5 == 0 && !context.read<UsuarioProvider>().estaLogado)
+                                  if ((idx + 1) % 5 == 0 && AdService.deveExibirAnuncio(
+                                     usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
+                                     cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                                   ))
                                     _buildNativeAdPlaceholder(),
                                 ];
                               }).toList(),
@@ -946,6 +916,14 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                           ],
                         ),
                       ),
+                    if (AdService.deveExibirAnuncio(
+                      usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
+                      cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                    ))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16, bottom: 8),
+                        child: _buildDetalhesAdPlaceholder(),
+                      ),
                   ],
                 ),
               ),
@@ -1147,6 +1125,34 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 child: AdWidget(ad: nativeAd!),
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetalhesAdPlaceholder() {
+    return StatefulBuilder(
+      builder: (context, setAdState) {
+        BannerAd? bannerAd;
+        bool isLoaded = false;
+
+        final adService = context.read<AdService>();
+        bannerAd = adService.criarBannerDetalhesAd(
+          onLoaded: () => setAdState(() => isLoaded = true),
+          onFailed: () => setAdState(() => isLoaded = false),
+        );
+        bannerAd.load();
+
+        if (!isLoaded) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          alignment: Alignment.center,
+          child: SizedBox(
+            width: bannerAd.size.width.toDouble(),
+            height: bannerAd.size.height.toDouble(),
+            child: AdWidget(ad: bannerAd),
           ),
         );
       },

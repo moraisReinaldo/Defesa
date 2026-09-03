@@ -20,4 +20,11 @@ public interface UsuarioRepository extends JpaRepository<Usuario, String> {
     List<Usuario> findByCidadeIgnoreCaseAndRoleAndStatusIn(String cidade, String role, List<String> statuses);
 
     List<Usuario> findByStatus(String status);
+
+    long countByCidadeIgnoreCaseAndRole(String cidade, String role);
+
+    List<Usuario> findByCidadeIgnoreCaseAndRole(String cidade, String role);
+
+    List<Usuario> findByCidadeIgnoreCase(String cidade);
 }
+

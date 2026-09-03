@@ -123,8 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (ok && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(pendente 
-                ? 'Cadastro realizado! Aguardando aprovação por e-mail. 📧' 
-                : 'Cadastro realizado! Você já pode entrar. ✅'),
+                ? 'Bem-vindo! Seu cadastro foi realizado e está aguardando homologação do Super Admin. 🏛️' 
+                : 'Bem-vindo! Cadastro realizado com sucesso! ✅'),
               backgroundColor: AppColors.statusResolved));
           if (mounted) Navigator.pop(context, true);
         } else if (mounted) {

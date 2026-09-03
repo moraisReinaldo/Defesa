@@ -41,6 +41,7 @@ class Usuario {
   bool get isAdmin => role == Role.administrador || role == Role.superAdmin;
   bool get isSuperAdmin => role == Role.superAdmin;
   bool get isAtivo => status.toUpperCase() == 'ATIVO';
+  bool get isPendente => status.toUpperCase() == 'PENDENTE';
 
   // Converter para JSON
   Map<String, dynamic> toJson() {

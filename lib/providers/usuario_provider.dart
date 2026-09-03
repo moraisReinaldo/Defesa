@@ -37,6 +37,7 @@ class UsuarioProvider extends ChangeNotifier {
   bool get estaLogado => _usuarioLogado != null;
   bool get isAdmin => _isAdmin;
   bool get isAgente => _usuarioLogado?.isAgente ?? false;
+  bool get isSuperAdmin => _usuarioLogado?.isSuperAdmin ?? false;
   bool get isLoading => _isLoading;
   List<Map<String, String>> get cidadesSuportadas => _cidadesSuportadas;
   List<Usuario> get todosAgentes => _todosAgentes;
@@ -241,19 +242,14 @@ class UsuarioProvider extends ChangeNotifier {
       
       if (response != null) {
         final usuario = Usuario.fromJson(response['usuario']);
-        
-        if (usuario.status.toUpperCase() == 'PENDENTE') {
-          throw Exception('Conta de administrador aguardando ativação manual. Solicite via e-mail.');
-        }
-
         final token = response['token'];
 
-        // Salvar sessão segura
+        // Salvar sessão segura (inclusive para coordenador pendente de homologação)
         await _storageService.salvarUsuarioLogado(usuario);
         await _storageService.salvarToken(token);
 
         _usuarioLogado = usuario;
-        _isAdmin = usuario.role == Role.administrador;
+        _isAdmin = usuario.role == Role.administrador || usuario.role == Role.superAdmin;
         
         // Registrar ID no OneSignal para receber push diretos
         if (!kIsWeb) {
@@ -270,7 +266,7 @@ class UsuarioProvider extends ChangeNotifier {
       return false;
     } catch (e) {
       if (kDebugMode) print('Erro ao fazer login: $e');
-      rethrow; // Repassar para a UI tratar (ex: conta pendente 403)
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -289,9 +285,29 @@ class UsuarioProvider extends ChangeNotifier {
     try {
       final response = await _apiService.cadastrarUsuario(request);
       if (response != null && response['sucesso'] != false) {
+        // Auto-login imediato: salvar sessão se token e usuário foram retornados
+        if (response['token'] != null && response['usuario'] != null) {
+          final usuario = Usuario.fromJson(response['usuario']);
+          final token = response['token'];
+
+          await _storageService.salvarUsuarioLogado(usuario);
+          await _storageService.salvarToken(token);
+
+          _usuarioLogado = usuario;
+          _isAdmin = usuario.role == Role.administrador || usuario.role == Role.superAdmin;
+
+          if (!kIsWeb) {
+            OneSignal.login(usuario.id);
+            if (usuario.cidade != null && usuario.cidade!.isNotEmpty) {
+              OneSignal.User.addTagWithKey('cidade', usuario.cidade!);
+            }
+          }
+          notifyListeners();
+        }
+
         return {
           'sucesso': true,
-          'message': response['message'] ?? response['msg'] ?? 'Sucesso!',
+          'message': response['message'] ?? response['msg'] ?? 'Cadastro realizado com sucesso!',
           'pendente': response['pendente'] == true || request.status == 'PENDENTE',
         };
       } else {
@@ -302,7 +318,6 @@ class UsuarioProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) print('Erro no cadastro: $e');
-      // Pass the actual error message if possible to improve user feedback
       String erroMsg = 'Erro de conexão ou servidor. Verifique sua internet.';
       if (e.toString().contains('E-mail já cadastrado') || e.toString().contains('Exception:')) {
         erroMsg = e.toString().replaceAll('Exception: ', '');

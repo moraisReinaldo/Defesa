@@ -74,6 +74,15 @@ public class PontoInteresseService {
 
         String codigo = normalizarCodigoCidade(cidade);
         String nome = obterNomeCidade(cidade);
+
+        // Bloqueio de POIs para municípios fora do Plano PRO Municipal ou Trial ativo
+        if (!isSuperAdmin) {
+            Optional<Cidade> cidOpt = cidadeService.buscarPorCodigo(codigo);
+            if (cidOpt.isPresent() && !cidOpt.get().isRecursoPoiLiberado()) {
+                return List.of(); // POIs nem existem no Plano Base e são desativados no Gestão
+            }
+        }
+
         return repository.findByCidadeFlexible(cidade.trim(), codigo, nome);
     }
 
@@ -82,7 +91,14 @@ public class PontoInteresseService {
             String norm = normalizarCodigoCidade(ponto.getCidade());
             ponto.setCidade(norm);
             if (norm != null) {
-                cidadeService.buscarPorCodigo(norm).ifPresent(ponto::setCidadeEntidade);
+                Cidade cid = cidadeService.buscarOuCriarCidade(norm);
+                ponto.setCidadeEntidade(cid);
+
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                boolean isSuper = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+                if (!isSuper && !cid.isRecursoPoiLiberado()) {
+                    throw new IllegalArgumentException("Pontos de Apoio e Abrigos (POIs) são exclusivos do Plano PRO Municipal.");
+                }
             }
         }
         return repository.save(ponto);

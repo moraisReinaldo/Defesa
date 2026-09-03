@@ -9,6 +9,7 @@ import 'providers/usuario_provider.dart';
 import 'providers/ponto_interesse_provider.dart';
 import 'providers/clima_provider.dart';
 import 'providers/alerta_provider.dart';
+import 'providers/cidade_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
@@ -104,6 +105,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => AlertaProvider(apiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CidadeProvider(apiService),
         ),
         Provider.value(value: notificationService),
         Provider.value(value: hiveService),

@@ -32,6 +32,8 @@ import 'registro_ponto_interesse_screen.dart';
 import 'dashboard_relatorios_screen.dart';
 import 'cadastro_agente_screen.dart';
 import 'gerenciar_poi_screen.dart';
+import 'super_admin_screen.dart';
+import '../providers/cidade_provider.dart';
 import '../widgets/alerta_banner_widget.dart';
 import '../widgets/mapa_context_menu_widget.dart';
 
@@ -692,8 +694,11 @@ class _MapaScreenState extends State<MapaScreen> {
     final Map<String, IconData> poiIcons = {'PONTO_COLETA_AGUA': Icons.water_drop, 'AREA_RISCO': Icons.warning, 'ABRIGO': Icons.home, 'BASE_DEFESA': Icons.security, 'DESLIZAMENTO': Icons.terrain, 'OUTRO': Icons.location_on};
     final Map<String, Color> poiColors = {'PONTO_COLETA_AGUA': Colors.blue, 'AREA_RISCO': Colors.orange, 'ABRIGO': Colors.green, 'BASE_DEFESA': Colors.indigo, 'DESLIZAMENTO': Colors.brown, 'OUTRO': Colors.grey};
 
-    // POIs visíveis apenas para ADMIN e AGENTE (não para cidadãos ou anônimos)
-    if (usuarioProvider.isAdmin || usuarioProvider.isAgente) {
+    final cidadeProv = context.watch<CidadeProvider>();
+
+    // POIs visíveis apenas para ADMIN e AGENTE se o plano liberar (Plano PRO Municipal ou Super Admin)
+    if ((usuarioProvider.isAdmin || usuarioProvider.isAgente) && 
+        (cidadeProv.recursoPoiLiberado || usuarioProvider.isSuperAdmin)) {
       for (final p in poiProvider.pontos) {
         final color = poiColors[p.tipo] ?? Colors.grey;
         markers.add(Marker(
@@ -839,6 +844,7 @@ class _MapaScreenState extends State<MapaScreen> {
       (c) => c['codigo'] == cidadeCodigo,
       orElse: () => {'nome': cidadeCodigo ?? 'Jurisdição Geral'},
     )['nome']!;
+    final cidadeProv = context.watch<CidadeProvider>();
 
     return Container(
       width: 270,
@@ -946,21 +952,30 @@ class _MapaScreenState extends State<MapaScreen> {
               label: 'Dashboard & Clima',
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRelatoriosScreen())),
             ),
-            _buildCustomSidebarAction(
-              icon: Icons.badge_rounded,
-              label: 'Agentes da Cidade',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadastroAgenteScreen())),
-            ),
-            _buildCustomSidebarAction(
-              icon: Icons.roofing_rounded,
-              label: 'Pontos de Apoio / Abrigos',
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GerenciarPOIScreen())),
-            ),
-            _buildCustomSidebarAction(
-              icon: Icons.campaign_rounded,
-              label: 'Emitir Alerta Geral',
-              onTap: () => AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome),
-            ),
+            if (usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.admin_panel_settings_rounded,
+                label: 'Painel Geral Super Admin',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuperAdminScreen())),
+              ),
+            if (cidadeProv.recursoAgentesLiberado || usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.badge_rounded,
+                label: 'Agentes da Cidade',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadastroAgenteScreen())),
+              ),
+            if (cidadeProv.recursoPoiLiberado || usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.roofing_rounded,
+                label: 'Pontos de Apoio / Abrigos',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GerenciarPOIScreen())),
+              ),
+            if (cidadeProv.recursoAlertasLiberado || usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.campaign_rounded,
+                label: 'Emitir Alerta Geral',
+                onTap: () => AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome),
+              ),
           ],
 
           const Spacer(),

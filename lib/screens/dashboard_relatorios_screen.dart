@@ -17,6 +17,11 @@ import '../widgets/responsive_layout.dart';
 import '../widgets/clima_widget.dart';
 import '../services/clima_service.dart';
 import '../constants/ocorrencia_tipos.dart';
+import 'package:flutter/foundation.dart';
+import '../models/cidade.dart';
+import '../providers/cidade_provider.dart';
+import 'kit_documental_dialog.dart';
+import 'super_admin_screen.dart';
 
 class DashboardRelatoriosScreen extends StatefulWidget {
   const DashboardRelatoriosScreen({super.key});
@@ -45,6 +50,9 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
         isAdmin: isAdmin,
       );
       context.read<PontoInteresseProvider>().carregarPontos(cidade: cidade);
+      if (cidade != null && cidade.isNotEmpty) {
+        context.read<CidadeProvider>().carregarPlanoCidade(cidade);
+      }
     });
   }
 
@@ -215,6 +223,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UsuarioProvider>();
+    final cidadeProv = context.watch<CidadeProvider>();
     final ocorrenciaProv = context.watch<OcorrenciaProvider>();
     final poiProv = context.watch<PontoInteresseProvider>();
     final isAdmin = userProvider.isAdmin;
@@ -232,6 +241,14 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
       orElse: () => {'nome': cidadeCodigo ?? 'Sua Jurisdição'},
     )['nome']!;
 
+    // Regra Governamental: Dashboard Web no navegador é exclusivo do Plano PRO Municipal (ou Trial Ativo)
+    if (kIsWeb && !cidadeProv.recursoDashboardWebLiberado && !userProvider.isSuperAdmin) {
+      return _buildBloqueioDashboardWeb(context, cidadeNome, cidadeCodigo ?? '');
+    }
+
+    final isPendente = (userProvider.usuarioLogado?.isPendente == true) || 
+                       (cidadeProv.statusAtual == StatusCidade.pendenteAprovacao);
+
     final ocorrencias = ocorrenciaProv.ocorrencias;
     final pontosApoio = poiProv.pontos;
     final coordsCidade = ClimaService.obterCoordenadasCidade(cidadeCodigo);
@@ -245,15 +262,37 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
         backgroundColor: AppColors.primaryTeal,
         foregroundColor: Colors.white,
         actions: [
+          if (userProvider.isSuperAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_rounded, color: Colors.amberAccent),
+              tooltip: 'Painel Geral Super Admin',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SuperAdminScreen()),
+              ),
+            ),
           IconButton(
-            icon: const Icon(Icons.download_rounded, color: Colors.white),
-            tooltip: 'Exportar Relatório Oficial (CSV / COBRADE)',
-            onPressed: () => _exportarRelatorioOficial(context, ocorrencias, cidadeNome),
+            icon: const Icon(Icons.gavel_rounded, color: Colors.white),
+            tooltip: 'Kit Dispensa Licitação (Lei 14.133/21)',
+            onPressed: () => KitDocumentalDialog.show(
+              context,
+              cidadeNome: cidadeNome,
+              cidadeCodigo: cidadeCodigo ?? '',
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.campaign_rounded, color: Colors.amberAccent),
-            tooltip: 'Emitir Alerta de Emergência',
-            onPressed: () => _abrirModalEmitirAlerta(context, cidadeNome),
+            icon: Icon(Icons.download_rounded, color: isPendente ? Colors.white38 : Colors.white),
+            tooltip: isPendente ? 'Aguardando Homologação' : 'Exportar Relatório Oficial (CSV / COBRADE)',
+            onPressed: isPendente 
+              ? () => _mostrarAvisoBloqueioPendente(context)
+              : () => _exportarRelatorioOficial(context, ocorrencias, cidadeNome),
+          ),
+          IconButton(
+            icon: Icon(Icons.campaign_rounded, color: isPendente ? Colors.white38 : Colors.amberAccent),
+            tooltip: isPendente ? 'Aguardando Homologação' : 'Emitir Alerta de Emergência',
+            onPressed: isPendente 
+              ? () => _mostrarAvisoBloqueioPendente(context)
+              : () => _abrirModalEmitirAlerta(context, cidadeNome),
           ),
         ],
       ),
@@ -264,6 +303,15 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Banner de Coordenador Pendente de Homologação
+              if (isPendente)
+                _buildBannerPendente(context, userProvider.usuarioLogado?.nome ?? 'Coordenador', cidadeNome)
+              // Banner com Régua de Contagem Regressiva do Trial PRO (90 dias)
+              else if (cidadeProv.isTrialAtivo)
+                _buildBannerTrial(context, cidadeProv.diasRestantesTrial, cidadeNome, cidadeCodigo ?? ''),
+
+              const SizedBox(height: 16),
+
               // 1. Monitoramento Climatológico
               const ClimaWidget(),
               const SizedBox(height: 24),
@@ -911,6 +959,253 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
               show: true,
               color: AppColors.primaryTeal.withValues(alpha: 0.15),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBloqueioDashboardWeb(BuildContext context, String cidadeNome, String cidadeCodigo) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A192F),
+      appBar: AppBar(
+        title: Text('Painel Web • $cidadeNome'),
+        backgroundColor: const Color(0xFF0A192F),
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 620),
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF112240),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.computer_rounded, color: Colors.amber, size: 54),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Painel Web de Gestão Integrada',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'EXCLUSIVO DO PLANO PRO MUNICIPAL',
+                  style: TextStyle(color: Colors.lightBlueAccent, fontSize: 11, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'O acesso web para telas de gabinete e centros integrados de comando é liberado para cidades com o Plano PRO Municipal ativo (ou durante o período de 90 dias de Avaliação PRO gratuita).\n\n'
+                'Você pode acessar todas as funcionalidades básicas pelo aplicativo móvel oficial ou formalizar a adesão PRO do seu município.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13, height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => launchUrl(Uri.parse(
+                      'https://wa.me/5511987654321?text=${Uri.encodeComponent('Olá Reinaldo, sou da Defesa Civil de $cidadeNome e gostaria de ativar o Plano PRO Municipal para liberar o Painel Web.')}'
+                    )),
+                    icon: const Icon(Icons.chat_bubble_rounded),
+                    label: const Text('Falar com Consultor WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.amber,
+                      side: const BorderSide(color: Colors.amber),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => KitDocumentalDialog.show(
+                      context,
+                      cidadeNome: cidadeNome,
+                      cidadeCodigo: cidadeCodigo,
+                    ),
+                    icon: const Icon(Icons.gavel_rounded),
+                    label: const Text('Kit Dispensa Licitação'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBannerPendente(BuildContext context, String nome, String cidadeNome) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.amber.shade400, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.hourglass_top_rounded, color: Colors.orange, size: 28),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Município em Análise pelo Super Admin',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.amber.shade900),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Olá $nome! O cadastro de $cidadeNome foi enviado para homologação. Assim que aprovado pelo Super Admin, seus 90 dias de Avaliação PRO com agentes e alertas serão iniciados automaticamente.',
+                  style: TextStyle(fontSize: 12, color: Colors.brown.shade800, height: 1.3),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBannerTrial(BuildContext context, int diasRestantes, String cidadeNome, String cidadeCodigo) {
+    final bool urgente = diasRestantes <= 7;
+    final Color bgColor = urgente ? (diasRestantes <= 3 ? Colors.red.shade50 : Colors.orange.shade50) : Colors.blue.shade50;
+    final Color borderColor = urgente ? (diasRestantes <= 3 ? Colors.red.shade400 : Colors.orange.shade400) : Colors.blue.shade300;
+    final Color textColor = urgente ? (diasRestantes <= 3 ? Colors.red.shade900 : Colors.orange.shade900) : Colors.blue.shade900;
+    final IconData iconData = urgente ? Icons.warning_amber_rounded : Icons.star_rounded;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(iconData, color: textColor, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  urgente
+                      ? '⚠️ Atenção: Restam apenas $diasRestantes dia(s) de Avaliação PRO Gratuita!'
+                      : '⭐ Plano PRO Municipal Ativo • $diasRestantes dias restantes de Avaliação Gratuita',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Seu município está operando com todos os recursos liberados (equipe de campo, alertas e relatórios oficiais). Garanta a continuidade contratando via Dispensa de Licitação ou pelo WhatsApp.',
+            style: TextStyle(fontSize: 12, color: textColor.withValues(alpha: 0.85), height: 1.3),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: textColor,
+                  side: BorderSide(color: borderColor),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => KitDocumentalDialog.show(
+                  context,
+                  cidadeNome: cidadeNome,
+                  cidadeCodigo: cidadeCodigo,
+                ),
+                icon: const Icon(Icons.gavel_rounded, size: 14),
+                label: const Text('Baixar Kit Dispensa (Lei 14.133/21)', style: TextStyle(fontSize: 11)),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => launchUrl(Uri.parse(
+                  'https://wa.me/5511987654321?text=${Uri.encodeComponent('Olá Reinaldo, sou de $cidadeNome e gostaria de contratar o Plano da Defesa em Foco.')}'
+                )),
+                icon: const Icon(Icons.chat_bubble_rounded, size: 14),
+                label: const Text('Falar no WhatsApp', style: TextStyle(fontSize: 11)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarAvisoBloqueioPendente(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock_rounded, color: Colors.orange, size: 24),
+            SizedBox(width: 8),
+            Text('Recurso em Homologação', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Este recurso operacional está bloqueado temporariamente enquanto o cadastro do seu município aguarda aprovação pelo Super Admin.\n\n'
+          'Assim que aprovado, seus 90 dias de Avaliação PRO com agentes ilimitados, alertas e exportação oficial serão destravados automaticamente.',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendido'),
           ),
         ],
       ),

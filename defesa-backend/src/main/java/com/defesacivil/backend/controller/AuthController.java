@@ -34,21 +34,24 @@ public class AuthController {
         try {
             Usuario usuarioSalvo = usuarioService.cadastrarUsuario(request);
 
+            boolean isPendente = Status.PENDENTE.name().equals(usuarioSalvo.getStatus());
+            String token = jwtService.generateToken(usuarioSalvo.getEmail(), usuarioSalvo.getRole());
+            usuarioSalvo.setSenha(null);
+
             Map<String, Object> response = new HashMap<>();
-            String mensagem = "Cadastro realizado! ";
+            String mensagem = isPendente 
+                ? "Cadastro realizado! Sua conta de Coordenador está em análise e aguarda homologação do Super Admin."
+                : "Cadastro realizado com sucesso! Bem-vindo ao Defesa em Foco.";
 
-            if (Status.PENDENTE.name().equals(usuarioSalvo.getStatus())) {
-                mensagem += "Seu acesso como Administrador ficará PENDENTE de aprovação.";
-                response.put("pendente", true);
-            } else {
-                mensagem += "Você já pode acessar o sistema.";
-                response.put("pendente", false);
-            }
-
+            response.put("usuario", usuarioSalvo);
+            response.put("token", token);
+            response.put("pendente", isPendente);
             response.put("message", mensagem);
+            response.put("sucesso", true);
+
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage(), "sucesso", false));
         }
     }
 
@@ -65,18 +68,21 @@ public class AuthController {
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
 
-            if (Status.PENDENTE.name().equals(usuario.getStatus())) {
-                return ResponseEntity.status(403).body(
-                    Map.of("message", "Seu cadastro ainda está pendente de aprovação.")
-                );
-            }
+            boolean isPendente = Status.PENDENTE.name().equals(usuario.getStatus());
 
             String token = jwtService.generateToken(usuario.getEmail(), usuario.getRole());
-            // A senha nunca deve sair em nenhuma resposta — @JsonIgnore na entidade garante isso,
-            // mas zeramos aqui também como dupla proteção
             usuario.setSenha(null);
 
-            return ResponseEntity.ok(Map.of("usuario", usuario, "token", token));
+            Map<String, Object> response = new HashMap<>();
+            response.put("usuario", usuario);
+            response.put("token", token);
+            response.put("pendente", isPendente);
+
+            if (isPendente) {
+                response.put("message", "Login realizado. Seu município aguarda homologação pelo Super Admin.");
+            }
+
+            return ResponseEntity.ok(response);
         }
 
         return ResponseEntity.status(401).body(Map.of("message", "Email ou senha incorretos"));

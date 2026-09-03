@@ -14,7 +14,6 @@ import '../models/ocorrencia.dart';
 import '../models/usuario.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
-import '../services/ad_service.dart';
 import '../services/localizacao_service.dart';
 import '../services/clima_service.dart';
 
@@ -515,12 +514,6 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
       }
 
       if (mounted) {
-        // Interstitial Ad após registro bem-sucedido (Regra Mestra)
-        if (!usuarioProvider.estaLogado) {
-          try {
-            context.read<AdService>().mostrarInterstitial();
-          } catch (_) {}
-        }
         Navigator.pop(context, true); // Retorna true para a tela 1
       }
     } catch (e) {

@@ -1,5 +1,6 @@
 package com.defesacivil.backend.service;
 
+import com.defesacivil.backend.domain.Cidade;
 import com.defesacivil.backend.domain.Usuario;
 import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.domain.enums.Status;
@@ -89,13 +90,6 @@ public class UsuarioService {
         Status statusInicial = (roleReq == Role.ADMINISTRADOR && !isSolicitanteAdmin)
             ? Status.PENDENTE : Status.ATIVO;
 
-        Usuario usuario = new Usuario();
-        usuario.setNome(request.getNome());
-        usuario.setEmail(request.getEmail());
-        usuario.setTelefone(request.getTelefone());
-        usuario.setSenha(passwordEncoder.encode(request.getSenha()));
-        usuario.setEspecialidade(request.getEspecialidade());
-
         String cidNorm = normalizarCodigoCidade(request.getCidade());
         if (roleReq == Role.AGENTE && isSolicitanteAdmin) {
             String adminEmail = auth.getName();
@@ -104,9 +98,36 @@ public class UsuarioService {
                 cidNorm = normalizarCodigoCidade(admin.getCidade());
             }
         }
-        usuario.setCidade(cidNorm);
+
+        Cidade cidadeEntidade = null;
         if (cidNorm != null) {
-            cidadeService.buscarPorCodigo(cidNorm).ifPresent(usuario::setCidadeEntidade);
+            cidadeEntidade = cidadeService.buscarOuCriarCidade(cidNorm);
+        }
+
+        // Validação de Limites por Plano de Cidade
+        if (roleReq == Role.ADMINISTRADOR && cidadeEntidade != null) {
+            long gestoresExistentes = repository.countByCidadeIgnoreCaseAndRole(cidadeEntidade.getCodigo(), Role.ADMINISTRADOR.name());
+            int limite = cidadeEntidade.getLimiteGestores();
+            if (gestoresExistentes >= limite) {
+                throw new IllegalArgumentException("Limite de gestores atingido para o município de " + cidadeEntidade.getNome() + 
+                    " (" + limite + " gestor(es) no plano " + cidadeEntidade.getPlanoEfetivo() + ").");
+            }
+        } else if (roleReq == Role.AGENTE && cidadeEntidade != null) {
+            if (!cidadeEntidade.isRecursoAgentesLiberado()) {
+                throw new IllegalArgumentException("O plano atual do município (" + cidadeEntidade.getPlanoEfetivo() + 
+                    ") não permite agentes de campo. É necessário o Plano PRO Municipal.");
+            }
+        }
+
+        Usuario usuario = new Usuario();
+        usuario.setNome(request.getNome());
+        usuario.setEmail(request.getEmail());
+        usuario.setTelefone(request.getTelefone());
+        usuario.setSenha(passwordEncoder.encode(request.getSenha()));
+        usuario.setEspecialidade(request.getEspecialidade());
+        usuario.setCidade(cidNorm);
+        if (cidadeEntidade != null) {
+            usuario.setCidadeEntidade(cidadeEntidade);
         }
 
         usuario.setRole(roleReq.name());
@@ -197,6 +218,15 @@ public class UsuarioService {
         Usuario usuario = repository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("Usuário não encontrado com e-mail: " + email));
         checkUserJurisdiction(usuario);
+
+        if (usuario.getCidade() != null) {
+            Cidade cidade = cidadeService.buscarPorCodigo(usuario.getCidade()).orElse(null);
+            if (cidade != null && !cidade.isRecursoAgentesLiberado()) {
+                throw new IllegalArgumentException("O plano do município (" + cidade.getPlanoEfetivo() + 
+                    ") não contempla agentes de campo. É necessário o Plano PRO Municipal.");
+            }
+        }
+
         usuario.setRole(Role.AGENTE.name());
         usuario.setStatus(Status.ATIVO.name());
         return repository.save(usuario);
