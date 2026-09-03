@@ -692,20 +692,23 @@ class _MapaScreenState extends State<MapaScreen> {
     final Map<String, IconData> poiIcons = {'PONTO_COLETA_AGUA': Icons.water_drop, 'AREA_RISCO': Icons.warning, 'ABRIGO': Icons.home, 'BASE_DEFESA': Icons.security, 'DESLIZAMENTO': Icons.terrain, 'OUTRO': Icons.location_on};
     final Map<String, Color> poiColors = {'PONTO_COLETA_AGUA': Colors.blue, 'AREA_RISCO': Colors.orange, 'ABRIGO': Colors.green, 'BASE_DEFESA': Colors.indigo, 'DESLIZAMENTO': Colors.brown, 'OUTRO': Colors.grey};
 
-    for (final p in poiProvider.pontos) {
-      final color = poiColors[p.tipo] ?? Colors.grey;
-      markers.add(Marker(
-        width: 36,
-        height: 36,
-        point: LatLng(p.latitude, p.longitude), 
-        child: GestureDetector(
-          onTap: () => _mostrarDetalhesPOI(p), 
-          child: Container(
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
-            child: Icon(poiIcons[p.tipo] ?? Icons.place, color: Colors.white, size: 20)
+    // POIs visíveis apenas para ADMIN e AGENTE (não para cidadãos ou anônimos)
+    if (usuarioProvider.isAdmin || usuarioProvider.isAgente) {
+      for (final p in poiProvider.pontos) {
+        final color = poiColors[p.tipo] ?? Colors.grey;
+        markers.add(Marker(
+          width: 36,
+          height: 36,
+          point: LatLng(p.latitude, p.longitude), 
+          child: GestureDetector(
+            onTap: () => _mostrarDetalhesPOI(p), 
+            child: Container(
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
+              child: Icon(poiIcons[p.tipo] ?? Icons.place, color: Colors.white, size: 20)
+            )
           )
-        )
-      ));
+        ));
+      }
     }
 
     for (final o in ocorrenciaProvider.ocorrenciasAtivas) {

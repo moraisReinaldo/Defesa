@@ -3,7 +3,8 @@ import 'package:uuid/uuid.dart';
 enum Role {
   cidadao,
   agente,
-  administrador
+  administrador,
+  superAdmin,
 }
 
 class Usuario {
@@ -36,8 +37,9 @@ class Usuario {
   })  : id = id ?? const Uuid().v4(),
         dataCriacao = dataCriacao ?? DateTime.now();
 
-  bool get isAgente => role == Role.agente || role == Role.administrador;
-  bool get isAdmin => role == Role.administrador;
+  bool get isAgente => role == Role.agente || role == Role.administrador || role == Role.superAdmin;
+  bool get isAdmin => role == Role.administrador || role == Role.superAdmin;
+  bool get isSuperAdmin => role == Role.superAdmin;
   bool get isAtivo => status.toUpperCase() == 'ATIVO';
 
   // Converter para JSON
@@ -67,7 +69,9 @@ class Usuario {
       telefone: json['telefone'] ?? '',
       senha: json['senha'],
       role: Role.values.firstWhere(
-        (e) => e.name.toUpperCase() == (json['role'] as String?)?.toUpperCase(),
+        (e) => e.name.toUpperCase() == (json['role'] as String?)?.toUpperCase() ||
+               // Compatibilidade backend: SUPER_ADMIN -> superAdmin
+               e.name.toUpperCase().replaceAll('_', '') == (json['role'] as String?)?.toUpperCase().replaceAll('_', ''),
         orElse: () => json['isAgente'] == true ? Role.agente : Role.cidadao
       ),
       concordaLGPD: json['concordaLGPD'] ?? false,

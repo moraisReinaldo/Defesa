@@ -24,11 +24,26 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             .maximumSize(10000) // Proteção contra DDoS de IPs únicos massivos
             .build();
 
+    // Cache separado para o endpoint admin-login — limite muito mais restritivo
+    private final Cache<String, Bucket> adminLoginCache = Caffeine.newBuilder()
+            .expireAfterAccess(30, TimeUnit.MINUTES)
+            .maximumSize(5000)
+            .build();
+
     private Bucket createNewBucket() {
         // Limite de 100 requisições por minuto por IP
         Bandwidth limit = Bandwidth.builder()
                 .capacity(100)
                 .refillGreedy(100, Duration.ofMinutes(1))
+                .build();
+        return Bucket.builder().addLimit(limit).build();
+    }
+
+    private Bucket createAdminLoginBucket() {
+        // Limite de 5 tentativas a cada 15 minutos por IP — proteção anti brute-force
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(5)
+                .refillGreedy(5, Duration.ofMinutes(15))
                 .build();
         return Bucket.builder().addLimit(limit).build();
     }
@@ -47,6 +62,19 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
         if (ip == null || ip.isEmpty()) {
             ip = request.getRemoteAddr();
+        }
+
+        // Rate limiting específico e mais restritivo para o endpoint admin-login
+        boolean isAdminLogin = "/api/auth/admin-login".equals(request.getRequestURI());
+        if (isAdminLogin) {
+            Bucket adminBucket = adminLoginCache.get(ip, k -> createAdminLoginBucket());
+            if (!adminBucket.tryConsume(1)) {
+                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"message\": \"Muitas tentativas de acesso. Aguarde 15 minutos antes de tentar novamente.\"}");
+                return;
+            }
         }
         
         Bucket bucket = cache.get(ip, k -> createNewBucket());

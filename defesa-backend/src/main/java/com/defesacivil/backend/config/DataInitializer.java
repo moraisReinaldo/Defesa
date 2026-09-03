@@ -10,9 +10,11 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * Inicializador de dados de inicialização (Seed).
- * Garante a presença das 3 cidades atendidas (Bragança Paulista, Piracaia, Joanópolis)
- * caso o banco de dados seja resetado.
+ * Inicializador de dados de inicializacao (Seed).
+ * Garante a presenca das cidades atendidas caso o banco de dados seja resetado.
+ *
+ * SUPER_ADMIN: promovido diretamente via SQL no banco:
+ *   UPDATE usuarios SET role = 'SUPER_ADMIN' WHERE email = 'reinaldohm07@gmail.com';
  */
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -32,9 +34,9 @@ public class DataInitializer implements CommandLineRunner {
 
     private void inicializarCidades() {
         List<Cidade> cidadesPadrao = List.of(
-            new Cidade("BP", "Bragança Paulista"),
+            new Cidade("BP", "Braganca Paulista"),
             new Cidade("PIR", "Piracaia"),
-            new Cidade("JOA", "Joanópolis")
+            new Cidade("JOA", "Joanopolis")
         );
 
         for (Cidade c : cidadesPadrao) {

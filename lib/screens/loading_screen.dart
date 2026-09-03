@@ -37,16 +37,20 @@ class _LoadingScreenState extends State<LoadingScreen> {
         // 2. Carga Base: Cidades e Sessão (Pilar 2)
         await userProv.carregarTudo();
         
-        // 3. Pré-carregar Ocorrências e Pontos de Interesse em paralelo instantaneamente
+        // 3. Pré-carregar Ocorrências e (se admin/agente) Pontos de Interesse em paralelo
         final cidade = userProv.cidadeAtiva;
-        await Future.wait([
+        final futures = <Future>[
           ocorrenciaProv.carregarOcorrencias(
             cidade: cidade,
             userId: userProv.usuarioLogado?.id,
             isAdmin: userProv.isAdmin,
           ),
-          pontoProv.carregarPontos(cidade: cidade),
-        ]);
+        ];
+        // POIs são restritos a admin e agentes — não carrega para cidadãos/anônimos
+        if (userProv.isAdmin || userProv.isAgente) {
+          futures.add(pontoProv.carregarPontos(cidade: cidade));
+        }
+        await Future.wait(futures);
 
         // 4. Libera a tela do mapa com os pontos e ocorrências já prontos na memória
         userProv.finalizarInicializacao();

@@ -210,6 +210,11 @@ public class UsuarioService {
     private void checkUserJurisdiction(Usuario targetUser) {
         if (targetUser == null || targetUser.getCidade() == null || targetUser.getCidade().trim().isEmpty()) return;
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // SUPER_ADMIN: sem restrição geográfica — gerencia usuários de todas as cidades
+        boolean isSuperAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        if (isSuperAdmin) return;
+
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
         

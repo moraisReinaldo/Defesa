@@ -56,6 +56,13 @@ public class MinioService {
             }
 
             byte[] imageBytes = Base64.getDecoder().decode(pureBase64);
+
+            // SEGURANÇA: rejeitar imagens maiores que 10MB (previne ataque OOM via base64)
+            if (imageBytes.length > 10 * 1024 * 1024) {
+                log.warn("Upload rejeitado: imagem excede 10MB ({} bytes)", imageBytes.length);
+                throw new IllegalArgumentException("Imagem muito grande. Tamanho máximo permitido: 10MB.");
+            }
+
             String objectKey = folder + "/" + UUID.randomUUID().toString() + "." + extension;
 
             garantirBucketExiste();

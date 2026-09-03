@@ -36,7 +36,8 @@ public class Usuario {
     private String status;
     @JsonIgnore
     private String dataCriacao;
-    private String fcmToken; // Token para Push (FCM)
+    @JsonIgnore
+    private String fcmToken; // Token para Push (FCM) — nunca expor na API
     @JsonIgnore
     private String resetSenhaCodigo;
     @JsonIgnore

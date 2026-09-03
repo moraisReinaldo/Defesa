@@ -35,3 +35,6 @@ build/
 ### Secrets — NUNCA versionar arquivos com senhas reais ###
 src/main/resources/application-prod.properties
 src/main/resources/application-local.properties
+.env
+.env.*
+!.env.example

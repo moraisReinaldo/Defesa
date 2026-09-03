@@ -77,6 +77,11 @@ public class OcorrenciaService {
         return false;
     }
 
+    /** SUPER_ADMIN é o dono da plataforma — sem restrição geográfica. */
+    private boolean isSuperAdmin() {
+        return hasRole("SUPER_ADMIN");
+    }
+
     // ========== OPERAÇÕES ==========
 
     @Transactional(readOnly = true)
@@ -160,8 +165,8 @@ public class OcorrenciaService {
             oc.setCaminhoFoto(foto);
         }
 
-        // Regra de auto-aprovação: Admins e Agentes são sempre aprovados automaticamente
-        boolean autoAprovado = oc.isCriadoPorAgente() || hasAnyRole("ADMINISTRADOR", "AGENTE");
+        // Regra de auto-aprovação: Admins, Agentes e Super_Admin são sempre aprovados automaticamente
+        boolean autoAprovado = oc.isCriadoPorAgente() || hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN");
 
         // Fallback: verificar pelo usuarioId no banco se a flag não veio do app
         if (!autoAprovado && oc.getUsuarioId() != null) {
@@ -332,6 +337,8 @@ public class OcorrenciaService {
 
     private void checkJurisdiction(String cidadeOcorrencia) {
         if (cidadeOcorrencia == null || cidadeOcorrencia.trim().isEmpty()) return;
+        // SUPER_ADMIN: sem restrição geográfica — vê e gerencia tudo
+        if (isSuperAdmin()) return;
         if (hasAnyRole("ADMINISTRADOR", "AGENTE")) {
             String email = getAuthenticatedEmail();
             if (email != null) {
@@ -372,7 +379,10 @@ public class OcorrenciaService {
         if (request.getLongitude() != null && request.getLongitude() != 0) oc.setLongitude(request.getLongitude());
         
         if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
-        if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
+        // SEGURANÇA: apenas AGENTE, ADMIN e SUPER_ADMIN podem alterar o status diretamente
+        if (request.getStatus() != null && hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN")) {
+            oc.setStatus(request.getStatus().toUpperCase());
+        }
         if (request.getCidade() != null) {
             String cidadeEditada = normalizarCodigoCidade(request.getCidade());
             oc.setCidade(cidadeEditada);
@@ -397,6 +407,7 @@ public class OcorrenciaService {
 
     @Transactional(readOnly = true)
     public Page<Ocorrencia> buscarPorCidade(String cidade, Pageable pageable) {
+        boolean superAdmin = isSuperAdmin();
         boolean admin = hasRole("ADMINISTRADOR");
         boolean agente = hasRole("AGENTE");
 
@@ -414,12 +425,24 @@ public class OcorrenciaService {
             }
         }
 
+        // SUPER_ADMIN: visibilidade total sem restrição geográfica
+        if (superAdmin) {
+            if (cidade != null && !cidade.trim().isEmpty()) {
+                String codigo = normalizarCodigoCidade(cidade);
+                String nome = obterNomeCidade(cidade);
+                return processarUrls(ocorrenciaRepository.findByCidadeFlexible(cidade, codigo, nome, pageable));
+            }
+            return processarUrls(ocorrenciaRepository.findAll(pageable));
+        }
+
         String cidadeFiltro = (admin || agente)
                 ? ((cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) ? cidadeUsuario : cidade)
                 : cidade;
 
+        // Admin/Agente sem cidade configurada: retorna lista vazia (não expõe tudo)
         if ((admin || agente) && (cidadeFiltro == null || cidadeFiltro.trim().isEmpty())) {
-            return processarUrls(ocorrenciaRepository.findAll(pageable));
+            log.warn("Admin/Agente sem cidade configurada tentou buscar ocorrências. Retornando lista vazia.");
+            return Page.empty(pageable);
         }
 
         if (cidadeFiltro == null || cidadeFiltro.trim().isEmpty()) {

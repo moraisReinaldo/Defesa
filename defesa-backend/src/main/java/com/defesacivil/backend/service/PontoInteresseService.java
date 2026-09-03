@@ -80,9 +80,22 @@ public class PontoInteresseService {
     }
 
     public List<PontoInteresse> listarPorCidade(String cidade) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSuperAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+        // SUPER_ADMIN: sem restrição — vê todos os POIs de todas as cidades
+        if (isSuperAdmin) {
+            if (cidade != null && !cidade.isBlank()) {
+                String codigo = normalizarCodigoCidade(cidade);
+                String nome = obterNomeCidade(cidade);
+                return repository.findByCidadeFlexible(cidade.trim(), codigo, nome);
+            }
+            return listarTodos();
+        }
+
         // Resolver cidade do usuário autenticado se não informada (Isolamento Geográfico Estrito)
         if (cidade == null || cidade.trim().isEmpty()) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
                 String email = auth.getName();
                 Optional<Usuario> usuario = usuarioRepository.findByEmail(email);
