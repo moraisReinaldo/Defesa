@@ -20,6 +20,7 @@ import '../constants/ocorrencia_tipos.dart';
 import 'package:flutter/foundation.dart';
 import '../models/cidade.dart';
 import '../providers/cidade_provider.dart';
+import '../constants/app_pagamentos.dart';
 import 'kit_documental_dialog.dart';
 import 'super_admin_screen.dart';
 
@@ -278,6 +279,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
               context,
               cidadeNome: cidadeNome,
               cidadeCodigo: cidadeCodigo ?? '',
+              isHomologado: !isPendente && (cidadeProv.isTrialAtivo || cidadeProv.recursoDashboardWebLiberado),
             ),
           ),
           IconButton(
@@ -1035,16 +1037,29 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
                 children: [
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.primaryTeal,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: () => launchUrl(Uri.parse(
-                      'https://wa.me/5511987654321?text=${Uri.encodeComponent('Olá Reinaldo, sou da Defesa Civil de $cidadeNome e gostaria de ativar o Plano PRO Municipal para liberar o Painel Web.')}'
-                    )),
-                    icon: const Icon(Icons.chat_bubble_rounded),
-                    label: const Text('Falar com Consultor WhatsApp', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () => launchUrl(Uri.parse(AppPagamentos.obterUrlEmail(
+                      cidadeNome: cidadeNome,
+                      assunto: 'Solicitação de Acesso ao Painel Web • Defesa Civil de $cidadeNome',
+                      corpo: 'Olá Reinaldo,\n\nSou coordenador da Defesa Civil de $cidadeNome e gostaria de solicitar a homologação e ativação do Plano PRO Municipal para liberação do Painel Web e equipe de campo.\n\nAtenciosamente,',
+                    ))),
+                    icon: const Icon(Icons.email_rounded),
+                    label: const Text('Solicitar Homologação por E-mail', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.lightBlueAccent,
+                      side: const BorderSide(color: Colors.lightBlueAccent),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoPro)),
+                    icon: const Icon(Icons.credit_card_rounded),
+                    label: const Text('Assinar via Stripe (Cartão)'),
                   ),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
@@ -1057,6 +1072,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
                       context,
                       cidadeNome: cidadeNome,
                       cidadeCodigo: cidadeCodigo,
+                      isHomologado: false,
                     ),
                     icon: const Icon(Icons.gavel_rounded),
                     label: const Text('Kit Dispensa Licitação'),
@@ -1161,9 +1177,21 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
                   context,
                   cidadeNome: cidadeNome,
                   cidadeCodigo: cidadeCodigo,
+                  isHomologado: true,
                 ),
                 icon: const Icon(Icons.gavel_rounded, size: 14),
                 label: const Text('Baixar Kit Dispensa (Lei 14.133/21)', style: TextStyle(fontSize: 11)),
+              ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.blue.shade800,
+                  side: BorderSide(color: Colors.blue.shade400),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoPro)),
+                icon: const Icon(Icons.credit_card_rounded, size: 14),
+                label: const Text('Assinar via Stripe (Cartão)', style: TextStyle(fontSize: 11)),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -1172,9 +1200,10 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                onPressed: () => launchUrl(Uri.parse(
-                  'https://wa.me/5511987654321?text=${Uri.encodeComponent('Olá Reinaldo, sou de $cidadeNome e gostaria de contratar o Plano da Defesa em Foco.')}'
-                )),
+                onPressed: () => launchUrl(Uri.parse(AppPagamentos.obterUrlWhatsApp(
+                  cidadeNome: cidadeNome,
+                  motivo: 'Olá Reinaldo, sou da Defesa Civil de $cidadeNome. Nosso período de avaliação PRO está em andamento e gostaria de formalizar a contratação definitiva.',
+                ))),
                 icon: const Icon(Icons.chat_bubble_rounded, size: 14),
                 label: const Text('Falar no WhatsApp', style: TextStyle(fontSize: 11)),
               ),

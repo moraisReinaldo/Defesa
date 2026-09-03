@@ -2,23 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_pagamentos.dart';
 
 class KitDocumentalDialog extends StatefulWidget {
   final String cidadeNome;
   final String cidadeCodigo;
+  final bool isHomologado;
 
   const KitDocumentalDialog({
     super.key,
     required this.cidadeNome,
     required this.cidadeCodigo,
+    this.isHomologado = false,
   });
 
-  static void show(BuildContext context, {required String cidadeNome, required String cidadeCodigo}) {
+  static void show(
+    BuildContext context, {
+    required String cidadeNome,
+    required String cidadeCodigo,
+    bool isHomologado = false,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => KitDocumentalDialog(
         cidadeNome: cidadeNome,
         cidadeCodigo: cidadeCodigo,
+        isHomologado: isHomologado,
       ),
     );
   }
@@ -113,10 +122,15 @@ DATA: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}
 - Isenção total de anúncios para todos os munícipes na jurisdição;
 - Suporte técnico prioritário e treinamento operacional inicial.
 
-3. DADOS PARA CONTATO E FORMALIZAÇÃO:
+${widget.isHomologado ? '''3. DADOS PARA CONTATO E FORMALIZAÇÃO:
 - Consultor Responsável: Reinaldo Morais
-- Telefone / WhatsApp: (11) 98765-4321
-- E-mail: reinaldohm07@gmail.com
+- Telefone / WhatsApp: ${AppPagamentos.zapOficialFormatado}
+- E-mail Comercial: ${AppPagamentos.emailComercial}
+- Checkout Online (Stripe): ${AppPagamentos.stripeLinkPlanoPro}''' : '''3. DADOS PARA CONTATO E FORMALIZAÇÃO:
+- Canal Institucional Oficial: Reinaldo Morais
+- E-mail de Homologação: ${AppPagamentos.emailComercial}
+- Portal Oficial: https://defesaemfoco.com.br
+(O contato direto via WhatsApp é disponibilizado exclusivamente após a homologação inicial do município)'''}
 ''';
   }
 
@@ -191,14 +205,35 @@ DATA: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}
         ),
       ),
       actions: [
-        TextButton.icon(
-          onPressed: () async {
-            final uri = Uri.parse('https://wa.me/5511987654321?text=${Uri.encodeComponent('Olá Reinaldo, sou da Defesa Civil de ${widget.cidadeNome} e gostaria de formalizar a contratação por Dispensa de Licitação.')}');
-            if (await canLaunchUrl(uri)) launchUrl(uri);
-          },
-          icon: const Icon(Icons.chat_bubble_rounded, color: Colors.green),
-          label: const Text('Falar no WhatsApp'),
-        ),
+        if (widget.isHomologado) ...[
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.blueAccent,
+              side: const BorderSide(color: Colors.blueAccent),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoPro)),
+            icon: const Icon(Icons.credit_card_rounded, size: 16),
+            label: const Text('Assinar via Cartão (Stripe)', style: TextStyle(fontSize: 12)),
+          ),
+          TextButton.icon(
+            onPressed: () => launchUrl(Uri.parse(AppPagamentos.obterUrlWhatsApp(
+              cidadeNome: widget.cidadeNome,
+              motivo: 'Olá Reinaldo, sou da Defesa Civil de ${widget.cidadeNome} e gostaria de formalizar a contratação por Dispensa de Licitação.',
+            ))),
+            icon: const Icon(Icons.chat_bubble_rounded, color: Colors.green),
+            label: const Text('Falar no WhatsApp'),
+          ),
+        ] else ...[
+          TextButton.icon(
+            onPressed: () => launchUrl(Uri.parse(AppPagamentos.obterUrlEmail(
+              cidadeNome: widget.cidadeNome,
+              assunto: 'Homologação e Contratação • Defesa Civil de ${widget.cidadeNome}',
+            ))),
+            icon: const Icon(Icons.email_rounded, color: AppColors.primaryTeal),
+            label: const Text('Contato por E-mail'),
+          ),
+        ],
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primaryTeal,
