@@ -73,7 +73,9 @@ A Lei Federal nº 12.608/2012 estabelece o dever dos municípios em estruturar s
 - Total conformidade com a LGPD (Lei nº 13.709/2018).
 
 4. ESTIMATIVA ORÇAMENTÁRIA E VALOR ANUAL
-Plano PRO Municipal: R\$ 990,00 / mês (Total anual: R\$ 11.880,00), situando-se amplamente abaixo do limite de dispensa da Lei 14.133/2021.
+Plano PRO Municipal: R\$ 1.490,00 / mês (Total anual com empenho: R\$ 17.880,00).
+Plano Gestão Municipal: R\$ 490,00 / mês (Total anual com empenho: R\$ 5.880,00).
+Ambos situam-se amplamente abaixo do teto de dispensa da Lei Federal nº 14.133/2021.
 ''';
   }
 
@@ -92,7 +94,7 @@ A presente contratação encontra pleno amparo no Art. 75, inciso II, da Lei nº
 "Art. 75. É dispensável a licitação:
 II - para contratação de serviço que envolva valores inferiores a R\$ 59.906,02 (atualizado pelo Decreto Federal nº 11.871/2023)."
 
-O valor anual estimado da contratação é de R\$ 11.880,00 (onze mil oitocentos e oitenta reais), valor que representa menos de 20% do limite legal para contratação direta sem licitação.
+O valor anual estimado da contratação é de R\$ 17.880,00 (dezessete mil, oitocentos e oitenta reais) no Plano PRO Municipal (ou R\$ 5.880,00 no Plano Gestão), representando menos de 30% do limite legal para contratação direta sem licitação.
 
 III - DA RAZÃO DA ESCOLHA DO PRESTADOR E ECONOMICIDADE
 A plataforma Defesa em Foco oferece arquitetura completa já integrada ao padrão COBRADE e S2ID, sem custos de instalação ou taxas adicionais de servidor, gerando economia expressiva aos cofres públicos municipais em comparação ao desenvolvimento próprio.
@@ -108,29 +110,31 @@ PARA: Prefeitura Municipal de ${widget.cidadeNome}
 ATENÇÃO: Gabinete do Prefeito e Coordenadoria Municipal de Defesa Civil
 DATA: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}
 
-1. PLANO SUGERIDO: PLANO PRO MUNICIPAL (O MAIS COMPLETO)
-- Valor Mensal: R\$ 990,00 (Novecentos e noventa reais)
-- Faturamento Anual com Empenho: R\$ 11.880,00
-- Condições: Pagamento mensal ou anuidade empenhada via Nota Fiscal de Serviços Eletrônica.
+1. OPÇÕES DE PLANOS:
+• PLANO PRO MUNICIPAL (O MAIS COMPLETO):
+  - Valor Mensal: R\$ 1.490,00 (Hum mil, quatrocentos e noventa reais)
+  - Faturamento Anual com Empenho: R\$ 17.880,00
+  - Até 5 Gestores, Agentes de Rua ILIMITADOS, Alertas OneSignal, POIs/Abrigos, Dashboard Web e Zero Anúncios.
 
-2. RECURSOS INCLUSOS NO PRO:
-- Agentes de Campo ILIMITADOS com aplicativo móvel oficial;
-- Até 5 Gestores com acesso simultâneo ao Painel Web e Gabinete;
-- Emissão ilimitada de Alertas Push para a população no OneSignal;
-- Exportação Oficial COBRADE/S2ID para prestação de contas estadual e federal;
-- Gestão de Abrigos, Zonas de Risco e Pontos de Apoio (POIs);
-- Isenção total de anúncios para todos os munícipes na jurisdição;
-- Suporte técnico prioritário e treinamento operacional inicial.
+• PLANO GESTÃO MUNICIPAL (SOLO / GABINETE):
+  - Valor Mensal: R\$ 490,00 (Quatrocentos e noventa reais)
+  - Faturamento Anual com Empenho: R\$ 5.880,00
+  - Até 2 Gestores, Alertas OneSignal, Relatórios COBRADE/S2ID e Zero Anúncios.
+
+2. FORMAS DE PAGAMENTO:
+- Anuidade empenhada via Nota Fiscal de Serviços Eletrônica (NFSe) com liquidação bancária;
+- Assinatura mensal online com ativação imediata via Stripe (Cartão de Crédito).
 
 ${widget.isHomologado ? '''3. DADOS PARA CONTATO E FORMALIZAÇÃO:
 - Consultor Responsável: Reinaldo Morais
 - Telefone / WhatsApp: ${AppPagamentos.zapOficialFormatado}
 - E-mail Comercial: ${AppPagamentos.emailComercial}
-- Checkout Online (Stripe): ${AppPagamentos.stripeLinkPlanoPro}''' : '''3. DADOS PARA CONTATO E FORMALIZAÇÃO:
+- Checkout Online Plano PRO: ${AppPagamentos.stripeLinkPlanoPro}
+- Checkout Online Plano Gestão: ${AppPagamentos.stripeLinkPlanoGestao}''' : '''3. DADOS PARA CONTATO E FORMALIZAÇÃO:
 - Canal Institucional Oficial: Reinaldo Morais
 - E-mail de Homologação: ${AppPagamentos.emailComercial}
 - Portal Oficial: https://defesaemfoco.com.br
-(O contato direto via WhatsApp é disponibilizado exclusivamente após a homologação inicial do município)'''}
+(O contato direto via WhatsApp e links diretos são liberados exclusivamente após a homologação inicial do município)'''}
 ''';
   }
 

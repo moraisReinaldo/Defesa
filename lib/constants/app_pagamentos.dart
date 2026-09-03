@@ -4,10 +4,9 @@ class AppPagamentos {
   static const String zapOficialFormatado = '(11) 91404-3387';
   static const String emailComercial = 'reinaldohm07@gmail.com';
 
-  // Stripe Payment Links (Opção 1 A - Links Diretos de Checkout)
-  // Altere aqui para os links criados no seu painel Stripe (ex: https://buy.stripe.com/...)
-  static const String stripeLinkPlanoGestao = 'https://buy.stripe.com/link_gestao_municipal';
-  static const String stripeLinkPlanoPro = 'https://buy.stripe.com/link_pro_municipal';
+  // Stripe Payment Links (Opção 1 A - Links Diretos de Checkout Oficiais)
+  static const String stripeLinkPlanoGestao = 'https://buy.stripe.com/fZudRb0J15jHdRPgF9fbq01';
+  static const String stripeLinkPlanoPro = 'https://buy.stripe.com/6oU7sNdvN3bz297ex1fbq00';
 
   /// Gera a URL do WhatsApp oficial com mensagem contextualizada
   static String obterUrlWhatsApp({required String cidadeNome, String? motivo}) {
