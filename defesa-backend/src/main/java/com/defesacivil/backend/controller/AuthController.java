@@ -101,11 +101,15 @@ public class AuthController {
     }
 
     /**
-     * Logout — JWT é stateless, então o server apenas confirma.
-     * O client apaga o token localmente.
+     * Logout — Invalida o token JWT na blacklist do servidor e confirma ao cliente.
      */
     @PostMapping("/auth/logout")
-    public ResponseEntity<?> logout() {
+    public ResponseEntity<?> logout(jakarta.servlet.http.HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            jwtService.revokeToken(token);
+        }
         return ResponseEntity.ok(Map.of("message", "Logout realizado com sucesso"));
     }
 

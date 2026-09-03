@@ -42,6 +42,8 @@ public class Usuario {
     private String resetSenhaCodigo;
     @JsonIgnore
     private LocalDateTime resetSenhaExpiracao;
+    @JsonIgnore
+    private Integer resetSenhaTentativas = 0;
 
     public Usuario() {
         this.dataCriacao = LocalDateTime.now().toString();
@@ -158,5 +160,13 @@ public class Usuario {
 
     public void setCidadeEntidade(Cidade cidadeEntidade) {
         this.cidadeEntidade = cidadeEntidade;
+    }
+
+    public Integer getResetSenhaTentativas() {
+        return resetSenhaTentativas != null ? resetSenhaTentativas : 0;
+    }
+
+    public void setResetSenhaTentativas(Integer resetSenhaTentativas) {
+        this.resetSenhaTentativas = resetSenhaTentativas;
     }
 }

@@ -1,5 +1,7 @@
 package com.defesacivil.backend.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -20,6 +22,12 @@ public class MinioService {
     private static final Logger log = LoggerFactory.getLogger(MinioService.class);
 
     private final MinioClient minioClient;
+
+    // Cache em memória de URLs presignadas com TTL de 50 minutos (a URL tem validade de 60 min)
+    private final Cache<String, String> presignedUrlCache = Caffeine.newBuilder()
+            .expireAfterWrite(50, TimeUnit.MINUTES)
+            .maximumSize(10000)
+            .build();
 
     @Value("${minio.bucket-name}")
     private String bucketName;
@@ -109,19 +117,21 @@ public class MinioService {
             return objectKey; // Se já for URL (ex: antigas do firebase) ou null, retorna direto
         }
         
-        try {
-            String url = minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(bucketName)
-                    .object(objectKey)
-                    .expiry(1, TimeUnit.HOURS)
-                    .build()
-            );
-            return (url != null && !url.isBlank()) ? url : objectKey;
-        } catch (Exception e) {
-            log.error("Erro ao gerar presigned URL para {}: {}", objectKey, e.getMessage());
-            return objectKey;
-        }
+        return presignedUrlCache.get(objectKey, key -> {
+            try {
+                String url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
+                        .bucket(bucketName)
+                        .object(key)
+                        .expiry(1, TimeUnit.HOURS)
+                        .build()
+                );
+                return (url != null && !url.isBlank()) ? url : key;
+            } catch (Exception e) {
+                log.error("Erro ao gerar presigned URL para {}: {}", key, e.getMessage());
+                return key;
+            }
+        });
     }
 }

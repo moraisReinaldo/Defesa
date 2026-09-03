@@ -20,59 +20,22 @@ public class PontoInteresseService {
 
     private final PontoInteresseRepository repository;
     private final UsuarioRepository usuarioRepository;
-    private final CidadeRepository cidadeRepository;
+    private final CidadeService cidadeService;
 
     public PontoInteresseService(PontoInteresseRepository repository,
                                  UsuarioRepository usuarioRepository,
-                                 CidadeRepository cidadeRepository) {
+                                 CidadeService cidadeService) {
         this.repository = repository;
         this.usuarioRepository = usuarioRepository;
-        this.cidadeRepository = cidadeRepository;
+        this.cidadeService = cidadeService;
     }
 
     private String normalizarCodigoCidade(String cidade) {
-        if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim();
-        return cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
-            .map(Cidade::getCodigo)
-            .orElseGet(() -> {
-                String upper = limpa.toUpperCase();
-                switch (upper) {
-                    case "PIRACAIA": return "PIR";
-                    case "JOANOPOLIS":
-                    case "JOANÓPOLIS": return "JOA";
-                    case "ATIBAIA": return "ATI";
-                    case "BRAGANÇA PAULISTA":
-                    case "BRAGANCA PAULISTA": return "BP";
-                    case "NAZARÉ PAULISTA":
-                    case "NAZARE PAULISTA": return "NAZ";
-                    case "TUIUTI": return "TUI";
-                    case "VARGEM": return "VAR";
-                    default: return upper;
-                }
-            });
+        return cidadeService.normalizarCodigoCidade(cidade);
     }
 
     private String obterNomeCidade(String cidade) {
-        if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim();
-        return cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
-            .map(Cidade::getNome)
-            .orElseGet(() -> {
-                String upper = limpa.toUpperCase();
-                switch (upper) {
-                    case "PIR": return "Piracaia";
-                    case "JOA": return "Joanópolis";
-                    case "ATI": return "Atibaia";
-                    case "BP": return "Bragança Paulista";
-                    case "NAZ": return "Nazaré Paulista";
-                    case "TUI": return "Tuiuti";
-                    case "VAR": return "Vargem";
-                    default: return limpa;
-                }
-            });
+        return cidadeService.obterNomeCidade(cidade);
     }
 
     public List<PontoInteresse> listarTodos() {
@@ -119,7 +82,7 @@ public class PontoInteresseService {
             String norm = normalizarCodigoCidade(ponto.getCidade());
             ponto.setCidade(norm);
             if (norm != null) {
-                cidadeRepository.findByCodigoIgnoreCase(norm).ifPresent(ponto::setCidadeEntidade);
+                cidadeService.buscarPorCodigo(norm).ifPresent(ponto::setCidadeEntidade);
             }
         }
         return repository.save(ponto);
@@ -136,7 +99,7 @@ public class PontoInteresseService {
             String norm = normalizarCodigoCidade(dados.getCidade());
             existente.setCidade(norm);
             if (norm != null) {
-                cidadeRepository.findByCodigoIgnoreCase(norm).ifPresent(existente::setCidadeEntidade);
+                cidadeService.buscarPorCodigo(norm).ifPresent(existente::setCidadeEntidade);
             }
         }
         return repository.save(existente);

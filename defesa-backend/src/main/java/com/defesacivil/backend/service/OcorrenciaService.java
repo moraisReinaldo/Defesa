@@ -7,7 +7,6 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
-import com.defesacivil.backend.repository.CidadeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -32,18 +31,18 @@ public class OcorrenciaService {
 
     private final OcorrenciaRepository ocorrenciaRepository;
     private final UsuarioRepository usuarioRepository;
-    private final CidadeRepository cidadeRepository;
+    private final CidadeService cidadeService;
     private final NotificationService notificationService;
     private final MinioService minioService;
 
     public OcorrenciaService(OcorrenciaRepository ocorrenciaRepository,
                              UsuarioRepository usuarioRepository,
-                             CidadeRepository cidadeRepository,
+                             CidadeService cidadeService,
                              NotificationService notificationService,
                              MinioService minioService) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.usuarioRepository = usuarioRepository;
-        this.cidadeRepository = cidadeRepository;
+        this.cidadeService = cidadeService;
         this.notificationService = notificationService;
         this.minioService = minioService;
     }
@@ -107,7 +106,7 @@ public class OcorrenciaService {
         String cidade = normalizarCodigoCidade(request.getCidade());
         oc.setCidade(cidade);
         if (cidade != null) {
-            cidadeRepository.findByCodigoIgnoreCase(cidade).ifPresent(oc::setCidadeEntidade);
+            cidadeService.buscarPorCodigo(cidade).ifPresent(oc::setCidadeEntidade);
         }
         oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
         
@@ -124,7 +123,7 @@ public class OcorrenciaService {
                         String cidAdmin = normalizarCodigoCidade(u.getCidade());
                         oc.setCidade(cidAdmin);
                         if (cidAdmin != null) {
-                            cidadeRepository.findByCodigoIgnoreCase(cidAdmin).ifPresent(oc::setCidadeEntidade);
+                            cidadeService.buscarPorCodigo(cidAdmin).ifPresent(oc::setCidadeEntidade);
                         }
                     }
                 }
@@ -291,48 +290,11 @@ public class OcorrenciaService {
     }
 
     public String normalizarCodigoCidade(String cidade) {
-        if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim();
-        Optional<com.defesacivil.backend.domain.Cidade> cidOpt = cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa));
-        if (cidOpt.isPresent()) {
-            return cidOpt.get().getCodigo();
-        }
-        String upper = limpa.toUpperCase();
-        switch (upper) {
-            case "PIRACAIA": return "PIR";
-            case "JOANOPOLIS":
-            case "JOANÓPOLIS": return "JOA";
-            case "ATIBAIA": return "ATI";
-            case "BRAGANÇA PAULISTA":
-            case "BRAGANCA PAULISTA": return "BP";
-            case "NAZARÉ PAULISTA":
-            case "NAZARE PAULISTA": return "NAZ";
-            case "TUIUTI": return "TUI";
-            case "VARGEM": return "VAR";
-            default: return upper;
-        }
+        return cidadeService.normalizarCodigoCidade(cidade);
     }
 
     public String obterNomeCidade(String cidade) {
-        if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim();
-        Optional<com.defesacivil.backend.domain.Cidade> cidOpt = cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa));
-        if (cidOpt.isPresent()) {
-            return cidOpt.get().getNome();
-        }
-        String upper = limpa.toUpperCase();
-        switch (upper) {
-            case "PIR": return "Piracaia";
-            case "JOA": return "Joanópolis";
-            case "ATI": return "Atibaia";
-            case "BP": return "Bragança Paulista";
-            case "NAZ": return "Nazaré Paulista";
-            case "TUI": return "Tuiuti";
-            case "VAR": return "Vargem";
-            default: return limpa;
-        }
+        return cidadeService.obterNomeCidade(cidade);
     }
 
     private void checkJurisdiction(String cidadeOcorrencia) {
@@ -387,7 +349,7 @@ public class OcorrenciaService {
             String cidadeEditada = normalizarCodigoCidade(request.getCidade());
             oc.setCidade(cidadeEditada);
             if (cidadeEditada != null) {
-                cidadeRepository.findByCodigoIgnoreCase(cidadeEditada).ifPresent(oc::setCidadeEntidade);
+                cidadeService.buscarPorCodigo(cidadeEditada).ifPresent(oc::setCidadeEntidade);
             }
         }
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));

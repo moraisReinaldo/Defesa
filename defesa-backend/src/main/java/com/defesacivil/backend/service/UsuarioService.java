@@ -5,7 +5,6 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.domain.enums.Status;
 import com.defesacivil.backend.dto.UsuarioRequest;
 import com.defesacivil.backend.repository.UsuarioRepository;
-import com.defesacivil.backend.repository.CidadeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +25,6 @@ public class UsuarioService {
     private static final Logger log = LoggerFactory.getLogger(UsuarioService.class);
 
     private final UsuarioRepository repository;
-    private final CidadeRepository cidadeRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
@@ -34,23 +32,20 @@ public class UsuarioService {
     @Value("${app.admin.password:}")
     private String adminPasswordHash;
 
+    private final CidadeService cidadeService;
+
     public UsuarioService(UsuarioRepository repository,
-                          CidadeRepository cidadeRepository,
+                          CidadeService cidadeService,
                           EmailService emailService,
                           PasswordEncoder passwordEncoder) {
         this.repository = repository;
-        this.cidadeRepository = cidadeRepository;
+        this.cidadeService = cidadeService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
     }
 
     public String normalizarCodigoCidade(String cidade) {
-        if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim().toUpperCase();
-        return cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
-            .map(com.defesacivil.backend.domain.Cidade::getCodigo)
-            .orElse(limpa);
+        return cidadeService.normalizarCodigoCidade(cidade);
     }
 
     public Usuario cadastrarUsuario(UsuarioRequest request) {
@@ -111,7 +106,7 @@ public class UsuarioService {
         }
         usuario.setCidade(cidNorm);
         if (cidNorm != null) {
-            cidadeRepository.findByCodigoIgnoreCase(cidNorm).ifPresent(usuario::setCidadeEntidade);
+            cidadeService.buscarPorCodigo(cidNorm).ifPresent(usuario::setCidadeEntidade);
         }
 
         usuario.setRole(roleReq.name());
@@ -292,7 +287,7 @@ public class UsuarioService {
             String norm = normalizarCodigoCidade(request.getCidade());
             usuario.setCidade(norm);
             if (norm != null) {
-                cidadeRepository.findByCodigoIgnoreCase(norm).ifPresent(usuario::setCidadeEntidade);
+                cidadeService.buscarPorCodigo(norm).ifPresent(usuario::setCidadeEntidade);
             }
         }
         if (request.getFcmToken() != null) usuario.setFcmToken(request.getFcmToken());
@@ -317,6 +312,7 @@ public class UsuarioService {
         String codigo = String.format("%06d", new java.security.SecureRandom().nextInt(999999));
         user.setResetSenhaCodigo(codigo);
         user.setResetSenhaExpiracao(LocalDateTime.now().plusMinutes(15));
+        user.setResetSenhaTentativas(0); // Reinicia contador ao solicitar novo código
         repository.save(user);
 
         emailService.enviarEmailRecuperacaoSenha(email, codigo);
@@ -328,17 +324,37 @@ public class UsuarioService {
         if (userOpt.isEmpty()) return false;
 
         Usuario user = userOpt.get();
-        if (user.getResetSenhaCodigo() == null || !user.getResetSenhaCodigo().equals(codigo)) {
+
+        // SEGURANÇA (VULN-08): Bloquear se já excedeu 5 tentativas
+        if (user.getResetSenhaTentativas() >= 5) {
+            user.setResetSenhaCodigo(null);
+            user.setResetSenhaExpiracao(null);
+            repository.save(user);
             return false;
         }
 
         if (user.getResetSenhaExpiracao() == null || user.getResetSenhaExpiracao().isBefore(LocalDateTime.now())) {
+            user.setResetSenhaCodigo(null);
+            user.setResetSenhaExpiracao(null);
+            repository.save(user);
+            return false;
+        }
+
+        if (user.getResetSenhaCodigo() == null || !user.getResetSenhaCodigo().equals(codigo)) {
+            user.setResetSenhaTentativas(user.getResetSenhaTentativas() + 1);
+            if (user.getResetSenhaTentativas() >= 5) {
+                // Invalida o código imediatamente após 5 erros
+                user.setResetSenhaCodigo(null);
+                user.setResetSenhaExpiracao(null);
+            }
+            repository.save(user);
             return false;
         }
 
         user.setSenha(passwordEncoder.encode(novaSenha));
         user.setResetSenhaCodigo(null);
         user.setResetSenhaExpiracao(null);
+        user.setResetSenhaTentativas(0);
         repository.save(user);
         return true;
     }

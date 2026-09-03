@@ -1,5 +1,7 @@
 package com.defesacivil.backend.security;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -12,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 @Service
@@ -22,7 +25,24 @@ public class JwtService {
 
     private SecretKey signingKey;
 
-    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24 * 30; // 30 dias
+    // Redução da expiração de 30 para 7 dias (equilíbrio entre segurança e usabilidade no mobile)
+    private static final long EXPIRATION_TIME = 1000L * 60 * 60 * 24 * 7; // 7 dias
+
+    // Blacklist em memória de tokens revogados com TTL de 7 dias
+    private final Cache<String, Boolean> revokedTokens = Caffeine.newBuilder()
+            .expireAfterWrite(7, TimeUnit.DAYS)
+            .maximumSize(50000)
+            .build();
+
+    public void revokeToken(String token) {
+        if (token != null && !token.isBlank()) {
+            revokedTokens.put(token, true);
+        }
+    }
+
+    public boolean isTokenRevoked(String token) {
+        return token != null && Boolean.TRUE.equals(revokedTokens.getIfPresent(token));
+    }
 
     @PostConstruct
     public void init() {
@@ -70,6 +90,9 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, String userEmail) {
+        if (isTokenRevoked(token)) {
+            return false;
+        }
         final String username = extractUsername(token);
         return (username.equals(userEmail) && !isTokenExpired(token));
     }

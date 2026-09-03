@@ -13,56 +13,19 @@ import java.util.List;
 public class AlertaService {
 
     private final AlertaRepository alertaRepository;
-    private final CidadeRepository cidadeRepository;
+    private final CidadeService cidadeService;
 
-    public AlertaService(AlertaRepository alertaRepository, CidadeRepository cidadeRepository) {
+    public AlertaService(AlertaRepository alertaRepository, CidadeService cidadeService) {
         this.alertaRepository = alertaRepository;
-        this.cidadeRepository = cidadeRepository;
+        this.cidadeService = cidadeService;
     }
 
     private String normalizarCodigoCidade(String cidade) {
-        if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim();
-        return cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
-            .map(Cidade::getCodigo)
-            .orElseGet(() -> {
-                String upper = limpa.toUpperCase();
-                switch (upper) {
-                    case "PIRACAIA": return "PIR";
-                    case "JOANOPOLIS":
-                    case "JOANÓPOLIS": return "JOA";
-                    case "ATIBAIA": return "ATI";
-                    case "BRAGANÇA PAULISTA":
-                    case "BRAGANCA PAULISTA": return "BP";
-                    case "NAZARÉ PAULISTA":
-                    case "NAZARE PAULISTA": return "NAZ";
-                    case "TUIUTI": return "TUI";
-                    case "VARGEM": return "VAR";
-                    default: return upper;
-                }
-            });
+        return cidadeService.normalizarCodigoCidade(cidade);
     }
 
     private String obterNomeCidade(String cidade) {
-        if (cidade == null || cidade.isBlank()) return null;
-        String limpa = cidade.trim();
-        return cidadeRepository.findByCodigoIgnoreCase(limpa)
-            .or(() -> cidadeRepository.findByNomeIgnoreCase(limpa))
-            .map(Cidade::getNome)
-            .orElseGet(() -> {
-                String upper = limpa.toUpperCase();
-                switch (upper) {
-                    case "PIR": return "Piracaia";
-                    case "JOA": return "Joanópolis";
-                    case "ATI": return "Atibaia";
-                    case "BP": return "Bragança Paulista";
-                    case "NAZ": return "Nazaré Paulista";
-                    case "TUI": return "Tuiuti";
-                    case "VAR": return "Vargem";
-                    default: return limpa;
-                }
-            });
+        return cidadeService.obterNomeCidade(cidade);
     }
 
     public List<Alerta> buscarAlertasAtivos(String cidade) {
