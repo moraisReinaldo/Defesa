@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 import 'usuario.dart';
+import '../constants/ocorrencia_tipos.dart';
 
 enum OcorrenciaStatus {
   pendenteAprovacao,
@@ -28,6 +29,8 @@ class Ocorrencia {
   final bool agenteNoLocal;
   final DateTime? dataChegadaAgente;
   final String? descricaoSituacao;
+  final String? cobrade;
+  final String? cobradeDescricao;
   final Usuario? autor;
   final List<Usuario>? agentesAtribuidos;
   /// true = salvo apenas localmente, não sincronizado com o servidor
@@ -50,6 +53,8 @@ class Ocorrencia {
     this.agenteNoLocal = false,
     this.dataChegadaAgente,
     this.descricaoSituacao,
+    this.cobrade,
+    this.cobradeDescricao,
     this.autor,
     this.agentesAtribuidos,
     this.isLocal = false,
@@ -89,6 +94,8 @@ class Ocorrencia {
       'agenteNoLocal': agenteNoLocal,
       'dataChegadaAgente': dataChegadaAgente?.toIso8601String(),
       'descricaoSituacao': descricaoSituacao,
+      'cobrade': cobrade,
+      'cobradeDescricao': cobradeDescricao,
       if (autor != null) 'autor': autor!.toJson(),
       if (agentesAtribuidos != null)
         'agentesAtribuidos': agentesAtribuidos!.map((a) => a.toJson()).toList(),
@@ -96,6 +103,7 @@ class Ocorrencia {
   }
 
   factory Ocorrencia.fromJson(Map<String, dynamic> json) {
+    final tipoStr = (json['tipo'] as String?)?.toLowerCase() ?? 'outro';
     return Ocorrencia(
       id: json['id'] ?? '',
       tipo: json['tipo'] ?? 'OUTROS',
@@ -120,6 +128,8 @@ class Ocorrencia {
       agenteNoLocal: json['agenteNoLocal'] ?? false,
       dataChegadaAgente: _parseSafe(json['dataChegadaAgente']),
       descricaoSituacao: json['descricaoSituacao'],
+      cobrade: json['cobrade'] ?? OcorrenciaTipos.getCobradeCodigo(tipoStr),
+      cobradeDescricao: json['cobradeDescricao'] ?? OcorrenciaTipos.getCobradeDescricao(tipoStr),
       autor: json['autor'] != null ? Usuario.fromJson(json['autor']) : null,
       agentesAtribuidos: json['agentesAtribuidos'] != null
           ? (json['agentesAtribuidos'] as List)
@@ -162,6 +172,8 @@ class Ocorrencia {
     bool? agenteNoLocal,
     Object? dataChegadaAgente = _omit,
     String? descricaoSituacao,
+    String? cobrade,
+    String? cobradeDescricao,
     Usuario? autor,
     List<Usuario>? agentesAtribuidos,
     bool? isLocal,
@@ -187,6 +199,8 @@ class Ocorrencia {
           ? this.dataChegadaAgente
           : dataChegadaAgente as DateTime?,
       descricaoSituacao: descricaoSituacao ?? this.descricaoSituacao,
+      cobrade: cobrade ?? this.cobrade,
+      cobradeDescricao: cobradeDescricao ?? this.cobradeDescricao,
       autor: autor ?? this.autor,
       agentesAtribuidos: agentesAtribuidos ?? this.agentesAtribuidos,
       isLocal: isLocal ?? this.isLocal,

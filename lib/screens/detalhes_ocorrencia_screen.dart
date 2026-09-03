@@ -842,13 +842,34 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                     Icon(OcorrenciaTipos.getTipoIcone(widget.tipoOcorrencia), color: AppColors.primaryTeal),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        OcorrenciaTipos.getTipoNome(widget.tipoOcorrencia),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryTeal,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            OcorrenciaTipos.getTipoNome(widget.tipoOcorrencia),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryTeal,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.blueGrey.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'COBRADE ${OcorrenciaTipos.getCobradeCodigo(widget.tipoOcorrencia)} • ${OcorrenciaTipos.getCobradeDescricao(widget.tipoOcorrencia)}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blueGrey.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

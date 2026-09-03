@@ -25,6 +25,9 @@ public class OcorrenciaRequest {
     private String agentes;
     private String status;
     private String descricaoSituacao;
+    private String cobrade;
+    private String cobradeDescricao;
+
     public String getTipo() { return tipo; }
     public void setTipo(String tipo) { this.tipo = tipo; }
     public String getDescricao() { return descricao; }
@@ -49,4 +52,8 @@ public class OcorrenciaRequest {
     public void setStatus(String status) { this.status = status; }
     public String getDescricaoSituacao() { return descricaoSituacao; }
     public void setDescricaoSituacao(String descricaoSituacao) { this.descricaoSituacao = descricaoSituacao; }
+    public String getCobrade() { return cobrade; }
+    public void setCobrade(String cobrade) { this.cobrade = cobrade; }
+    public String getCobradeDescricao() { return cobradeDescricao; }
+    public void setCobradeDescricao(String cobradeDescricao) { this.cobradeDescricao = cobradeDescricao; }
 }

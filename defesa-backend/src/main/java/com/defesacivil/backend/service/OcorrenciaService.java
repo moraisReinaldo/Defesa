@@ -7,6 +7,7 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
+import com.defesacivil.backend.util.CobradeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -138,6 +139,18 @@ public class OcorrenciaService {
         // Criador (agente/admin) já vem pré-escalado pelo app
         if (request.getAgentes() != null && !request.getAgentes().isBlank()) {
             oc.setAgentes(sanitizeInput(request.getAgentes()));
+        }
+
+        // PROTOCOLO COBRADE: Classificação e Codificação Brasileira de Desastres (MDR/S2ID)
+        if (request.getCobrade() != null && !request.getCobrade().isBlank()) {
+            oc.setCobrade(sanitizeInput(request.getCobrade()));
+            oc.setCobradeDescricao(request.getCobradeDescricao() != null
+                ? sanitizeInput(request.getCobradeDescricao())
+                : CobradeUtil.resolverPorTipo(oc.getTipo()).getDescricao());
+        } else {
+            CobradeUtil.CobradeInfo cobradeInfo = CobradeUtil.resolverPorTipo(oc.getTipo());
+            oc.setCobrade(cobradeInfo.getCodigo());
+            oc.setCobradeDescricao(cobradeInfo.getDescricao());
         }
 
         // Verifica se é uma ocorrência lançada no passado (dataHora foi fornecida)
@@ -353,6 +366,12 @@ public class OcorrenciaService {
             }
         }
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
+        if (request.getCobrade() != null && !request.getCobrade().isBlank()) {
+            oc.setCobrade(sanitizeInput(request.getCobrade()));
+            if (request.getCobradeDescricao() != null) {
+                oc.setCobradeDescricao(sanitizeInput(request.getCobradeDescricao()));
+            }
+        }
 
         if (request.getCaminhoFoto() != null && !request.getCaminhoFoto().isBlank()) {
             String foto = request.getCaminhoFoto();
@@ -446,6 +465,17 @@ public class OcorrenciaService {
         copia.setCidadeEntidade(oc.getCidadeEntidade());
         copia.setAutor(oc.getAutor());
         copia.setAgentesAtribuidos(oc.getAgentesAtribuidos());
+
+        // COBRADE
+        String cobrade = oc.getCobrade();
+        String cobradeDesc = oc.getCobradeDescricao();
+        if (cobrade == null || cobrade.isBlank()) {
+            CobradeUtil.CobradeInfo info = CobradeUtil.resolverPorTipo(oc.getTipo());
+            cobrade = info.getCodigo();
+            cobradeDesc = info.getDescricao();
+        }
+        copia.setCobrade(cobrade);
+        copia.setCobradeDescricao(cobradeDesc);
         
         String foto = oc.getCaminhoFoto();
         if (foto == null || foto.isBlank()) {
@@ -495,5 +525,82 @@ public class OcorrenciaService {
             maxIterations--;
         } while (!text.equals(previous) && maxIterations > 0);
         return text;
+    }
+
+    /**
+     * Exporta o relatório oficial de ocorrências em formato CSV estruturado para Defesas Civis Municipais e CEPDEC.
+     * Inclui codificação COBRADE oficial, status de atendimento, geolocalização e pareceres técnicos.
+     */
+    @Transactional(readOnly = true)
+    public byte[] exportarOcorrenciasCsv(String cidade, String status) {
+        boolean superAdmin = isSuperAdmin();
+        String cidadeFiltro = cidade;
+
+        if (!superAdmin) {
+            String email = getAuthenticatedEmail();
+            if (email != null) {
+                Usuario user = usuarioRepository.findByEmail(email).orElse(null);
+                if (user != null && user.getCidade() != null && !user.getCidade().isBlank()) {
+                    cidadeFiltro = user.getCidade();
+                }
+            }
+        }
+
+        List<Ocorrencia> ocorrencias;
+        if (cidadeFiltro != null && !cidadeFiltro.isBlank()) {
+            String codigo = normalizarCodigoCidade(cidadeFiltro);
+            String nome = obterNomeCidade(cidadeFiltro);
+            ocorrencias = ocorrenciaRepository.findByCidadeFlexible(cidadeFiltro, codigo, nome, Pageable.unpaged()).getContent();
+        } else if (superAdmin) {
+            ocorrencias = ocorrenciaRepository.findAll(org.springframework.data.domain.Sort.by("dataHora").descending());
+        } else {
+            return new byte[0];
+        }
+
+        if (status != null && !status.isBlank() && !"TODOS".equalsIgnoreCase(status)) {
+            ocorrencias = ocorrencias.stream()
+                .filter(o -> status.equalsIgnoreCase(o.getStatus()))
+                .toList();
+        }
+
+        StringBuilder csv = new StringBuilder();
+        // UTF-8 BOM para garantir acentuação correta no Microsoft Excel e LibreOffice
+        csv.append('\uFEFF');
+        // Cabeçalhos oficiais no padrão de relatórios da Defesa Civil
+        csv.append("Protocolo;Data e Hora;Cidade;Tipo de Ocorrencia;Codigo COBRADE;Descricao COBRADE;Status;Latitude;Longitude;Agente no Local;Data Chegada;Data Resolucao;Agentes Atribuidos;Descricao do Cidadao;Parecer Tecnico / Situacao\n");
+
+        for (Ocorrencia o : ocorrencias) {
+            String cobrade = o.getCobrade();
+            String cobradeDesc = o.getCobradeDescricao();
+            if (cobrade == null || cobrade.isBlank()) {
+                CobradeUtil.CobradeInfo info = CobradeUtil.resolverPorTipo(o.getTipo());
+                cobrade = info.getCodigo();
+                cobradeDesc = info.getDescricao();
+            }
+
+            csv.append(escapeCsv(o.getId())).append(';')
+               .append(escapeCsv(o.getDataHora())).append(';')
+               .append(escapeCsv(obterNomeCidade(o.getCidade()))).append(';')
+               .append(escapeCsv(o.getTipo())).append(';')
+               .append(escapeCsv(cobrade)).append(';')
+               .append(escapeCsv(cobradeDesc)).append(';')
+               .append(escapeCsv(o.getStatus())).append(';')
+               .append(o.getLatitude()).append(';')
+               .append(o.getLongitude()).append(';')
+               .append(o.isAgenteNoLocal() ? "SIM" : "NAO").append(';')
+               .append(escapeCsv(o.getDataChegadaAgente())).append(';')
+               .append(escapeCsv(o.getDataResolucao())).append(';')
+               .append(escapeCsv(o.getAgentes())).append(';')
+               .append(escapeCsv(o.getDescricao())).append(';')
+               .append(escapeCsv(o.getDescricaoSituacao())).append('\n');
+        }
+
+        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String escapeCsv(String val) {
+        if (val == null) return "";
+        String clean = val.replace("\"", "\"\"").replace("\n", " ").replace("\r", "");
+        return "\"" + clean + "\"";
     }
 }

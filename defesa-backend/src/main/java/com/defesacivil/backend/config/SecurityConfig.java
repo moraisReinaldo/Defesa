@@ -58,6 +58,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/cidades").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/alertas").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/alertas/*").permitAll()
+
+                // Exportação de relatórios oficiais — restrito a AGENTE, ADMINISTRADOR e SUPER_ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/ocorrencias/export/**").hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN")
+
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias/*").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()

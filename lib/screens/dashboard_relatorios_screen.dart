@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../constants/app_colors.dart';
 import '../models/ocorrencia.dart';
@@ -152,6 +153,65 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
     );
   }
 
+  void _exportarRelatorioOficial(BuildContext context, List<Ocorrencia> ocorrencias, String cidadeNome) {
+    if (ocorrencias.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não há ocorrências para exportar.')),
+      );
+      return;
+    }
+
+    final buffer = StringBuffer();
+    // UTF-8 BOM para abrir com acentuação correta no Microsoft Excel e LibreOffice
+    buffer.write('\uFEFF');
+    buffer.writeln('Protocolo;Data e Hora;Cidade;Tipo de Ocorrência;Código COBRADE;Descrição COBRADE;Status;Latitude;Longitude;Agente no Local;Data Chegada;Data Resolução;Agentes Atribuídos;Descrição do Cidadão;Parecer Técnico');
+
+    for (final o in ocorrencias) {
+      final tipo = o.tipo;
+      final cobradeCod = o.cobrade ?? OcorrenciaTipos.getCobradeCodigo(tipo);
+      final cobradeDesc = o.cobradeDescricao ?? OcorrenciaTipos.getCobradeDescricao(tipo);
+      final statusStr = o.status.name.toUpperCase();
+      final dataStr = DateFormat('dd/MM/yyyy HH:mm').format(o.dataHora);
+      final chegadaStr = o.dataChegadaAgente != null ? DateFormat('dd/MM/yyyy HH:mm').format(o.dataChegadaAgente!) : '';
+      final resolucaoStr = o.dataResolucao != null ? DateFormat('dd/MM/yyyy HH:mm').format(o.dataResolucao!) : '';
+
+      String escapeCsv(String? val) {
+        if (val == null) return '""';
+        final clean = val.replaceAll('"', '""').replaceAll('\n', ' ').replaceAll('\r', '');
+        return '"$clean"';
+      }
+
+      buffer.writeln(
+        '${escapeCsv(o.id)};'
+        '$dataStr;'
+        '${escapeCsv(cidadeNome)};'
+        '${escapeCsv(OcorrenciaTipos.getTipoNome(tipo))};'
+        '${escapeCsv(cobradeCod)};'
+        '${escapeCsv(cobradeDesc)};'
+        '${escapeCsv(statusStr)};'
+        '${o.latitude};'
+        '${o.longitude};'
+        '${o.agenteNoLocal ? "SIM" : "NÃO"};'
+        '$chegadaStr;'
+        '$resolucaoStr;'
+        '${escapeCsv(o.agentes)};'
+        '${escapeCsv(o.descricao)};'
+        '${escapeCsv(o.descricaoSituacao)}'
+      );
+    }
+
+    final csvContent = buffer.toString();
+    final dataUri = 'data:text/csv;charset=utf-8,${Uri.encodeComponent(csvContent)}';
+    launchUrl(Uri.parse(dataUri));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Relatório oficial da Defesa Civil (${ocorrencias.length} ocorrências) gerado com sucesso!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UsuarioProvider>();
@@ -186,10 +246,15 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.download_rounded, color: Colors.white),
+            tooltip: 'Exportar Relatório Oficial (CSV / COBRADE)',
+            onPressed: () => _exportarRelatorioOficial(context, ocorrencias, cidadeNome),
+          ),
+          IconButton(
             icon: const Icon(Icons.campaign_rounded, color: Colors.amberAccent),
             tooltip: 'Emitir Alerta de Emergência',
             onPressed: () => _abrirModalEmitirAlerta(context, cidadeNome),
-          )
+          ),
         ],
       ),
       body: ResponsiveContainer(
@@ -207,11 +272,15 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
               _buildKPIs(ocorrencias, pontosApoio),
               const SizedBox(height: 24),
 
-              // 3. MAPA DEDICADO DE RISCOS E OCORRÊNCIAS DA CIDADE
+              // 3. Banner de Exportação Oficial de Dados (COBRADE / S2ID)
+              _buildCardExportacaoOficial(context, ocorrencias, cidadeNome),
+              const SizedBox(height: 24),
+
+              // 4. MAPA DEDICADO DE RISCOS E OCORRÊNCIAS DA CIDADE
               _buildMapaDedicadoRisco(context, centroMapa, ocorrencias, pontosApoio, cidadeNome),
               const SizedBox(height: 24),
 
-              // 4. Gráficos Analíticos
+              // 5. Gráficos Analíticos
               _buildRow(
                 context,
                 _buildChartCard('Ocorrências por Tipo', _buildBarChartTipos(ocorrencias)),
@@ -223,6 +292,91 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCardExportacaoOficial(
+    BuildContext context,
+    List<Ocorrencia> ocorrencias,
+    String cidadeNome,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryTeal.withValues(alpha: 0.08),
+            Colors.blue.withValues(alpha: 0.04),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryTeal,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.table_chart_rounded, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Text(
+                      'Relatório Oficial de Ocorrências',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Chip(
+                      label: Text(
+                        'PADRÃO COBRADE / S2ID',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+                      ),
+                      backgroundColor: AppColors.primaryTeal,
+                      padding: EdgeInsets.zero,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Exportação consolidada com classificação federal para prestação de contas, Defesa Civil Estadual e Ministério da Integração (MDR).',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryTeal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.file_download_rounded, size: 20),
+            label: const Text(
+              'Exportar CSV',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            onPressed: () => _exportarRelatorioOficial(context, ocorrencias, cidadeNome),
+          ),
+        ],
       ),
     );
   }
