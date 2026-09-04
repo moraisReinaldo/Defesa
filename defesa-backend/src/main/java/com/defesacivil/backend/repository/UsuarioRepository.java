@@ -28,4 +28,6 @@ public interface UsuarioRepository extends JpaRepository<Usuario, String> {
     List<Usuario> findByCidadeIgnoreCase(String cidade);
 
     List<Usuario> findByCidadeIgnoreCaseAndStatus(String cidade, String status);
+
+    List<Usuario> findByCidadeIgnoreCaseAndRoleOrderByDataCriacaoAsc(String cidade, String role);
 }

@@ -10,10 +10,10 @@ import java.util.List;
 
 @Repository
 public interface PontoInteresseRepository extends JpaRepository<PontoInteresse, String> {
-    @Query("SELECT p FROM PontoInteresse p WHERE LOWER(p.cidade) = LOWER(:cidade) OR p.cidade IS NULL OR p.cidade = ''")
+    @Query("SELECT p FROM PontoInteresse p WHERE p.disponivel = true AND (LOWER(p.cidade) = LOWER(:cidade) OR p.cidade IS NULL OR p.cidade = '')")
     List<PontoInteresse> findByCidadeIgnoreCase(@Param("cidade") String cidade);
 
-    @Query("SELECT p FROM PontoInteresse p LEFT JOIN p.cidadeEntidade c WHERE " +
+    @Query("SELECT p FROM PontoInteresse p LEFT JOIN p.cidadeEntidade c WHERE p.disponivel = true AND " +
            "(:cidade IS NULL OR p.cidade IS NULL OR p.cidade = '' OR " +
            "LOWER(p.cidade) = LOWER(:cidade) OR " +
            "(:codigo IS NOT NULL AND LOWER(p.cidade) = LOWER(:codigo)) OR " +
@@ -23,6 +23,17 @@ public interface PontoInteresseRepository extends JpaRepository<PontoInteresse, 
            "  (:nome IS NOT NULL AND LOWER(c.nome) = LOWER(:nome))" +
            ")))")
     List<PontoInteresse> findByCidadeFlexible(
+            @Param("cidade") String cidade,
+            @Param("codigo") String codigo,
+            @Param("nome") String nome);
+
+    @Query("SELECT p FROM PontoInteresse p LEFT JOIN p.cidadeEntidade c WHERE " +
+           "LOWER(p.cidade) = LOWER(:cidade) OR " +
+           "(:codigo IS NOT NULL AND LOWER(p.cidade) = LOWER(:codigo)) OR " +
+           "(:nome IS NOT NULL AND LOWER(p.cidade) = LOWER(:nome)) OR " +
+           "(c IS NOT NULL AND ((:codigo IS NOT NULL AND LOWER(c.codigo) = LOWER(:codigo)) OR " +
+           "(:nome IS NOT NULL AND LOWER(c.nome) = LOWER(:nome))))")
+    List<PontoInteresse> findAllByCidadeFlexible(
             @Param("cidade") String cidade,
             @Param("codigo") String codigo,
             @Param("nome") String nome);

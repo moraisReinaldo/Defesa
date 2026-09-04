@@ -78,7 +78,9 @@ public class UsuarioService {
         // Prevenir Role Injection: apenas admins autenticados podem criar outros admins/agentes
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isSolicitanteAdmin = auth != null && auth.isAuthenticated() &&
-            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+            auth.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_ADMINISTRADOR") ||
+                a.getAuthority().equals("ROLE_SUPER_ADMIN"));
 
         if (!isSolicitanteAdmin) {
             if (roleReq == Role.AGENTE) {
@@ -94,7 +96,8 @@ public class UsuarioService {
             ? Status.PENDENTE : Status.ATIVO;
 
         String cidNorm = normalizarCodigoCidade(request.getCidade());
-        if (roleReq == Role.AGENTE && isSolicitanteAdmin) {
+        if (isSolicitanteAdmin && roleReq != Role.CIDADAO &&
+            auth.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"))) {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null && admin.getCidade() != null && !admin.getCidade().isBlank()) {

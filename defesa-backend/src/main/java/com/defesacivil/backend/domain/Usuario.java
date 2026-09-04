@@ -34,6 +34,7 @@ public class Usuario {
     private String especialidade;
     private String role;
     private String status;
+    private Boolean administradorTitular = false;
     @JsonIgnore
     private String dataCriacao;
     @JsonIgnore
@@ -120,6 +121,14 @@ public class Usuario {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Boolean getAdministradorTitular() {
+        return administradorTitular != null && administradorTitular;
+    }
+
+    public void setAdministradorTitular(Boolean administradorTitular) {
+        this.administradorTitular = administradorTitular;
     }
 
     public String getDataCriacao() {
