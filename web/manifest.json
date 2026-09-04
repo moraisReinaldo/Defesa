@@ -1,11 +1,11 @@
 {
-    "name": "defesa_civil_app",
-    "short_name": "defesa_civil_app",
+    "name": "Defesa em Foco",
+    "short_name": "Defesa em Foco",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Aplicativo Defesa em Foco.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

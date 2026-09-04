@@ -78,14 +78,14 @@ public class SuperAdminController {
     }
 
     /**
-     * Retorna a minuta/cláusula oficial de adesão do Trial de 90 dias formatada para esta cidade.
+     * Retorna a minuta/cláusula oficial de adesão do Trial de 120 dias formatada para esta cidade.
      */
     @GetMapping("/cidades/{id}/clausula-trial")
     public ResponseEntity<Map<String, String>> obterClausulaTrial(@PathVariable String id) {
         Cidade cidade = cidadeService.buscarPorId(id)
             .orElseThrow(() -> new IllegalArgumentException("Cidade não encontrada com ID: " + id));
 
-        String clausula = cidadeService.obterClausulaTrial90Dias(cidade.getNome(), cidade.getCodigo());
+        String clausula = cidadeService.obterClausulaTrial120Dias(cidade.getNome(), cidade.getCodigo());
         return ResponseEntity.ok(Map.of(
             "cidadeNome", cidade.getNome(),
             "codigo", cidade.getCodigo(),
@@ -94,29 +94,41 @@ public class SuperAdminController {
     }
 
     /**
-     * Aprova a cidade e ativa os 90 DIAS DE TRIAL PRO MUNICIPAL,
+     * Aprova a cidade e ativa os 120 DIAS DE TRIAL PRO MUNICIPAL,
      * ativando também todos os gestores pendentes vinculados à cidade.
      */
     @PostMapping("/cidades/{id}/aprovar")
     public ResponseEntity<?> aprovarCidade(@PathVariable String id) {
-        Cidade cidadeAprovada = cidadeService.aprovarCidadeComTrial90Dias(id);
+        Cidade cidadeAprovada = cidadeService.aprovarCidadeComTrial120Dias(id);
 
-        // Ativar gestores pendentes da cidade
+        // Somente o solicitante mais antigo vira o administrador titular.
         List<Usuario> gestores = usuarioRepository.findByCidadeIgnoreCaseAndRole(cidadeAprovada.getCodigo(), "ADMINISTRADOR");
-        for (Usuario g : gestores) {
-            if (Status.PENDENTE.name().equals(g.getStatus())) {
-                g.setStatus(Status.ATIVO.name());
-                usuarioRepository.save(g);
-            }
+        Usuario titular = gestores.stream()
+            .filter(g -> Status.PENDENTE.name().equals(g.getStatus()))
+            .min(Comparator.comparing(Usuario::getDataCriacao, Comparator.nullsLast(String::compareTo)))
+            .orElse(null);
+        if (titular != null) {
+            titular.setAdministradorTitular(true);
+            titular.setStatus(Status.ATIVO.name());
+            usuarioRepository.save(titular);
         }
 
-        String clausula = cidadeService.obterClausulaTrial90Dias(cidadeAprovada.getNome(), cidadeAprovada.getCodigo());
+        String clausula = cidadeService.obterClausulaTrial120Dias(cidadeAprovada.getNome(), cidadeAprovada.getCodigo());
 
         return ResponseEntity.ok(Map.of(
-            "message", "Cidade " + cidadeAprovada.getNome() + " homologada com sucesso! 90 dias de Trial PRO liberados.",
+            "message", "Cidade " + cidadeAprovada.getNome() + " homologada com sucesso! 120 dias de Trial PRO liberados.",
             "cidade", cidadeAprovada,
-            "gestoresAtivados", gestores.size(),
+            "gestoresAtivados", titular == null ? 0 : 1,
             "termoHomologacao", clausula
+        ));
+    }
+
+    @PostMapping("/cidades/{id}/trial-120")
+    public ResponseEntity<?> ativarTrial120Dias(@PathVariable String id) {
+        Cidade cidade = cidadeService.aprovarCidadeComTrial120Dias(id);
+        return ResponseEntity.ok(Map.of(
+            "message", "Trial PRO de 120 dias ativado para " + cidade.getNome() + ".",
+            "cidade", cidade
         ));
     }
 

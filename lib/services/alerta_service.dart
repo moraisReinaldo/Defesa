@@ -77,7 +77,7 @@ class AlertaService {
       return AlertaEmergencia.fromJson(res.data);
     } catch (e) {
       if (kDebugMode) print('🚨 Erro ao emitir alerta na API: $e');
-      return alerta; // Fallback para exibição em memória se endpoint ainda for implementado
+      return null;
     }
   }
 

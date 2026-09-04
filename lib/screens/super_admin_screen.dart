@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
 import '../services/api_service.dart';
+import '../providers/usuario_provider.dart';
 
 class SuperAdminScreen extends StatefulWidget {
   const SuperAdminScreen({super.key});
@@ -434,6 +435,25 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          Consumer<UsuarioProvider>(
+            builder: (context, usuario, _) {
+              final cidades = usuario.cidadesSuportadas;
+              final selecionada = usuario.cidadeSuperAdmin;
+              return DropdownButton<String>(
+                value: cidades.any((c) => c['codigo'] == selecionada) ? selecionada : null,
+                hint: const Text('Jurisdição', style: TextStyle(color: Colors.white)),
+                dropdownColor: Colors.white,
+                style: const TextStyle(color: Colors.black87),
+                underline: const SizedBox.shrink(),
+                iconEnabledColor: Colors.white,
+                items: cidades.map((cidade) => DropdownMenuItem<String>(
+                  value: cidade['codigo'],
+                  child: Text(cidade['nome'] ?? cidade['codigo'] ?? ''),
+                )).toList(),
+                onChanged: usuario.selecionarCidadeSuperAdmin,
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Recarregar Dados',
