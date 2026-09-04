@@ -39,7 +39,7 @@ public class PontoInteresseService {
     }
 
     public List<PontoInteresse> listarTodos() {
-        return repository.findAll();
+        return repository.findAll().stream().filter(PontoInteresse::isDisponivel).toList();
     }
 
     public List<PontoInteresse> listarPorCidade(String cidade) {
@@ -107,10 +107,12 @@ public class PontoInteresseService {
     public PontoInteresse atualizar(String id, PontoInteresse dados) {
         PontoInteresse existente = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Ponto de Interesse não encontrado: " + id));
+        validarRecursoLiberado(existente.getCidade());
         existente.setTipo(dados.getTipo());
         existente.setDescricao(dados.getDescricao());
         existente.setLatitude(dados.getLatitude());
         existente.setLongitude(dados.getLongitude());
+        existente.setDisponivel(dados.isDisponivel());
         if (dados.getCidade() != null) {
             String norm = normalizarCodigoCidade(dados.getCidade());
             existente.setCidade(norm);
@@ -122,9 +124,34 @@ public class PontoInteresseService {
     }
 
     public void deletar(String id) {
-        if (!repository.existsById(id)) {
-            throw new RuntimeException("Ponto de Interesse não encontrado: " + id);
-        }
+        PontoInteresse existente = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Ponto de Interesse não encontrado: " + id));
+        validarRecursoLiberado(existente.getCidade());
         repository.deleteById(id);
+    }
+
+    private void validarRecursoLiberado(String cidade) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSuperAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        if (!isSuperAdmin) {
+            cidadeService.buscarPorCodigo(normalizarCodigoCidade(cidade)).ifPresent(cid -> {
+                if (!cid.isRecursoPoiLiberado()) {
+                    throw new IllegalArgumentException(
+                        "Pontos de Apoio e Abrigos estão indisponíveis no plano atual do município.");
+                }
+            });
+        }
+
+    }
+
+    public void marcarIndisponiveisDaCidade(String cidade) {
+        String codigo = normalizarCodigoCidade(cidade);
+        if (codigo == null) return;
+        repository.findAllByCidadeFlexible(codigo, codigo, obterNomeCidade(codigo))
+            .forEach(ponto -> {
+                ponto.setDisponivel(false);
+                repository.save(ponto);
+            });
     }
 }

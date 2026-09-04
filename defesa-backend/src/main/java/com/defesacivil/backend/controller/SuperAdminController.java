@@ -101,14 +101,16 @@ public class SuperAdminController {
     public ResponseEntity<?> aprovarCidade(@PathVariable String id) {
         Cidade cidadeAprovada = cidadeService.aprovarCidadeComTrial120Dias(id);
 
-        // Ativar gestores pendentes da cidade
+        // Somente o solicitante mais antigo vira o administrador titular.
         List<Usuario> gestores = usuarioRepository.findByCidadeIgnoreCaseAndRole(cidadeAprovada.getCodigo(), "ADMINISTRADOR");
-        for (Usuario g : gestores) {
-            if (Status.PENDENTE.name().equals(g.getStatus())) {
-                g.setStatus(Status.ATIVO.name());
-                usuarioRepository.save(g);
-            }
-
+        Usuario titular = gestores.stream()
+            .filter(g -> Status.PENDENTE.name().equals(g.getStatus()))
+            .min(Comparator.comparing(Usuario::getDataCriacao, Comparator.nullsLast(String::compareTo)))
+            .orElse(null);
+        if (titular != null) {
+            titular.setAdministradorTitular(true);
+            titular.setStatus(Status.ATIVO.name());
+            usuarioRepository.save(titular);
         }
 
         String clausula = cidadeService.obterClausulaTrial120Dias(cidadeAprovada.getNome(), cidadeAprovada.getCodigo());
@@ -116,7 +118,7 @@ public class SuperAdminController {
         return ResponseEntity.ok(Map.of(
             "message", "Cidade " + cidadeAprovada.getNome() + " homologada com sucesso! 120 dias de Trial PRO liberados.",
             "cidade", cidadeAprovada,
-            "gestoresAtivados", gestores.size(),
+            "gestoresAtivados", titular == null ? 0 : 1,
             "termoHomologacao", clausula
         ));
     }
