@@ -546,8 +546,8 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
     
     await showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) {
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setStateDialog) {
           return AlertDialog(
             title: const Text('Localização Manual'),
             content: SizedBox(
@@ -643,7 +643,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text('Cancelar'),
               ),
               ElevatedButton(
@@ -685,10 +685,14 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                         }
                       }
                     });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Localização definida: ${cidade ?? "Desconhecida"}')),
-                    );
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Localização definida: ${cidade ?? "Desconhecida"}')),
+                      );
+                    }
                   }
                 },
                 child: const Text('Confirmar Local'),
@@ -792,11 +796,13 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                             firstDate: DateTime(2000),
                             lastDate: DateTime.now(),
                           );
-                          if (date != null && mounted) {
+                          if (!context.mounted) return;
+                          if (date != null) {
                             final time = await showTimePicker(
                               context: context,
                               initialTime: TimeOfDay.fromDateTime(_dataCustomizada ?? DateTime.now()),
                             );
+                            if (!context.mounted) return;
                             if (time != null) {
                               setState(() {
                                 _dataCustomizada = DateTime(date.year, date.month, date.day, time.hour, time.minute);

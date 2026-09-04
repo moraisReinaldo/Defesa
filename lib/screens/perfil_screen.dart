@@ -343,7 +343,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 onPressed: () {
                   final email = usuario.email;
                   final url = '${AppPagamentos.stripeLinkVitalicioSemAnuncios}?prefilled_email=${Uri.encodeComponent(email)}';
-                  launchUrl(Uri.parse(url));
+                  launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                 },
                 icon: const Icon(Icons.credit_card_rounded, size: 20),
                 label: const Text(
@@ -357,17 +357,16 @@ class _PerfilScreenState extends State<PerfilScreen> {
               child: TextButton.icon(
                 onPressed: () async {
                   final ok = await prov.ativarAcessoVitalicio();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(ok
-                            ? '⭐ Licença Vitalícia ativada com sucesso! Você nunca mais verá anúncios.'
-                            : '❌ Nenhum pagamento aprovado no Stripe foi encontrado para o seu e-mail (${usuario.email}). Conclua o pagamento pelo botão acima antes de ativar.'),
-                        backgroundColor: ok ? Colors.green : Colors.redAccent.shade700,
-                        duration: const Duration(seconds: 4),
-                      ),
-                    );
-                  }
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(ok
+                          ? '⭐ Licença Vitalícia ativada com sucesso! Você nunca mais verá anúncios.'
+                          : '❌ Nenhum pagamento aprovado no Stripe foi encontrado para o seu e-mail (${usuario.email}). Conclua o pagamento pelo botão acima antes de ativar.'),
+                      backgroundColor: ok ? Colors.green : Colors.redAccent.shade700,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.sync_rounded, size: 16, color: Colors.blueGrey),
                 label: const Text(
@@ -565,7 +564,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       nome: _nomeController.text,
                       telefone: _telefoneController.text,
                     );
-                    if (!context.mounted) return;
+                    if (!mounted) return;
                     if (ok) {
                       setState(() => _editando = false);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -618,7 +617,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           child: OutlinedButton.icon(
             onPressed: () async {
               await prov.logout();
-              if (!context.mounted) return;
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Desconectado')),
               );

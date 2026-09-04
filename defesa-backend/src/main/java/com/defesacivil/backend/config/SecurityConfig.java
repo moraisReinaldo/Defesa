@@ -28,7 +28,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final RateLimitingFilter rateLimitingFilter;
 
-    @Value("${spring.web.cors.allowed-origin-patterns:http://localhost:3000,http://localhost:8080,http://localhost:5173,https://localhost:3000,https://localhost:8080,https://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:8080,http://127.0.0.1:5173}")
+    @Value("${spring.web.cors.allowed-origin-patterns:http://localhost:3000,http://localhost:8080,http://localhost:5173,https://localhost:3000,https://localhost:8080,https://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:8080,http://127.0.0.1:5173,https://*.rhprogramer.com.br,https://rhprogramer.com.br}")
     private String allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, RateLimitingFilter rateLimitingFilter) {
