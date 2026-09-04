@@ -16,7 +16,7 @@ class SuperAdminScreen extends StatefulWidget {
 }
 
 class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerProviderStateMixin {
-  static const Duration _tempoLimiteCarregamento = Duration(seconds: 30);
+  static const Duration _tempoLimiteCarregamento = Duration(seconds: 10);
 
   late TabController _tabController;
   bool _carregandoPendentes = true;
@@ -25,6 +25,41 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
   int _requisicaoAtual = 0;
   List<Map<String, dynamic>> _pendentes = [];
   List<Map<String, dynamic>> _todas = [];
+
+  /// Retorna exclusivamente as cidades que já se cadastraram no sistema
+  List<Map<String, String>> get _cidadesCadastradas {
+    final Map<String, String> unicas = {};
+
+    // 1. Cidades cadastradas e homologadas
+    for (final item in _todas) {
+      final c = item['cidade'];
+      if (c is Map) {
+        final cod = c['codigo']?.toString().trim().toUpperCase();
+        final nome = c['nome']?.toString().trim();
+        if (cod != null && cod.isNotEmpty) {
+          unicas[cod] = (nome != null && nome.isNotEmpty) ? nome : cod;
+        }
+      }
+    }
+
+    // 2. Cidades que já se cadastraram mas estão pendentes
+    for (final item in _pendentes) {
+      final c = item['cidade'];
+      if (c is Map) {
+        final cod = c['codigo']?.toString().trim().toUpperCase();
+        final nome = c['nome']?.toString().trim();
+        if (cod != null && cod.isNotEmpty && !unicas.containsKey(cod)) {
+          unicas[cod] = (nome != null && nome.isNotEmpty) ? '$nome (Pendente)' : cod;
+        }
+      }
+    }
+
+    final lista = unicas.entries
+        .map((e) => {'codigo': e.key, 'nome': e.value})
+        .toList();
+    lista.sort((a, b) => a['nome']!.toLowerCase().compareTo(b['nome']!.toLowerCase()));
+    return lista;
+  }
 
   @override
   void initState() {
@@ -56,21 +91,25 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
         if (mounted && requisicao == _requisicaoAtual) {
           setState(() {
             _pendentes = resultado;
-            _carregandoPendentes = false;
           });
         }
       } catch (e) {
         if (mounted && requisicao == _requisicaoAtual) {
           final mensagem = e is TimeoutException
-              ? 'O servidor demorou para responder aos pendentes.'
+              ? 'Tempo limite ao carregar prefeituras pendentes.'
               : 'Não foi possível carregar as prefeituras pendentes.';
           setState(() {
-            _carregandoPendentes = false;
-            _erroCarregamento = mensagem;
+            _erroCarregamento ??= mensagem;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(mensagem), backgroundColor: Colors.red),
           );
+        }
+      } finally {
+        if (mounted && requisicao == _requisicaoAtual) {
+          setState(() {
+            _carregandoPendentes = false;
+          });
         }
       }
     }
@@ -83,23 +122,25 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
         if (mounted && requisicao == _requisicaoAtual) {
           setState(() {
             _todas = resultado;
-            _carregandoTodas = false;
           });
         }
       } catch (e) {
         if (mounted && requisicao == _requisicaoAtual) {
           final mensagem = e is TimeoutException
-              ? 'O servidor demorou para responder às cidades.'
+              ? 'Tempo limite ao carregar cidades cadastradas.'
               : 'Não foi possível carregar todas as cidades.';
           setState(() {
-            _carregandoTodas = false;
-            if (!_carregandoPendentes) {
-              _erroCarregamento = mensagem;
-            }
+            _erroCarregamento ??= mensagem;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(mensagem), backgroundColor: Colors.red),
           );
+        }
+      } finally {
+        if (mounted && requisicao == _requisicaoAtual) {
+          setState(() {
+            _carregandoTodas = false;
+          });
         }
       }
     }
@@ -119,7 +160,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
 
     // Buscar a cláusula oficial mastigada gerada pelo backend
     String? clausula = await apiService.obterClausulaTrialSuper(cidadeId);
-    clausula ??= 'Termo de Homologação de 90 Dias de Trial PRO para $cidadeNome ($cidadeCodigo).';
+    clausula ??= 'Termo de Homologação de 120 Dias de Trial PRO para $cidadeNome ($cidadeCodigo).';
 
     if (!mounted) return;
 
@@ -150,7 +191,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Termo de Concessão • 90 Dias de Trial PRO',
+                      'Termo de Concessão • 120 Dias de Trial PRO',
                       style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -189,7 +230,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
                         Icon(Icons.checklist_rounded, color: Colors.blue, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          'ROTEIRO MASTIGADO DA OPERAÇÃO (90 DIAS)',
+                          'ROTEIRO MASTIGADO DA OPERAÇÃO (120 DIAS)',
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue),
                         ),
                       ],
@@ -200,7 +241,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
                       runSpacing: 6,
                       children: [
                         _buildBadgeItem(Icons.verified_rounded, 'Plano PRO Ativado', Colors.green),
-                        _buildBadgeItem(Icons.calendar_month_rounded, '90 Dias Corridos', Colors.indigo),
+                        _buildBadgeItem(Icons.calendar_month_rounded, '120 Dias Corridos', Colors.indigo),
                         _buildBadgeItem(Icons.money_off_rounded, 'Custo R\$ 0,00 (Gratuito)', Colors.teal),
                         _buildBadgeItem(Icons.people_rounded, 'Até 5 Gestores + Agentes Ilimitados', Colors.deepOrange),
                         _buildBadgeItem(Icons.block_rounded, 'Zero Anúncios na Cidade', Colors.purple),
@@ -224,7 +265,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
                       Clipboard.setData(ClipboardData(text: clausula!));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Termo formal dos 90 dias copiado com sucesso! 📋'),
+                          content: Text('Termo formal dos 120 dias copiado com sucesso! 📋'),
                           backgroundColor: Colors.green,
                         ),
                       );
@@ -260,7 +301,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
               ),
               const SizedBox(height: 12),
 
-              // Aviso sobre o pós-90 dias
+              // Aviso sobre o pós-120 dias
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -304,7 +345,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Município $cidadeNome homologado! 90 dias de Trial PRO liberados! ✅'),
+                      content: Text('Município $cidadeNome homologado! 120 dias de Trial PRO liberados! ✅'),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -319,7 +360,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
               }
             },
             icon: const Icon(Icons.check_circle_rounded),
-            label: const Text('Homologar e Iniciar 90 Dias PRO', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text('Homologar e Iniciar 120 Dias PRO', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -437,20 +478,107 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
         actions: [
           Consumer<UsuarioProvider>(
             builder: (context, usuario, _) {
-              final cidades = usuario.cidadesSuportadas;
+              final cidades = _cidadesCadastradas;
               final selecionada = usuario.cidadeSuperAdmin;
-              return DropdownButton<String>(
-                value: cidades.any((c) => c['codigo'] == selecionada) ? selecionada : null,
-                hint: const Text('Jurisdição', style: TextStyle(color: Colors.white)),
-                dropdownColor: Colors.white,
-                style: const TextStyle(color: Colors.black87),
-                underline: const SizedBox.shrink(),
-                iconEnabledColor: Colors.white,
-                items: cidades.map((cidade) => DropdownMenuItem<String>(
-                  value: cidade['codigo'],
-                  child: Text(cidade['nome'] ?? cidade['codigo'] ?? ''),
-                )).toList(),
-                onChanged: usuario.selecionarCidadeSuperAdmin,
+              final temCidadeSelecionada = selecionada != null && cidades.any((c) => c['codigo'] == selecionada);
+
+              return PopupMenuButton<String?>(
+                tooltip: 'Escolher Cidade para Representar',
+                offset: const Offset(0, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                icon: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_city_rounded, color: Colors.amberAccent, size: 18),
+                      const SizedBox(width: 6),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 140),
+                        child: Text(
+                          temCidadeSelecionada
+                              ? cidades.firstWhere((c) => c['codigo'] == selecionada)['nome']!
+                              : 'Representar',
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down_rounded, color: Colors.white70, size: 20),
+                    ],
+                  ),
+                ),
+                onSelected: (cod) {
+                  usuario.selecionarCidadeSuperAdmin(cod);
+                },
+                itemBuilder: (context) {
+                  if (cidades.isEmpty) {
+                    return [
+                      const PopupMenuItem<String?>(
+                        value: null,
+                        enabled: false,
+                        child: Text(
+                          'Nenhuma cidade cadastrada ainda',
+                          style: TextStyle(fontSize: 13, color: Colors.grey),
+                        ),
+                      ),
+                    ];
+                  }
+
+                  return [
+                    PopupMenuItem<String?>(
+                      value: '',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.public_rounded,
+                            size: 18,
+                            color: selecionada == null || selecionada.isEmpty ? AppColors.primaryTeal : Colors.grey,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Visão Geral (Todas)',
+                            style: TextStyle(
+                              fontWeight: selecionada == null || selecionada.isEmpty ? FontWeight.bold : FontWeight.normal,
+                              color: selecionada == null || selecionada.isEmpty ? AppColors.primaryTeal : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    ...cidades.map((c) {
+                      final isSelected = selecionada == c['codigo'];
+                      return PopupMenuItem<String?>(
+                        value: c['codigo'],
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 18,
+                              color: isSelected ? AppColors.primaryTeal : Colors.transparent,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${c['nome']} (${c['codigo']})',
+                                style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? AppColors.primaryTeal : Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ];
+                },
               );
             },
           ),
@@ -477,9 +605,9 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
           ],
         ),
       ),
-      body: _carregandoPendentes && _carregandoTodas
+      body: (_carregandoPendentes && _carregandoTodas)
           ? const Center(child: CircularProgressIndicator())
-          : _erroCarregamento != null && _carregandoPendentes
+          : (_erroCarregamento != null && _pendentes.isEmpty && _todas.isEmpty)
               ? _buildErroCarregamento()
               : TabBarView(
                   controller: _tabController,
@@ -631,7 +759,7 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
                     ),
                     onPressed: () => _mostrarClausulaEHomologar(item),
                     icon: const Icon(Icons.verified_user_rounded, color: Colors.amberAccent),
-                    label: const Text('Ver Cláusula dos 90 Dias & Homologar', style: TextStyle(fontWeight: FontWeight.bold)),
+                    label: const Text('Ver Cláusula dos 120 Dias & Homologar', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -645,6 +773,36 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
   Widget _buildTabTodas() {
     if (_carregandoTodas) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_todas.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.location_city_rounded, size: 64, color: Colors.grey.shade400),
+              const SizedBox(height: 16),
+              const Text(
+                'Nenhuma cidade cadastrada ainda',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Os municípios aparecerão aqui conforme forem cadastrados e homologados.',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _carregarDados,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Recarregar'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return ListView.builder(

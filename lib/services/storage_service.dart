@@ -29,11 +29,19 @@ class StorageService {
   }
 
   String? obterCidadeSuperAdmin() {
-    return _prefs.getString(_superAdminCidadeKey);
+    final val = _prefs.getString(_superAdminCidadeKey);
+    return (val != null && val.isNotEmpty) ? val : null;
   }
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    // Auto-recuperação: se SharedPreferences foi limpo, restaura vitalício do SecureStorage
+    if (_prefs.getBool(_vitalicioKey) != true) {
+      final secureVal = await _secureStorage.read(key: _vitalicioKey);
+      if (secureVal == 'true') {
+        await _prefs.setBool(_vitalicioKey, true);
+      }
+    }
   }
 
   // ========== TOKEN (SECURE) ==========

@@ -73,7 +73,7 @@ enum StatusCidade {
       case StatusCidade.pendenteAprovacao:
         return 'Pendente de Aprovação';
       case StatusCidade.trialAtivo:
-        return 'Trial PRO Ativo (90 Dias)';
+        return 'Trial PRO Ativo (120 Dias)';
       case StatusCidade.contratoAtivo:
         return 'Contrato Ativo';
       case StatusCidade.expirado:

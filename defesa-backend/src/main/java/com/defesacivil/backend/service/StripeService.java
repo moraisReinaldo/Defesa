@@ -84,7 +84,8 @@ public class StripeService {
 
                     if (emailBusca.equalsIgnoreCase(customerEmail)) {
                         String paymentStatus = session.getPaymentStatus();
-                        if ("paid".equalsIgnoreCase(paymentStatus)) {
+                        boolean isAssinatura = "subscription".equalsIgnoreCase(session.getMode());
+                        if ("paid".equalsIgnoreCase(paymentStatus) && !isAssinatura) {
                             log.info("[STRIPE] Pagamento vitalício confirmado via Checkout Session {} para e-mail: {}",
                                 session.getId(), emailBusca);
                             return true;
@@ -111,7 +112,8 @@ public class StripeService {
                     SessionCollection custSessions = Session.list(customerSessionParams);
                     if (custSessions != null && custSessions.getData() != null) {
                         for (Session custSession : custSessions.getData()) {
-                            if ("paid".equalsIgnoreCase(custSession.getPaymentStatus())) {
+                            boolean isAssinatura = "subscription".equalsIgnoreCase(custSession.getMode());
+                            if ("paid".equalsIgnoreCase(custSession.getPaymentStatus()) && !isAssinatura) {
                                 log.info("[STRIPE] Pagamento vitalício confirmado via Customer {} para e-mail: {}",
                                     customer.getId(), emailBusca);
                                 return true;

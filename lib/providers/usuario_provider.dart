@@ -77,9 +77,10 @@ class UsuarioProvider extends ChangeNotifier {
   }
 
   Future<void> selecionarCidadeSuperAdmin(String? codigo) async {
-    if (!isSuperAdmin || codigo == null || codigo.isEmpty) return;
-    _cidadeSuperAdmin = codigo;
-    await _storageService.salvarCidadeSuperAdmin(codigo);
+    if (!isSuperAdmin) return;
+    final novoCodigo = (codigo != null && codigo.trim().isNotEmpty) ? codigo.trim() : null;
+    _cidadeSuperAdmin = novoCodigo;
+    await _storageService.salvarCidadeSuperAdmin(novoCodigo ?? '');
     notifyListeners();
   }
 
@@ -369,6 +370,8 @@ class UsuarioProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Revogar JWT no backend antes de limpar token local (silencioso se falhar)
+    await _apiService.logout();
     await _storageService.limparSessao();
     // Limpar prefer\u00eancias do Hive ao sair [CR2 - Recursos Nativos]
     await _hiveService.limparPreferencias();

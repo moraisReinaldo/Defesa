@@ -309,7 +309,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
               // Banner de Coordenador Pendente de Homologação
               if (isPendente)
                 _buildBannerPendente(context, userProvider.usuarioLogado?.nome ?? 'Coordenador', cidadeNome)
-              // Banner com Régua de Contagem Regressiva do Trial PRO (90 dias)
+              // Banner com Régua de Contagem Regressiva do Trial PRO (120 dias)
               else if (cidadeProv.isTrialAtivo)
                 _buildBannerTrial(context, cidadeProv.diasRestantesTrial, cidadeNome, cidadeCodigo ?? ''),
 
@@ -1025,7 +1025,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'O acesso web para telas de gabinete e centros integrados de comando é liberado para cidades com o Plano PRO Municipal ativo (ou durante o período de 90 dias de Avaliação PRO gratuita).\n\n'
+                'O acesso web para telas de gabinete e centros integrados de comando é liberado para cidades com o Plano PRO Municipal ativo (ou durante o período de 120 dias de Avaliação PRO gratuita).\n\n'
                 'Você pode acessar todas as funcionalidades básicas pelo aplicativo móvel oficial ou formalizar a adesão PRO do seu município.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13, height: 1.5),
@@ -1125,7 +1125,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Olá $nome! O cadastro de $cidadeNome foi enviado para homologação. Assim que aprovado pelo Super Admin, seus 90 dias de Avaliação PRO com agentes e alertas serão iniciados automaticamente.',
+                  'Olá $nome! O cadastro de $cidadeNome foi enviado para homologação. Assim que aprovado pelo Super Admin, seus 120 dias de Avaliação PRO com agentes e alertas serão iniciados automaticamente.',
                   style: TextStyle(fontSize: 12, color: Colors.brown.shade800, height: 1.3),
                 ),
               ],
@@ -1251,7 +1251,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
         ),
         content: const Text(
           'Este recurso operacional está bloqueado temporariamente enquanto o cadastro do seu município aguarda aprovação pelo Super Admin.\n\n'
-          'Assim que aprovado, seus 90 dias de Avaliação PRO com agentes ilimitados, alertas e exportação oficial serão destravados automaticamente.',
+          'Assim que aprovado, seus 120 dias de Avaliação PRO com agentes ilimitados, alertas e exportação oficial serão destravados automaticamente.',
           style: TextStyle(fontSize: 13, height: 1.4),
         ),
         actions: [

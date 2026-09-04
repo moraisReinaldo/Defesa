@@ -7,7 +7,7 @@ import '../models/usuario.dart';
 ///
 /// Governança por Plano de Município:
 /// - Plano Base (Gratuito) ou Expirado: Anúncios ativos (feed e detalhes da ocorrência).
-/// - Plano Gestão Municipal, PRO ou Trial PRO (90 Dias): ZERO ANÚNCIOS para toda a cidade.
+/// - Plano Gestão Municipal, PRO ou Trial PRO (120 Dias): ZERO ANÚNCIOS para toda a cidade.
 /// - Super Admin: ZERO ANÚNCIOS sempre.
 /// - Anúncios de tela cheia (Interstitial) FORAM REMOVIDOS para manter a usabilidade perfeita.
 class AdService extends ChangeNotifier {
@@ -41,7 +41,7 @@ class AdService extends ChangeNotifier {
     // 2. Se não houver cidade definida, assume Plano Base (exibe)
     if (cidadeAtiva == null) return true;
 
-    // 3. Se estiver em Trial PRO de 90 dias ativo -> ZERO ANÚNCIOS
+    // 3. Se estiver em Trial PRO de 120 dias ativo -> ZERO ANÚNCIOS
     if (cidadeAtiva.isTrialAtivo) return false;
 
     // 4. Se o plano for Gestão Municipal ou PRO Municipal -> ZERO ANÚNCIOS

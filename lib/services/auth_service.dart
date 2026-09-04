@@ -145,4 +145,14 @@ class AuthService {
       return false;
     }
   }
+
+  /// Revoga o token JWT no backend (blacklist) antes do logout local.
+  Future<void> logout() async {
+    try {
+      await _client.dio.post('/auth/logout');
+    } catch (e) {
+      // Silencioso: se falhar (ex: sem internet), o logout local ainda prossegue
+      if (kDebugMode) print('⚠️ Logout remoto falhou (token expirará naturalmente): $e');
+    }
+  }
 }

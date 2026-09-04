@@ -29,6 +29,7 @@ public class Usuario {
     private String senha;
     private String cidade;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cidade_id")
     private Cidade cidadeEntidade;

@@ -51,7 +51,10 @@ class CidadeService {
     try {
       final response = await _client.dio.get('/super/cidades/pendentes');
       if (response.statusCode == 200 && response.data is List) {
-        return List<Map<String, dynamic>>.from(response.data);
+        return (response.data as List)
+            .map((item) => item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{})
+            .where((m) => m.isNotEmpty)
+            .toList();
       }
       return [];
     } catch (e) {
@@ -65,7 +68,10 @@ class CidadeService {
     try {
       final response = await _client.dio.get('/super/cidades');
       if (response.statusCode == 200 && response.data is List) {
-        return List<Map<String, dynamic>>.from(response.data);
+        return (response.data as List)
+            .map((item) => item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{})
+            .where((m) => m.isNotEmpty)
+            .toList();
       }
       return [];
     } catch (e) {
@@ -74,7 +80,7 @@ class CidadeService {
     }
   }
 
-  /// Obtém a minuta da cláusula jurídica mastigada dos 90 dias para esta cidade
+  /// Obtém a minuta da cláusula jurídica mastigada dos 120 dias para esta cidade
   Future<String?> obterClausulaTrialSuper(String cidadeId) async {
     try {
       final response = await _client.dio.get('/super/cidades/$cidadeId/clausula-trial');
@@ -88,7 +94,7 @@ class CidadeService {
     }
   }
 
-  /// Homologa a cidade e ativa os 90 dias de Trial PRO
+  /// Homologa a cidade e ativa os 120 dias de Trial PRO
   Future<Map<String, dynamic>?> aprovarCidadeSuper(String cidadeId) async {
     try {
       final response = await _client.dio.post('/super/cidades/$cidadeId/aprovar');
