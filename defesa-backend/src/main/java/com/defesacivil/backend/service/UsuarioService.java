@@ -77,10 +77,14 @@ public class UsuarioService {
 
         // Prevenir Role Injection: apenas admins autenticados podem criar outros admins/agentes
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isSolicitanteAdmin = auth != null && auth.isAuthenticated() &&
-            auth.getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_ADMINISTRADOR") ||
-                a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        boolean isSuperAdminSolicitante = auth != null && auth.isAuthenticated() &&
+            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        boolean isSolicitanteAdmin = isSuperAdminSolicitante;
+        if (!isSolicitanteAdmin && auth != null && auth.isAuthenticated() &&
+            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"))) {
+            Usuario solicitante = repository.findByEmail(auth.getName()).orElse(null);
+            isSolicitanteAdmin = solicitante != null && solicitante.getAdministradorTitular();
+        }
 
         if (!isSolicitanteAdmin) {
             if (roleReq == Role.AGENTE) {
@@ -96,8 +100,7 @@ public class UsuarioService {
             ? Status.PENDENTE : Status.ATIVO;
 
         String cidNorm = normalizarCodigoCidade(request.getCidade());
-        if (isSolicitanteAdmin && roleReq != Role.CIDADAO &&
-            auth.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"))) {
+        if (isSolicitanteAdmin && roleReq != Role.CIDADAO && !isSuperAdminSolicitante) {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null && admin.getCidade() != null && !admin.getCidade().isBlank()) {
