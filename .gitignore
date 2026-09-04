@@ -129,6 +129,7 @@ android/local.properties
 
 # Backend sensitive configs (use env vars in production)
 **/application.properties
+**/application-local.properties
 **/application-prod.properties
 **/application-secret.properties
 

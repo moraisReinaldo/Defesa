@@ -5,7 +5,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.defesacivil.backend.domain.Cidade;
+import com.defesacivil.backend.dto.CidadeRequest;
 import com.defesacivil.backend.service.CidadeService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,15 +44,18 @@ public class CidadeController {
     }
 
     @PostMapping
-    public ResponseEntity<Cidade> criar(@RequestBody Cidade cidade) {
+    public ResponseEntity<Cidade> criar(@Valid @RequestBody CidadeRequest request) {
+        Cidade cidade = new Cidade();
+        cidade.setNome(request.getNome());
+        cidade.setCodigo(request.getCodigo());
         return ResponseEntity.ok(service.salvar(cidade));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Cidade> atualizar(@PathVariable String id, @RequestBody Cidade cidade) {
+    public ResponseEntity<Cidade> atualizar(@PathVariable String id, @Valid @RequestBody CidadeRequest request) {
         return service.buscarPorId(id).map(existente -> {
-            existente.setNome(cidade.getNome());
-            existente.setCodigo(cidade.getCodigo());
+            existente.setNome(request.getNome());
+            existente.setCodigo(request.getCodigo());
             return ResponseEntity.ok(service.salvar(existente));
         }).orElse(ResponseEntity.notFound().build());
     }

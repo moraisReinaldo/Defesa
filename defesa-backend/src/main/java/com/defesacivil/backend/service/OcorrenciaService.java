@@ -86,9 +86,30 @@ public class OcorrenciaService {
 
     @Transactional(readOnly = true)
     public Ocorrencia buscarPorId(String id) {
-        return ocorrenciaRepository.findById(id)
-                .map(this::processarUrl)
-                .orElse(null);
+        Ocorrencia ocorrencia = ocorrenciaRepository.findById(id).orElse(null);
+        if (ocorrencia == null) {
+            return null;
+        }
+
+        if (isSuperAdmin()) {
+            return processarUrl(ocorrencia);
+        }
+
+        if (hasAnyRole("ADMINISTRADOR", "AGENTE")) {
+            checkJurisdiction(ocorrencia.getCidade());
+            return processarUrl(ocorrencia);
+        }
+
+        String currentUserId = getAuthenticatedUserId();
+        if (currentUserId != null && currentUserId.equals(ocorrencia.getUsuarioId())) {
+            return processarUrl(ocorrencia);
+        }
+
+        if (!isOcorrenciaPublica(ocorrencia)) {
+            return null;
+        }
+
+        return ocultarDadosSensiveisPublicos(processarUrl(ocorrencia));
     }
 
     public Ocorrencia registrarOcorrencia(OcorrenciaRequest request) {
@@ -171,8 +192,7 @@ public class OcorrenciaService {
         // Upload de foto Base64 para MinIO
         String foto = request.getCaminhoFoto();
         if (foto != null && foto.startsWith("data:image")) {
-            String objectKey = minioService.uploadBase64Image(foto, "ocorrencias");
-            oc.setCaminhoFoto(objectKey != null ? objectKey : foto);
+            oc.setCaminhoFoto(minioService.uploadBase64Image(foto, "ocorrencias"));
         } else {
             oc.setCaminhoFoto(foto);
         }
@@ -358,8 +378,19 @@ public class OcorrenciaService {
         if (request.getStatus() != null && hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN")) {
             oc.setStatus(request.getStatus().toUpperCase());
         }
-        if (request.getCidade() != null) {
+        if (request.getCidade() != null && !request.getCidade().isBlank()) {
             String cidadeEditada = normalizarCodigoCidade(request.getCidade());
+            String cidadeOriginal = normalizarCodigoCidade(oc.getCidade());
+            boolean cidadeAlterada = cidadeEditada != null && !cidadeEditada.equalsIgnoreCase(cidadeOriginal);
+            if (cidadeAlterada) {
+                if (isSuperAdmin()) {
+                    // SUPER_ADMIN pode realocar a ocorrência.
+                } else if (hasAnyRole("ADMINISTRADOR", "AGENTE")) {
+                    checkJurisdiction(cidadeEditada);
+                } else {
+                    throw new SecurityException("A cidade da ocorrência não pode ser alterada por este usuário.");
+                }
+            }
             oc.setCidade(cidadeEditada);
             if (cidadeEditada != null) {
                 cidadeService.buscarPorCodigo(cidadeEditada).ifPresent(oc::setCidadeEntidade);
@@ -376,8 +407,7 @@ public class OcorrenciaService {
         if (request.getCaminhoFoto() != null && !request.getCaminhoFoto().isBlank()) {
             String foto = request.getCaminhoFoto();
             if (foto.startsWith("data:image")) {
-                String objectKey = minioService.uploadBase64Image(foto, "ocorrencias");
-                oc.setCaminhoFoto(objectKey != null ? objectKey : foto);
+                oc.setCaminhoFoto(minioService.uploadBase64Image(foto, "ocorrencias"));
             } else {
                 oc.setCaminhoFoto(foto);
             }
@@ -525,6 +555,28 @@ public class OcorrenciaService {
             maxIterations--;
         } while (!text.equals(previous) && maxIterations > 0);
         return text;
+    }
+
+    private String getAuthenticatedUserId() {
+        String email = getAuthenticatedEmail();
+        if (email == null || "anonymousUser".equals(email)) {
+            return null;
+        }
+        return usuarioRepository.findByEmail(email)
+            .map(Usuario::getId)
+            .orElse(null);
+    }
+
+    private boolean isOcorrenciaPublica(Ocorrencia ocorrencia) {
+        return ocorrencia.getStatus() == null
+            || (!OcorrenciaStatus.PENDENTE_APROVACAO.name().equalsIgnoreCase(ocorrencia.getStatus())
+            && !OcorrenciaStatus.RECUSADA.name().equalsIgnoreCase(ocorrencia.getStatus()));
+    }
+
+    private Ocorrencia ocultarDadosSensiveisPublicos(Ocorrencia ocorrencia) {
+        ocorrencia.setAutor(null);
+        ocorrencia.setUsuarioId(null);
+        return ocorrencia;
     }
 
     /**

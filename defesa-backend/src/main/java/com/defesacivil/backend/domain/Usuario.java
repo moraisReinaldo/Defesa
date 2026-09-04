@@ -1,6 +1,7 @@
 package com.defesacivil.backend.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,6 +22,7 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
     private String nome;
+    @Column(unique = true, nullable = false)
     private String email;
     private String telefone;
     @JsonIgnore

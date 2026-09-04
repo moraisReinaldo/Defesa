@@ -99,12 +99,8 @@ public class UsuarioController {
     @PostMapping("/esqueci-senha")
     public ResponseEntity<?> solicitarReset(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
-        boolean sucesso = usuarioService.solicitarResetSenha(email);
-        if (sucesso) {
-            return ResponseEntity.ok(Map.of("message", "Um código de recuperação foi enviado para seu e-mail."));
-        } else {
-            return ResponseEntity.status(404).body(Map.of("message", "E-mail não encontrado no sistema."));
-        }
+        usuarioService.solicitarResetSenha(email);
+        return ResponseEntity.ok(Map.of("message", "Se o e-mail estiver cadastrado, um código de recuperação será enviado."));
     }
 
     /** Resetar senha com código (PÚBLICO) */

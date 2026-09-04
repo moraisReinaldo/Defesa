@@ -85,9 +85,11 @@ public class MinioService {
             );
 
             return objectKey;
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Erro ao fazer upload para o MinIO: {}", e.getMessage(), e);
-            return null;
+            throw new IllegalStateException("Falha ao enviar imagem para armazenamento. Tente novamente.");
         }
     }
 

@@ -35,7 +35,8 @@ public class AuthController {
             Usuario usuarioSalvo = usuarioService.cadastrarUsuario(request);
 
             boolean isPendente = Status.PENDENTE.name().equals(usuarioSalvo.getStatus());
-            String token = jwtService.generateToken(usuarioSalvo.getEmail(), usuarioSalvo.getRole());
+            boolean usuarioAtivo = Status.ATIVO.name().equalsIgnoreCase(usuarioSalvo.getStatus());
+            String token = usuarioAtivo ? jwtService.generateToken(usuarioSalvo.getEmail(), usuarioSalvo.getRole()) : null;
             usuarioSalvo.setSenha(null);
 
             Map<String, Object> response = new HashMap<>();
@@ -64,23 +65,25 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Email e senha são obrigatórios"));
         }
 
-        Optional<Usuario> usuarioOpt = usuarioService.login(email, senha);
-        if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
+        UsuarioService.LoginAttemptResult loginResult = usuarioService.validarLogin(email, senha);
+        if (loginResult.isBlocked()) {
+            boolean isPendente = Status.PENDENTE.name().equalsIgnoreCase(loginResult.usuario().getStatus());
+            return ResponseEntity.status(403).body(Map.of(
+                "message", loginResult.blockedMessage(),
+                "pendente", isPendente,
+                "sucesso", false
+            ));
+        }
 
-            boolean isPendente = Status.PENDENTE.name().equals(usuario.getStatus());
-
+        if (loginResult.isAuthenticated()) {
+            Usuario usuario = loginResult.usuario();
             String token = jwtService.generateToken(usuario.getEmail(), usuario.getRole());
             usuario.setSenha(null);
 
             Map<String, Object> response = new HashMap<>();
             response.put("usuario", usuario);
             response.put("token", token);
-            response.put("pendente", isPendente);
-
-            if (isPendente) {
-                response.put("message", "Login realizado. Seu município aguarda homologação pelo Super Admin.");
-            }
+            response.put("pendente", false);
 
             return ResponseEntity.ok(response);
         }

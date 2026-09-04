@@ -9,6 +9,7 @@ import com.defesacivil.backend.repository.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -60,13 +61,7 @@ public class UsuarioService {
             throw new RuntimeException("É obrigatório concordar com os Termos de Privacidade (LGPD).");
         }
 
-        // Validação de senha
-        if (request.getSenha() == null || request.getSenha().isBlank()) {
-            throw new RuntimeException("A senha é obrigatória");
-        }
-        if (request.getSenha().length() < 6) {
-            throw new RuntimeException("A senha deve ter no mínimo 6 caracteres");
-        }
+        validarSenhaMinima(request.getSenha());
 
         Role roleReq;
         try {
@@ -142,7 +137,12 @@ public class UsuarioService {
         usuario.setRole(roleReq.name());
         usuario.setStatus(statusInicial.name());
 
-        Usuario salvo = repository.save(usuario);
+        Usuario salvo;
+        try {
+            salvo = repository.saveAndFlush(usuario);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("E-mail já cadastrado!");
+        }
 
         if (roleReq == Role.ADMINISTRADOR && !isSolicitanteAdmin) {
             emailService.enviarEmailAprovacaoAdmin(salvo);
@@ -151,10 +151,33 @@ public class UsuarioService {
         return salvo;
     }
 
-    public Optional<Usuario> login(String email, String senhaDigitada) {
-        return repository.findByEmail(email)
-            .filter(u -> !"BLOQUEADO".equalsIgnoreCase(u.getStatus()))
+    public LoginAttemptResult validarLogin(String email, String senhaDigitada) {
+        Optional<Usuario> usuarioOpt = repository.findByEmail(email)
             .filter(u -> passwordEncoder.matches(senhaDigitada, u.getSenha()));
+
+        if (usuarioOpt.isEmpty()) {
+            return LoginAttemptResult.invalid();
+        }
+
+        Usuario usuario = usuarioOpt.get();
+        if (!Status.ATIVO.name().equalsIgnoreCase(usuario.getStatus())) {
+            return LoginAttemptResult.blocked(usuario, obterMensagemStatusNaoAtivo(usuario.getStatus()));
+        }
+
+        return LoginAttemptResult.success(usuario);
+    }
+
+    private String obterMensagemStatusNaoAtivo(String status) {
+        if (status == null || status.isBlank()) {
+            return "Sua conta não está ativa.";
+        }
+
+        return switch (status.trim().toUpperCase()) {
+            case "PENDENTE" -> "Seu cadastro está pendente de aprovação.";
+            case "BLOQUEADO" -> "Sua conta está bloqueada.";
+            case "REJEITADO" -> "Seu cadastro foi rejeitado.";
+            default -> "Sua conta não está ativa.";
+        };
     }
 
     @Transactional(readOnly = true)
@@ -164,7 +187,12 @@ public class UsuarioService {
 
     @Transactional(readOnly = true)
     public Usuario buscarPorId(String id) {
-        return repository.findById(id).orElse(null);
+        Usuario usuario = repository.findById(id).orElse(null);
+        if (usuario == null) {
+            return null;
+        }
+        validarAcessoLeituraUsuario(usuario);
+        return usuario;
     }
 
     /**
@@ -183,25 +211,25 @@ public class UsuarioService {
     }
 
     public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
-        String adminCity = null;
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
-            
-        if (isAdmin && auth != null) {
-            String adminEmail = auth.getName();
-            Usuario admin = repository.findByEmail(adminEmail).orElse(null);
-            if (admin != null) {
-                adminCity = admin.getCidade();
-            }
-        }
+        boolean isAgente = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_AGENTE"));
+        boolean isSuperAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
 
-        // Se for admin e tiver cidade, ignora o parâmetro e força a busca na jurisdição
         String cidadeBusca;
-        if (adminCity != null && !adminCity.trim().isEmpty()) {
-            cidadeBusca = normalizarCodigoCidade(adminCity);
-        } else {
+        if (isSuperAdmin) {
             cidadeBusca = normalizarCodigoCidade(cidade);
+        } else {
+            Usuario usuarioAutenticado = obterUsuarioAutenticado(auth);
+            if ((isAdmin || isAgente) && (usuarioAutenticado == null || usuarioAutenticado.getCidade() == null || usuarioAutenticado.getCidade().isBlank())) {
+                return List.of();
+            }
+            cidadeBusca = (isAdmin || isAgente)
+                ? normalizarCodigoCidade(usuarioAutenticado.getCidade())
+                : normalizarCodigoCidade(cidade);
         }
 
         return repository.findByCidadeAndRole(cidadeBusca, role);
@@ -307,13 +335,14 @@ public class UsuarioService {
         Usuario usuario = repository.findById(id)
             .orElseThrow(() -> new RuntimeException("Usuário não encontrado!"));
 
-        // Apenas o próprio usuário ou um admin pode editar
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isSuperAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
         boolean isProprio = auth != null && auth.getName().equals(usuario.getEmail());
 
-        if (!isAdmin && !isProprio) {
+        if (!isAdmin && !isSuperAdmin && !isProprio) {
             throw new SecurityException("Você não tem permissão para editar este perfil.");
         }
 
@@ -333,8 +362,23 @@ public class UsuarioService {
         if (request.getFcmToken() != null) usuario.setFcmToken(request.getFcmToken());
 
         // Apenas admins podem mudar a role de outros usuários
-        if (isAdmin && request.getRole() != null) {
-            usuario.setRole(request.getRole().toUpperCase());
+        if ((isAdmin || isSuperAdmin) && request.getRole() != null) {
+            String novaRole;
+            try {
+                novaRole = Role.valueOf(request.getRole().trim().toUpperCase()).name();
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Role inválida.");
+            }
+            if (Role.SUPER_ADMIN.name().equals(novaRole) && !isSuperAdmin) {
+                throw new SecurityException("Apenas SUPER_ADMIN pode definir a role SUPER_ADMIN.");
+            }
+            if (!isSuperAdmin
+                && !Role.CIDADAO.name().equals(novaRole)
+                && !Role.AGENTE.name().equals(novaRole)
+                && !Role.ADMINISTRADOR.name().equals(novaRole)) {
+                throw new SecurityException("ADMINISTRADOR só pode definir roles entre CIDADAO, AGENTE e ADMINISTRADOR.");
+            }
+            usuario.setRole(novaRole);
         }
 
         if (request.getSenha() != null && !request.getSenha().isBlank()) {
@@ -391,6 +435,7 @@ public class UsuarioService {
             return false;
         }
 
+        validarSenhaMinima(novaSenha);
         user.setSenha(passwordEncoder.encode(novaSenha));
         user.setResetSenhaCodigo(null);
         user.setResetSenhaExpiracao(null);
@@ -428,5 +473,70 @@ public class UsuarioService {
     @Transactional
     public Usuario ativarSemAnunciosVitalicio(String email) {
         return ativarSemAnunciosVitalicio(email, false);
+    }
+
+    private Usuario obterUsuarioAutenticado(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || auth.getName() == null || auth.getName().isBlank()) {
+            return null;
+        }
+        return repository.findByEmail(auth.getName()).orElse(null);
+    }
+
+    private void validarSenhaMinima(String senha) {
+        if (senha == null || senha.isBlank()) {
+            throw new IllegalArgumentException("A senha é obrigatória");
+        }
+        if (senha.length() < 6) {
+            throw new IllegalArgumentException("A senha deve ter no mínimo 6 caracteres");
+        }
+    }
+
+    private void validarAcessoLeituraUsuario(Usuario targetUser) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new SecurityException("Acesso negado: autenticação obrigatória.");
+        }
+
+        boolean isSuperAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        if (isSuperAdmin) {
+            return;
+        }
+
+        boolean isProprio = auth.getName().equalsIgnoreCase(targetUser.getEmail());
+        if (isProprio) {
+            return;
+        }
+
+        boolean isAdmin = auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        if (isAdmin) {
+            checkUserJurisdiction(targetUser);
+            return;
+        }
+
+        throw new SecurityException("Acesso negado: Você não tem permissão para consultar este usuário.");
+    }
+
+    public record LoginAttemptResult(Usuario usuario, String blockedMessage) {
+        public static LoginAttemptResult success(Usuario usuario) {
+            return new LoginAttemptResult(usuario, null);
+        }
+
+        public static LoginAttemptResult blocked(Usuario usuario, String blockedMessage) {
+            return new LoginAttemptResult(usuario, blockedMessage);
+        }
+
+        public static LoginAttemptResult invalid() {
+            return new LoginAttemptResult(null, null);
+        }
+
+        public boolean isAuthenticated() {
+            return usuario != null && blockedMessage == null;
+        }
+
+        public boolean isBlocked() {
+            return usuario != null && blockedMessage != null;
+        }
     }
 }
