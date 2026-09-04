@@ -2,6 +2,9 @@
 -- Preserva usuarios, ocorrencias e historico; reinicia o licenciamento municipal.
 BEGIN;
 
+ALTER TABLE pontos_interesse
+    ADD COLUMN IF NOT EXISTS disponivel BOOLEAN NOT NULL DEFAULT TRUE;
+
 UPDATE cidades
 SET plano = 'BASE_GRATUITO',
     status = 'PENDENTE_APROVACAO',
