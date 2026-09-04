@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -13,8 +15,13 @@ class SuperAdminScreen extends StatefulWidget {
 }
 
 class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerProviderStateMixin {
+  static const Duration _tempoLimiteCarregamento = Duration(seconds: 30);
+
   late TabController _tabController;
-  bool _carregando = true;
+  bool _carregandoPendentes = true;
+  bool _carregandoTodas = true;
+  String? _erroCarregamento;
+  int _requisicaoAtual = 0;
   List<Map<String, dynamic>> _pendentes = [];
   List<Map<String, dynamic>> _todas = [];
 
@@ -32,27 +39,71 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
   }
 
   Future<void> _carregarDados() async {
-    setState(() => _carregando = true);
+    final requisicao = ++_requisicaoAtual;
+    setState(() {
+      _carregandoPendentes = true;
+      _carregandoTodas = true;
+      _erroCarregamento = null;
+    });
     final apiService = context.read<ApiService>();
 
-    try {
-      final pendentes = await apiService.listarCidadesPendentesSuper();
-      final todas = await apiService.listarTodasCidadesSuper();
-      if (mounted) {
-        setState(() {
-          _pendentes = pendentes;
-          _todas = todas;
-          _carregando = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _carregando = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao carregar dados do Super Admin: $e'), backgroundColor: Colors.red),
-        );
+    Future<void> carregarPendentes() async {
+      try {
+        final resultado = await apiService
+            .listarCidadesPendentesSuper()
+            .timeout(_tempoLimiteCarregamento);
+        if (mounted && requisicao == _requisicaoAtual) {
+          setState(() {
+            _pendentes = resultado;
+            _carregandoPendentes = false;
+          });
+        }
+      } catch (e) {
+        if (mounted && requisicao == _requisicaoAtual) {
+          final mensagem = e is TimeoutException
+              ? 'O servidor demorou para responder aos pendentes.'
+              : 'Não foi possível carregar as prefeituras pendentes.';
+          setState(() {
+            _carregandoPendentes = false;
+            _erroCarregamento = mensagem;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(mensagem), backgroundColor: Colors.red),
+          );
+        }
       }
     }
+
+    Future<void> carregarTodas() async {
+      try {
+        final resultado = await apiService
+            .listarTodasCidadesSuper()
+            .timeout(_tempoLimiteCarregamento);
+        if (mounted && requisicao == _requisicaoAtual) {
+          setState(() {
+            _todas = resultado;
+            _carregandoTodas = false;
+          });
+        }
+      } catch (e) {
+        if (mounted && requisicao == _requisicaoAtual) {
+          final mensagem = e is TimeoutException
+              ? 'O servidor demorou para responder às cidades.'
+              : 'Não foi possível carregar todas as cidades.';
+          setState(() {
+            _carregandoTodas = false;
+            if (!_carregandoPendentes) {
+              _erroCarregamento = mensagem;
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(mensagem), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+
+    await Future.wait([carregarPendentes(), carregarTodas()]);
   }
 
   void _mostrarClausulaEHomologar(Map<String, dynamic> item) async {
@@ -406,19 +457,51 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
           ],
         ),
       ),
-      body: _carregando
+      body: _carregandoPendentes && _carregandoTodas
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTabPendentes(),
-                _buildTabTodas(),
-              ],
+          : _erroCarregamento != null && _carregandoPendentes
+              ? _buildErroCarregamento()
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTabPendentes(),
+                    _buildTabTodas(),
+                  ],
+                ),
+    );
+  }
+
+  Widget _buildErroCarregamento() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_rounded, size: 56, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            Text(
+              _erroCarregamento!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
             ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _carregarDados,
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildTabPendentes() {
+    if (_carregandoPendentes) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_pendentes.isEmpty) {
       return Center(
         child: Column(
@@ -539,6 +622,10 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
   }
 
   Widget _buildTabTodas() {
+    if (_carregandoTodas) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _todas.length,
