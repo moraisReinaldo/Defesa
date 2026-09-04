@@ -4,7 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 /// Serviço de preferências locais usando Hive.
 /// Atende ao [CR2] de Recursos Nativos: "Uso do Hive para armazenar preferência de usuário."
 class HiveService {
-  static const String _boxName = 'user_preferences';
+  // Versioned name avoids opening incompatible IndexedDB stores left by older web builds.
+  static const String _boxName = 'user_preferences_v2';
 
   // Chaves de preferências
   static const String _chaveCidadeFavorita = 'cidade_favorita';
