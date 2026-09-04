@@ -20,6 +20,7 @@ class Usuario {
   final String? fcmToken;
   final DateTime dataCriacao;
   final String status; // PENDENTE ou ATIVO
+  final bool isSemAnunciosVitalicio; // Licença vitalícia que remove anúncios em qualquer cidade
 
   Usuario({
     String? id,
@@ -33,6 +34,7 @@ class Usuario {
     this.especialidade,
     this.fcmToken,
     this.status = 'ATIVO',
+    this.isSemAnunciosVitalicio = false,
     DateTime? dataCriacao,
   })  : id = id ?? const Uuid().v4(),
         dataCriacao = dataCriacao ?? DateTime.now();
@@ -57,6 +59,7 @@ class Usuario {
       'especialidade': especialidade,
       'fcmToken': fcmToken,
       'status': status,
+      'semAnunciosVitalicio': isSemAnunciosVitalicio,
       'dataCriacao': dataCriacao.toIso8601String(),
     };
   }
@@ -80,6 +83,7 @@ class Usuario {
       especialidade: json['especialidade'],
       fcmToken: json['fcmToken'],
       status: json['status'] ?? 'ATIVO',
+      isSemAnunciosVitalicio: json['semAnunciosVitalicio'] == true || json['isSemAnunciosVitalicio'] == true,
       dataCriacao: _parseSafe(json['dataCriacao']) ?? DateTime.now(),
     );
   }

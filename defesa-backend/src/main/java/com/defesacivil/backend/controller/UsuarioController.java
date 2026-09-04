@@ -120,4 +120,22 @@ public class UsuarioController {
         }
         return ResponseEntity.badRequest().body(Map.of("message", "Código inválido ou expirado."));
     }
+
+    /** Ativar modo vitalício sem anúncios para o usuário autenticado */
+    @PostMapping("/ativar-vitalicio")
+    public ResponseEntity<?> ativarVitalicio() {
+        org.springframework.security.core.Authentication auth =
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return ResponseEntity.status(401).body(Map.of("message", "Usuário precisa estar autenticado.", "sucesso", false));
+        }
+        String email = auth.getName();
+        Usuario atualizado = usuarioService.ativarSemAnunciosVitalicio(email);
+        atualizado.setSenha(null);
+        return ResponseEntity.ok(Map.of(
+            "message", "Acesso Vitalício Sem Anúncios ativado com sucesso!",
+            "usuario", atualizado,
+            "sucesso", true
+        ));
+    }
 }

@@ -135,4 +135,14 @@ class AuthService {
       return false;
     }
   }
+
+  Future<bool> ativarSemAnunciosVitalicio() async {
+    try {
+      final response = await _client.dio.post('/usuarios/ativar-vitalicio');
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao ativar sem anúncios vitalício: $e');
+      return false;
+    }
+  }
 }

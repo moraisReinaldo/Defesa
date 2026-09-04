@@ -30,7 +30,11 @@ class AdService extends ChangeNotifier {
   static bool deveExibirAnuncio({
     required Usuario? usuarioLogado,
     required Cidade? cidadeAtiva,
+    bool isVitalicio = false,
   }) {
+    // 0. Licença Vitalícia de Munícipe: ZERO ANÚNCIOS PARA SEMPRE EM QUALQUER CIDADE
+    if (isVitalicio || usuarioLogado?.isSemAnunciosVitalicio == true) return false;
+
     // 1. Super Admin NUNCA vê anúncios em hipótese alguma
     if (usuarioLogado?.isSuperAdmin == true) return false;
 

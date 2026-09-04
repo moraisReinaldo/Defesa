@@ -388,4 +388,12 @@ public class UsuarioService {
         repository.save(user);
         return true;
     }
+
+    @Transactional
+    public Usuario ativarSemAnunciosVitalicio(String email) {
+        Usuario usuario = repository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado com e-mail: " + email));
+        usuario.setSemAnunciosVitalicio(true);
+        return repository.save(usuario);
+    }
 }

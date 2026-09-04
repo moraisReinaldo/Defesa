@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_colors.dart';
+import '../constants/app_pagamentos.dart';
 import '../providers/usuario_provider.dart';
 import 'login_screen.dart';
 import 'cadastro_agente_screen.dart';
@@ -9,6 +11,7 @@ import 'loading_screen.dart';
 import '../widgets/responsive_layout.dart';
 import 'dashboard_relatorios_screen.dart';
 import '../models/usuario.dart';
+import '../providers/cidade_provider.dart';
 
 class PerfilScreen extends StatefulWidget {
    const PerfilScreen({super.key});
@@ -68,6 +71,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               _buildHeader(usuario),
                               const SizedBox(height: 28),
                               _buildInfoCard(prov, usuario),
+                              const SizedBox(height: 16),
+                              _buildCardVitalicio(prov, usuario),
                               const SizedBox(height: 24),
                               _buildActionButtons(prov, usuario),
                             ],
@@ -85,6 +90,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         _buildHeader(usuario),
                         const SizedBox(height: 28),
                         _buildInfoCard(prov, usuario),
+                        const SizedBox(height: 16),
+                        _buildCardVitalicio(prov, usuario),
                         const SizedBox(height: 16),
                         if (prov.isAdmin) ...[
                           _buildAdminCard(prov),
@@ -223,6 +230,171 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
+  Widget _buildCardVitalicio(UsuarioProvider prov, Usuario usuario) {
+    final bool isVitalicio = prov.isSemAnunciosVitalicio;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isVitalicio
+              ? [Colors.teal.shade50, Colors.amber.shade50]
+              : [Colors.amber.shade50, Colors.orange.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isVitalicio ? Colors.teal.shade400 : Colors.amber.shade400,
+          width: 1.5,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isVitalicio ? Colors.teal.shade100 : Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isVitalicio ? Icons.verified_rounded : Icons.workspace_premium_rounded,
+                  color: isVitalicio ? Colors.teal.shade800 : Colors.amber.shade900,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isVitalicio ? 'Licença Vitalícia Ativa' : 'Remover Anúncios para Sempre',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isVitalicio ? Colors.teal.shade900 : Colors.brown.shade900,
+                      ),
+                    ),
+                    Text(
+                      isVitalicio
+                          ? 'Zero anúncios em qualquer município'
+                          : 'Pagamento único • Válido para sempre',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isVitalicio ? Colors.teal.shade700 : Colors.brown.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isVitalicio ? Colors.teal.shade600 : Colors.orange.shade600,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  isVitalicio ? 'VITALÍCIO' : 'VÁLIDO P/ SEMPRE',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            isVitalicio
+                ? 'Sua conta está vinculada permanentemente ao plano sem anúncios. Você nunca mais verá propagandas no Defesa em Foco, independente da cidade em que estiver.'
+                : 'Garanta navegação limpa e sem interrupções em todo o país. O benefício é permanente e fica gravado na sua conta e dispositivo para você nunca perder.',
+            style: TextStyle(
+              fontSize: 12,
+              height: 1.4,
+              color: isVitalicio ? Colors.teal.shade900 : Colors.brown.shade900,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (!isVitalicio) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF635BFF), // Cor do Stripe
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                ),
+                onPressed: () {
+                  final email = usuario.email;
+                  final url = '${AppPagamentos.stripeLinkVitalicioSemAnuncios}?prefilled_email=${Uri.encodeComponent(email)}';
+                  launchUrl(Uri.parse(url));
+                },
+                icon: const Icon(Icons.credit_card_rounded, size: 20),
+                label: const Text(
+                  'Adquirir Licença Vitalícia no Stripe',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: () async {
+                  final ok = await prov.ativarAcessoVitalicio();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(ok
+                            ? '⭐ Licença Vitalícia ativada com sucesso! Você nunca mais verá anúncios.'
+                            : 'Status vitalício verificado e salvo com sucesso!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.sync_rounded, size: 16, color: Colors.blueGrey),
+                label: const Text(
+                  'Já realizou o pagamento no Stripe? Clique para ativar',
+                  style: TextStyle(fontSize: 11, color: Colors.blueGrey, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ] else ...[
+            Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.teal, size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Vinculado ao seu perfil: ${usuario.email}',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal.shade800),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildAdminCard(UsuarioProvider prov) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -312,6 +484,30 @@ class _PerfilScreenState extends State<PerfilScreen> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.purple,
                 side: const BorderSide(color: Colors.purple),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                final cidadeNome = context.read<CidadeProvider>().cidadeAtiva?.nome ?? 'Defesa Civil';
+                final url = AppPagamentos.obterUrlWhatsApp(
+                  cidadeNome: cidadeNome,
+                  motivo: 'Olá Reinaldo, sou gestor da Defesa Civil de $cidadeNome e gostaria de suporte para a plataforma Defesa em Foco.',
+                );
+                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+              },
+              icon: const Icon(Icons.support_agent_rounded, size: 20),
+              label: const Text('Falar com Suporte (WhatsApp Oficial)'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF25D366),
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),

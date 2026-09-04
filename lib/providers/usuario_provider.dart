@@ -38,6 +38,10 @@ class UsuarioProvider extends ChangeNotifier {
   bool get isAdmin => _isAdmin;
   bool get isAgente => _usuarioLogado?.isAgente ?? false;
   bool get isSuperAdmin => _usuarioLogado?.isSuperAdmin ?? false;
+  bool get isSemAnunciosVitalicio =>
+      (_usuarioLogado?.isSemAnunciosVitalicio == true) ||
+      _hiveService.isSemAnunciosVitalicio ||
+      _storageService.obterStatusVitalicio();
   bool get isLoading => _isLoading;
   List<Map<String, String>> get cidadesSuportadas => _cidadesSuportadas;
   List<Usuario> get todosAgentes => _todosAgentes;
@@ -250,6 +254,15 @@ class UsuarioProvider extends ChangeNotifier {
 
         _usuarioLogado = usuario;
         _isAdmin = usuario.role == Role.administrador || usuario.role == Role.superAdmin;
+
+        // Sincronizar status vitalício com armazenamentos locais resilientes
+        if (usuario.isSemAnunciosVitalicio) {
+          await _hiveService.salvarStatusVitalicio(true);
+          await _storageService.salvarStatusVitalicio(true);
+        } else if (_hiveService.isSemAnunciosVitalicio || _storageService.obterStatusVitalicio()) {
+          // Se o cache local tem registro mas o backend ainda não, sincroniza com o servidor
+          _apiService.ativarSemAnunciosVitalicio();
+        }
         
         // Registrar ID no OneSignal para receber push diretos
         if (!kIsWeb) {
@@ -389,7 +402,16 @@ class UsuarioProvider extends ChangeNotifier {
     
     if (logado != null && token != null) {
       _usuarioLogado = logado;
-      _isAdmin = logado.role == Role.administrador;
+      _isAdmin = logado.role == Role.administrador || logado.role == Role.superAdmin;
+
+      // Sincronizar status vitalício com armazenamentos locais resilientes
+      if (logado.isSemAnunciosVitalicio) {
+        await _hiveService.salvarStatusVitalicio(true);
+        await _storageService.salvarStatusVitalicio(true);
+      } else if (_hiveService.isSemAnunciosVitalicio || _storageService.obterStatusVitalicio()) {
+        _apiService.ativarSemAnunciosVitalicio();
+      }
+
       if (_isAdmin) {
         carregarAgentes();
       }
@@ -403,6 +425,45 @@ class UsuarioProvider extends ChangeNotifier {
       }
 
       notifyListeners();
+    }
+  }
+
+  /// Ativa a licença vitalícia sem anúncios vinculada a tudo (Hive, Storage e Backend)
+  Future<bool> ativarAcessoVitalicio() async {
+    try {
+      // 1. Gravar imediatamente nos armazenamentos locais resilientes
+      await _hiveService.salvarStatusVitalicio(true);
+      await _storageService.salvarStatusVitalicio(true);
+
+      // 2. Se logado, gravar no banco de dados do servidor
+      if (estaLogado) {
+        await _apiService.ativarSemAnunciosVitalicio();
+        if (_usuarioLogado != null) {
+          final atualizado = Usuario(
+            id: _usuarioLogado!.id,
+            nome: _usuarioLogado!.nome,
+            email: _usuarioLogado!.email,
+            telefone: _usuarioLogado!.telefone,
+            role: _usuarioLogado!.role,
+            concordaLGPD: _usuarioLogado!.concordaLGPD,
+            cidade: _usuarioLogado!.cidade,
+            especialidade: _usuarioLogado!.especialidade,
+            fcmToken: _usuarioLogado!.fcmToken,
+            status: _usuarioLogado!.status,
+            isSemAnunciosVitalicio: true,
+            dataCriacao: _usuarioLogado!.dataCriacao,
+          );
+          _usuarioLogado = atualizado;
+          await _storageService.salvarUsuarioLogado(atualizado);
+        }
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao ativar acesso vitalício: $e');
+      notifyListeners();
+      return true; // Localmente já foi ativado com sucesso absoluto
     }
   }
 

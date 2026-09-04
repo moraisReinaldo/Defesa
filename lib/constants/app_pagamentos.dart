@@ -7,6 +7,8 @@ class AppPagamentos {
   // Stripe Payment Links (Opção 1 A - Links Diretos de Checkout Oficiais)
   static const String stripeLinkPlanoGestao = 'https://buy.stripe.com/fZudRb0J15jHdRPgF9fbq01';
   static const String stripeLinkPlanoPro = 'https://buy.stripe.com/6oU7sNdvN3bz297ex1fbq00';
+  // Licença Vitalícia Sem Anúncios para Munícipes (Válido para sempre em qualquer cidade)
+  static const String stripeLinkVitalicioSemAnuncios = 'https://buy.stripe.com/dRmeVf3VdbI59Bz4Wrfbq02';
 
   /// Gera a URL do WhatsApp oficial com mensagem contextualizada
   static String obterUrlWhatsApp({required String cidadeNome, String? motivo}) {

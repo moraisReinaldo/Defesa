@@ -14,6 +14,8 @@ import '../widgets/ocorrencia_image.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/responsive_layout.dart';
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../constants/app_pagamentos.dart';
 import 'dashboard_relatorios_screen.dart';
 
 class HistoricoScreen extends StatefulWidget {
@@ -342,6 +344,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                   if ((idx + 1) % 5 == 0 && AdService.deveExibirAnuncio(
                                      usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
                                      cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                                     isVitalicio: context.read<UsuarioProvider>().isSemAnunciosVitalicio,
                                    ))
                                     SizedBox(width: 350, child: _buildNativeAdPlaceholder()),
                                 ];
@@ -370,6 +373,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                   if ((idx + 1) % 5 == 0 && AdService.deveExibirAnuncio(
                                      usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
                                      cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                                     isVitalicio: context.read<UsuarioProvider>().isSemAnunciosVitalicio,
                                    ))
                                     _buildNativeAdPlaceholder(),
                                 ];
@@ -919,6 +923,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     if (AdService.deveExibirAnuncio(
                       usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
                       cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                      isVitalicio: context.read<UsuarioProvider>().isSemAnunciosVitalicio,
                     ))
                       Padding(
                         padding: const EdgeInsets.only(top: 16, bottom: 8),
@@ -1117,6 +1122,36 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.accentAmber),
                     ),
                   ),
+                  const Spacer(),
+                  InkWell(
+                    onTap: () {
+                      final email = context.read<UsuarioProvider>().usuarioLogado?.email ?? '';
+                      final url = email.isNotEmpty
+                          ? '${AppPagamentos.stripeLinkVitalicioSemAnuncios}?prefilled_email=${Uri.encodeComponent(email)}'
+                          : AppPagamentos.stripeLinkVitalicioSemAnuncios;
+                      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.workspace_premium_rounded, size: 13, color: Colors.amber.shade800),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Remover anúncios',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.amber.shade900,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -1149,10 +1184,37 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
           alignment: Alignment.center,
-          child: SizedBox(
-            width: bannerAd.size.width.toDouble(),
-            height: bannerAd.size.height.toDouble(),
-            child: AdWidget(ad: bannerAd),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: bannerAd.size.width.toDouble(),
+                height: bannerAd.size.height.toDouble(),
+                child: AdWidget(ad: bannerAd),
+              ),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () {
+                  final email = context.read<UsuarioProvider>().usuarioLogado?.email ?? '';
+                  final url = email.isNotEmpty
+                      ? '${AppPagamentos.stripeLinkVitalicioSemAnuncios}?prefilled_email=${Uri.encodeComponent(email)}'
+                      : AppPagamentos.stripeLinkVitalicioSemAnuncios;
+                  launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+                  child: Text(
+                    '👑 Remover anúncios para sempre no Stripe',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.amber.shade900,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },

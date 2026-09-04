@@ -1052,14 +1052,25 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
                   ),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue.shade300,
+                      side: BorderSide(color: Colors.blue.shade300),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoGestao)),
+                    icon: const Icon(Icons.credit_card_rounded),
+                    label: const Text('Plano Gestão (R\$ 490)'),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.lightBlueAccent,
                       side: const BorderSide(color: Colors.lightBlueAccent),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoPro)),
-                    icon: const Icon(Icons.credit_card_rounded),
-                    label: const Text('Assinar via Stripe (Cartão)'),
+                    icon: const Icon(Icons.workspace_premium_rounded),
+                    label: const Text('Plano PRO (R\$ 1.490)'),
                   ),
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
@@ -1184,28 +1195,39 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
               ),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.blue.shade800,
-                  side: BorderSide(color: Colors.blue.shade400),
+                  foregroundColor: Colors.blue.shade700,
+                  side: BorderSide(color: Colors.blue.shade300),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoGestao)),
+                icon: const Icon(Icons.credit_card_rounded, size: 14),
+                label: const Text('Plano Gestão (Stripe)', style: TextStyle(fontSize: 11)),
+              ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.deepPurple,
+                  side: const BorderSide(color: Colors.deepPurple),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoPro)),
-                icon: const Icon(Icons.credit_card_rounded, size: 14),
-                label: const Text('Assinar via Stripe (Cartão)', style: TextStyle(fontSize: 11)),
+                icon: const Icon(Icons.workspace_premium_rounded, size: 14),
+                label: const Text('Plano PRO (Stripe)', style: TextStyle(fontSize: 11)),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: const Color(0xFF25D366),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () => launchUrl(Uri.parse(AppPagamentos.obterUrlWhatsApp(
                   cidadeNome: cidadeNome,
-                  motivo: 'Olá Reinaldo, sou da Defesa Civil de $cidadeNome. Nosso período de avaliação PRO está em andamento e gostaria de formalizar a contratação definitiva.',
+                  motivo: 'Olá Reinaldo, sou gestor da Defesa Civil de $cidadeNome. Nosso período de avaliação está em andamento e gostaria de suporte para contratação dos planos Gestão ou PRO.',
                 ))),
                 icon: const Icon(Icons.chat_bubble_rounded, size: 14),
-                label: const Text('Falar no WhatsApp', style: TextStyle(fontSize: 11)),
+                label: const Text('Falar com Suporte (WhatsApp)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

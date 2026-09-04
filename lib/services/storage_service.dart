@@ -100,6 +100,18 @@ class StorageService {
     return token != null && _prefs.containsKey(_usuarioLogadoKey);
   }
 
+  // ========== STATUS VITALÍCIO (PERSISTÊNCIA REDUNDANTE PREFS + SECURE) ==========
+  static const String _vitalicioKey = 'sem_anuncios_vitalicio';
+
+  Future<void> salvarStatusVitalicio(bool ativo) async {
+    await _prefs.setBool(_vitalicioKey, ativo);
+    await _secureStorage.write(key: _vitalicioKey, value: ativo ? 'true' : 'false');
+  }
+
+  bool obterStatusVitalicio() {
+    return _prefs.getBool(_vitalicioKey) ?? false;
+  }
+
   // ========== LIMPEZA ==========
 
   Future<void> limparTudo() async {

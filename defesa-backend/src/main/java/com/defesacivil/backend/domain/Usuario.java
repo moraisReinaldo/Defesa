@@ -169,4 +169,14 @@ public class Usuario {
     public void setResetSenhaTentativas(Integer resetSenhaTentativas) {
         this.resetSenhaTentativas = resetSenhaTentativas;
     }
+
+    private Boolean semAnunciosVitalicio = false;
+
+    public Boolean getSemAnunciosVitalicio() {
+        return semAnunciosVitalicio != null ? semAnunciosVitalicio : false;
+    }
+
+    public void setSemAnunciosVitalicio(Boolean semAnunciosVitalicio) {
+        this.semAnunciosVitalicio = semAnunciosVitalicio;
+    }
 }

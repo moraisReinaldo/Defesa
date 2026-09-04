@@ -122,10 +122,26 @@ class HiveService {
   // LIMPEZA
   // =========================================================================
 
-  /// Remove todas as preferências salvas (usado no logout).
+  /// Remove preferências normais de sessão mantendo o registro de licença vitalícia
   Future<void> limparPreferencias() async {
+    final eraVitalicio = isSemAnunciosVitalicio;
     await _box.clear();
+    if (eraVitalicio) {
+      await salvarStatusVitalicio(true);
+    }
   }
+
+  // =========================================================================
+  // ACESSO VITALÍCIO SEM ANÚNCIOS (PERSISTÊNCIA LOCAL RESILIENTE)
+  // =========================================================================
+  static const String _chaveSemAnunciosVitalicio = 'sem_anuncios_vitalicio';
+
+  Future<void> salvarStatusVitalicio(bool ativo) async {
+    await _box.put(_chaveSemAnunciosVitalicio, ativo);
+  }
+
+  bool get isSemAnunciosVitalicio =>
+      _box.get(_chaveSemAnunciosVitalicio, defaultValue: false) as bool;
 
   /// Fecha a box do Hive (deve ser chamado ao fechar o app).
   Future<void> fechar() async {

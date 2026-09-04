@@ -212,21 +212,36 @@ ${widget.isHomologado ? '''3. DADOS PARA CONTATO E FORMALIZAÇÃO:
         if (widget.isHomologado) ...[
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.blueAccent,
-              side: const BorderSide(color: Colors.blueAccent),
+              foregroundColor: Colors.blue.shade700,
+              side: BorderSide(color: Colors.blue.shade400),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoGestao)),
+            icon: const Icon(Icons.credit_card_rounded, size: 16),
+            label: const Text('Plano Gestão (R\$ 490)', style: TextStyle(fontSize: 12)),
+          ),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.deepPurple,
+              side: const BorderSide(color: Colors.deepPurple),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => launchUrl(Uri.parse(AppPagamentos.stripeLinkPlanoPro)),
-            icon: const Icon(Icons.credit_card_rounded, size: 16),
-            label: const Text('Assinar via Cartão (Stripe)', style: TextStyle(fontSize: 12)),
+            icon: const Icon(Icons.workspace_premium_rounded, size: 16),
+            label: const Text('Plano PRO (R\$ 1.490)', style: TextStyle(fontSize: 12)),
           ),
-          TextButton.icon(
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: () => launchUrl(Uri.parse(AppPagamentos.obterUrlWhatsApp(
               cidadeNome: widget.cidadeNome,
-              motivo: 'Olá Reinaldo, sou da Defesa Civil de ${widget.cidadeNome} e gostaria de formalizar a contratação por Dispensa de Licitação.',
+              motivo: 'Olá Reinaldo, sou da Defesa Civil de ${widget.cidadeNome} e gostaria de falar com o suporte sobre a adesão aos planos Gestão e PRO.',
             ))),
-            icon: const Icon(Icons.chat_bubble_rounded, color: Colors.green),
-            label: const Text('Falar no WhatsApp'),
+            icon: const Icon(Icons.chat_bubble_rounded, size: 16),
+            label: const Text('Falar com Suporte (WhatsApp)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ] else ...[
           TextButton.icon(
