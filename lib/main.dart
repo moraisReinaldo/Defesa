@@ -7,6 +7,9 @@ import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'providers/ocorrencia_provider.dart';
 import 'providers/usuario_provider.dart';
 import 'providers/ponto_interesse_provider.dart';
+import 'providers/clima_provider.dart';
+import 'providers/alerta_provider.dart';
+import 'providers/cidade_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
@@ -22,6 +25,16 @@ void main() async {
     DeviceOrientation.portraitUp,
   ]);
 
+  // Edge-to-edge: habilitar modo de exibição de ponta a ponta (Android 15+)
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+    systemNavigationBarDividerColor: Colors.transparent,
+  ));
+
   final storageService = StorageService();
   await storageService.init();
 
@@ -36,9 +49,11 @@ void main() async {
   adService.initialize();
 
   // Inicializar OneSignal
-  OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-  OneSignal.initialize("6537856b-c264-42af-b2a9-583652a175d2");
-  OneSignal.Notifications.requestPermission(true);
+  if (!kIsWeb) {
+    OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+    OneSignal.initialize("6537856b-c264-42af-b2a9-583652a175d2");
+    OneSignal.Notifications.requestPermission(true);
+  }
 
   final notificationService = NotificationService();
   try {
@@ -85,6 +100,15 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => PontoInteresseProvider(apiService),
         ),
+        ChangeNotifierProvider(
+          create: (_) => ClimaProvider(hiveService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AlertaProvider(apiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CidadeProvider(apiService),
+        ),
         Provider.value(value: notificationService),
         Provider.value(value: hiveService),
         ChangeNotifierProvider.value(value: adService),
@@ -92,7 +116,7 @@ class MyApp extends StatelessWidget {
       child: Builder(
         builder: (context) {
           return MaterialApp(
-            title: 'Defesa Civil em Foco',
+            title: 'Defesa em Foco',
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               useMaterial3: true,
@@ -124,12 +148,16 @@ class SyncNavigatorObserver extends NavigatorObserver {
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
-    context.read<UsuarioProvider>().sincronizarGlobal();
+    if (context.mounted) {
+      context.read<UsuarioProvider>().sincronizarGlobal();
+    }
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
-    context.read<UsuarioProvider>().sincronizarGlobal();
+    if (context.mounted) {
+      context.read<UsuarioProvider>().sincronizarGlobal();
+    }
   }
 }

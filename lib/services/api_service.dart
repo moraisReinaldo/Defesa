@@ -1,10 +1,12 @@
 import '../models/ocorrencia.dart';
 import '../models/ponto_interesse.dart';
 import '../models/usuario.dart';
+import '../models/cidade.dart';
 import 'api_client.dart';
 import 'auth_service.dart';
 import 'ocorrencia_service.dart';
 import 'ponto_interesse_service.dart';
+import 'cidade_service.dart';
 import 'storage_service.dart';
 
 /// [ApiService] mantido como fachada para compatibilidade.
@@ -14,13 +16,18 @@ class ApiService {
   late final AuthService _auth;
   late final OcorrenciaService _ocorrencia;
   late final PontoInteresseService _ponto;
+  late final CidadeService _cidade;
 
   ApiService(StorageService storage) {
     _client = ApiClient(storage);
     _auth = AuthService(_client);
     _ocorrencia = OcorrenciaService(_client);
     _ponto = PontoInteresseService(_client);
+    _cidade = CidadeService(_client);
   }
+
+  ApiClient get client => _client;
+  CidadeService get cidadeService => _cidade;
 
   // URL atual do backend — usada por getServerRoot() e buildImageUrl()
   static const String baseUrl = ApiClient.baseUrl;
@@ -37,6 +44,8 @@ class ApiService {
   Future<Usuario?> atualizarUsuario(String id, UsuarioRequest req) => _auth.atualizarUsuario(id, req);
   Future<bool> solicitarResetSenha(String email) => _auth.solicitarResetSenha(email);
   Future<bool> resetarSenha(String email, String codigo, String novaSenha) => _auth.resetarSenha(email, codigo, novaSenha);
+  Future<void> excluirMinhaConta() => _auth.excluirMinhaConta();
+  Future<bool> ativarSemAnunciosVitalicio() => _auth.ativarSemAnunciosVitalicio();
 
   // ========== OCORRÊNCIAS ==========
   Future<List<Ocorrencia>> listarOcorrencias({String? cidade, int page = 0, int size = 50}) => 
@@ -55,9 +64,17 @@ class ApiService {
   Future<PontoInteresse?> atualizarPontoInteresse(PontoInteresse ponto) => _ponto.atualizarPontoInteresse(ponto);
   Future<void> deletarPontoInteresse(String id) => _ponto.deletarPontoInteresse(id);
 
-  // ========== CIDADES ==========
+  // ========== CIDADES & LICENCIAMENTO ==========
   static const List<Map<String, String>> fallbackCidades = ApiClient.fallbackCidades;
   Future<List<Map<String, String>>> listarCidades() => _client.listarCidades();
+  Future<Cidade?> buscarCidadePorCodigo(String codigo) => _cidade.buscarCidadePorCodigo(codigo);
+  Future<List<Cidade>> listarCidadesEntidade() => _cidade.listarCidades();
+  Future<List<Map<String, dynamic>>> listarCidadesPendentesSuper() => _cidade.listarCidadesPendentesSuper();
+  Future<List<Map<String, dynamic>>> listarTodasCidadesSuper() => _cidade.listarTodasCidadesSuper();
+  Future<String?> obterClausulaTrialSuper(String cidadeId) => _cidade.obterClausulaTrialSuper(cidadeId);
+  Future<Map<String, dynamic>?> aprovarCidadeSuper(String cidadeId) => _cidade.aprovarCidadeSuper(cidadeId);
+  Future<Map<String, dynamic>?> atualizarPlanoManualSuper(String cidadeId, {String? plano, String? status, String? contratoExpiracao}) =>
+      _cidade.atualizarPlanoManualSuper(cidadeId, plano: plano, status: status, contratoExpiracao: contratoExpiracao);
 }
 
 class UsuarioRequest {
@@ -70,6 +87,7 @@ class UsuarioRequest {
   final bool concordaLGPD;
   final String status;
   final String? fcmToken;
+  final String? especialidade;
 
   UsuarioRequest({
     required this.nome,
@@ -81,6 +99,7 @@ class UsuarioRequest {
     required this.concordaLGPD,
     this.status = 'ATIVO',
     this.fcmToken,
+    this.especialidade,
   });
 
   Map<String, dynamic> toJson() {
@@ -94,6 +113,7 @@ class UsuarioRequest {
       'concordaLGPD': concordaLGPD,
       'status': status,
       if (fcmToken != null) 'fcmToken': fcmToken,
+      if (especialidade != null && especialidade!.isNotEmpty) 'especialidade': especialidade,
     };
   }
 }

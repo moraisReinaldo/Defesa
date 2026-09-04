@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 /// Serviço de preferências locais usando Hive.
@@ -12,6 +13,7 @@ class HiveService {
   static const String _chaveFiltroTipo = 'filtro_tipo';
   static const String _chaveNotificacoesAtivas = 'notificacoes_ativas';
   static const String _chaveUltimaAtualizacao = 'ultima_atualizacao';
+  static const String _chaveLimiteChuvaDiaria = 'limite_chuva_diaria';
 
   late Box<dynamic> _box;
 
@@ -19,7 +21,17 @@ class HiveService {
   /// Deve ser chamado antes de qualquer uso do serviço.
   Future<void> init() async {
     await Hive.initFlutter();
-    _box = await Hive.openBox<dynamic>(_boxName);
+    try {
+      _box = await Hive.openBox<dynamic>(_boxName);
+    } catch (e) {
+      debugPrint('Erro ao abrir Hive box, tentando limpar banco corrompido: $e');
+      try {
+        await Hive.deleteBoxFromDisk(_boxName);
+        _box = await Hive.openBox<dynamic>(_boxName);
+      } catch (e2) {
+        debugPrint('Falha extrema no Hive: $e2');
+      }
+    }
   }
 
   // =========================================================================
@@ -97,14 +109,39 @@ class HiveService {
     return DateTime.tryParse(val);
   }
 
+  /// Salva o limite de chuva acumulada no dia (24h) em mm.
+  Future<void> salvarLimiteChuvaDiaria(double limite) async {
+    await _box.put(_chaveLimiteChuvaDiaria, limite);
+  }
+
+  /// Recupera o limite de chuva acumulada no dia. Padrão Defesa Civil: 50.0 mm.
+  double get limiteChuvaDiaria =>
+      (_box.get(_chaveLimiteChuvaDiaria, defaultValue: 50.0) as num).toDouble();
+
   // =========================================================================
   // LIMPEZA
   // =========================================================================
 
-  /// Remove todas as preferências salvas (usado no logout).
+  /// Remove preferências normais de sessão mantendo o registro de licença vitalícia
   Future<void> limparPreferencias() async {
+    final eraVitalicio = isSemAnunciosVitalicio;
     await _box.clear();
+    if (eraVitalicio) {
+      await salvarStatusVitalicio(true);
+    }
   }
+
+  // =========================================================================
+  // ACESSO VITALÍCIO SEM ANÚNCIOS (PERSISTÊNCIA LOCAL RESILIENTE)
+  // =========================================================================
+  static const String _chaveSemAnunciosVitalicio = 'sem_anuncios_vitalicio';
+
+  Future<void> salvarStatusVitalicio(bool ativo) async {
+    await _box.put(_chaveSemAnunciosVitalicio, ativo);
+  }
+
+  bool get isSemAnunciosVitalicio =>
+      _box.get(_chaveSemAnunciosVitalicio, defaultValue: false) as bool;
 
   /// Fecha a box do Hive (deve ser chamado ao fechar o app).
   Future<void> fechar() async {

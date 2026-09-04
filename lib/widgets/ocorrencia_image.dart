@@ -65,18 +65,31 @@ class OcorrenciaImage extends StatelessWidget {
         },
       );
     } else {
-      // Local File
-      final file = File(path);
-      return Image.file(
-        file,
-        height: height,
-        width: width,
-        fit: fit,
-        errorBuilder: (ctx, err, st) {
-          if (kDebugMode) print('Erro ao carregar imagem local ($path): $err');
-          return _buildError();
-        },
-      );
+      // Local File (blob URL on web, or File on mobile)
+      if (kIsWeb) {
+        return Image.network(
+          path,
+          height: height,
+          width: width,
+          fit: fit,
+          errorBuilder: (ctx, err, st) {
+            if (kDebugMode) print('Erro ao carregar imagem local web ($path): $err');
+            return _buildError();
+          },
+        );
+      } else {
+        final file = File(path);
+        return Image.file(
+          file,
+          height: height,
+          width: width,
+          fit: fit,
+          errorBuilder: (ctx, err, st) {
+            if (kDebugMode) print('Erro ao carregar imagem local ($path): $err');
+            return _buildError();
+          },
+        );
+      }
     }
   }
 

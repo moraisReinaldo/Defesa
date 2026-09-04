@@ -84,6 +84,14 @@ class AuthService {
     }
   }
 
+  Future<void> excluirMinhaConta() async {
+    try {
+      await _client.dio.delete('/usuarios/minha-conta');
+    } on DioException catch (e) {
+      throw _client.handleDioError(e);
+    }
+  }
+
   Future<Usuario?> atualizarUsuario(String id, UsuarioRequest req) async {
     try {
       final res = await _client.dio.put('/usuarios/$id', data: req.toJson());
@@ -101,9 +109,12 @@ class AuthService {
         options: Options(extra: {'secure': false}),
       );
       return true;
+    } on DioException catch (e) {
+      if (kDebugMode) print('Erro ao solicitar reset: $e');
+      throw _client.handleDioError(e);
     } catch (e) {
       if (kDebugMode) print('Erro ao solicitar reset: $e');
-      return false;
+      throw Exception('Erro inesperado ao solicitar recuperação: $e');
     }
   }
 
@@ -121,6 +132,16 @@ class AuthService {
       return true;
     } catch (e) {
       if (kDebugMode) print('Erro ao resetar senha: $e');
+      return false;
+    }
+  }
+
+  Future<bool> ativarSemAnunciosVitalicio() async {
+    try {
+      final response = await _client.dio.post('/usuarios/ativar-vitalicio');
+      return response.statusCode == 200;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao ativar sem anúncios vitalício: $e');
       return false;
     }
   }

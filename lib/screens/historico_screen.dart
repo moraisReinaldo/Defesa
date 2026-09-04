@@ -6,11 +6,17 @@ import '../constants/ocorrencia_tipos.dart';
 import '../models/ocorrencia.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
+import '../providers/cidade_provider.dart';
 import '../services/ad_service.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/ocorrencia_card.dart';
 import '../widgets/ocorrencia_image.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/responsive_layout.dart';
+import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../constants/app_pagamentos.dart';
+import 'dashboard_relatorios_screen.dart';
 
 class HistoricoScreen extends StatefulWidget {
    const HistoricoScreen({super.key});
@@ -27,32 +33,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   String _searchQuery = '';
   final ScrollController _scrollController = ScrollController();
 
-  // --- AdMob ---
-  BannerAd? _bannerAd;
-  bool _isBannerLoaded = false;
-
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _carregarBannerAd();
-  }
-
-  void _carregarBannerAd() {
-    // Regra Mestra: só carrega se NÃO estiver logado
-    final usuarioProvider = context.read<UsuarioProvider>();
-    if (usuarioProvider.estaLogado) return;
-
-    final adService = context.read<AdService>();
-    _bannerAd = adService.criarBannerAd(
-      onLoaded: () {
-        if (mounted) setState(() => _isBannerLoaded = true);
-      },
-      onFailed: () {
-        if (mounted) setState(() => _isBannerLoaded = false);
-      },
-    );
-    _bannerAd!.load();
   }
 
   void _onScroll() {
@@ -74,7 +58,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     _scrollController.dispose();
     _comentarioController.dispose();
     _searchController.dispose();
-    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -91,6 +74,25 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             : const Text('Histórico'),
         elevation: 0,
         actions: [
+          if (kIsWeb && context.watch<UsuarioProvider>().isAdmin)
+            IconButton(
+              icon: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.analytics_rounded, size: 20),
+              ),
+              tooltip: 'Ver Dashboard Analítico',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DashboardRelatoriosScreen()),
+                );
+              },
+            ),
           if (context.watch<UsuarioProvider>().isAdmin)
             IconButton(
               icon: Container(
@@ -116,8 +118,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
+      body: ResponsiveContainer(
+        maxWidth: 800,
+        child: Column(
+          children: [
           // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -246,20 +250,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             color: AppColors.textLight,
                           ),
                         ),
-                        // Banner Ad no Empty State (Regra Mestra)
-                        if (!context.read<UsuarioProvider>().estaLogado && _isBannerLoaded && _bannerAd != null) ...[
-                          const SizedBox(height: 24),
-                          Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: AppColors.surfaceCard,
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            width: _bannerAd!.size.width.toDouble(),
-                            height: _bannerAd!.size.height.toDouble(),
-                            child: AdWidget(ad: _bannerAd!),
-                          ),
-                        ],
                       ],
                     ),
                   );
@@ -324,31 +314,71 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             ],
                           ),
                         ),
-                        // Cards com Native Ad intercalado (Regra Mestra)
-                        ...entry.value.asMap().entries.expand((cardEntry) {
-                          final idx = cardEntry.key;
-                          final ocorrencia = cardEntry.value;
-                          return [
-                            OcorrenciaCard(
-                              ocorrencia: ocorrencia,
-                              selectable: _selectionMode,
-                              selected: _selecionadas.contains(ocorrencia.id),
-                              onSelectToggle: () {
-                                setState(() {
-                                  if (_selecionadas.contains(ocorrencia.id)) {
-                                    _selecionadas.remove(ocorrencia.id);
-                                  } else {
-                                    _selecionadas.add(ocorrencia.id);
-                                  }
-                                });
-                              },
-                              onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
+                        // Cards
+                        ResponsiveLayout.isDesktop(context)
+                          ? Wrap(
+                              spacing: 16,
+                              runSpacing: 16,
+                              children: entry.value.asMap().entries.expand((cardEntry) {
+                                final idx = cardEntry.key;
+                                final ocorrencia = cardEntry.value;
+                                return [
+                                  SizedBox(
+                                    width: 350,
+                                    child: OcorrenciaCard(
+                                      ocorrencia: ocorrencia,
+                                      selectable: _selectionMode,
+                                      selected: _selecionadas.contains(ocorrencia.id),
+                                      onSelectToggle: () {
+                                        setState(() {
+                                          if (_selecionadas.contains(ocorrencia.id)) {
+                                            _selecionadas.remove(ocorrencia.id);
+                                          } else {
+                                            _selecionadas.add(ocorrencia.id);
+                                          }
+                                        });
+                                      },
+                                      onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
+                                    ),
+                                  ),
+                                  if ((idx + 1) % 5 == 0 && AdService.deveExibirAnuncio(
+                                     usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
+                                     cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                                     isVitalicio: context.read<UsuarioProvider>().isSemAnunciosVitalicio,
+                                   ))
+                                    SizedBox(width: 350, child: _buildNativeAdPlaceholder()),
+                                ];
+                              }).toList(),
+                            )
+                          : Column(
+                              children: entry.value.asMap().entries.expand((cardEntry) {
+                                final idx = cardEntry.key;
+                                final ocorrencia = cardEntry.value;
+                                return [
+                                  OcorrenciaCard(
+                                    ocorrencia: ocorrencia,
+                                    selectable: _selectionMode,
+                                    selected: _selecionadas.contains(ocorrencia.id),
+                                    onSelectToggle: () {
+                                      setState(() {
+                                        if (_selecionadas.contains(ocorrencia.id)) {
+                                          _selecionadas.remove(ocorrencia.id);
+                                        } else {
+                                          _selecionadas.add(ocorrencia.id);
+                                        }
+                                      });
+                                    },
+                                    onTap: () => _mostrarDetalhesOcorrencia(context, ocorrencia),
+                                  ),
+                                  if ((idx + 1) % 5 == 0 && AdService.deveExibirAnuncio(
+                                     usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
+                                     cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                                     isVitalicio: context.read<UsuarioProvider>().isSemAnunciosVitalicio,
+                                   ))
+                                    _buildNativeAdPlaceholder(),
+                                ];
+                              }).toList(),
                             ),
-                            // Inserir Native Ad a cada 5 cards (só para não-logados)
-                            if ((idx + 1) % 5 == 0 && !context.read<UsuarioProvider>().estaLogado)
-                              _buildNativeAdPlaceholder(),
-                          ];
-                        }),
                       ];
                     }),
                     if (provider.carregandoMais)
@@ -374,63 +404,65 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           ),
         ],
       ),
+      ),
       bottomNavigationBar:
           _selectionMode && _selecionadas.isNotEmpty
               ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCard,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 12,
-                        offset:  const Offset(0, -4),
+                  color: AppColors.surfaceCard,
+                  child: ResponsiveContainer(
+                    maxWidth: 800,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCard,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 12,
+                            offset:  const Offset(0, -4),
+                          ),
+                        ],
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                       ),
-                    ],
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(20)),
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _apagarSelecionadas,
-                            icon: const Icon(Icons.delete_rounded, size: 18),
-                            label: const Text('Excluir'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.statusActive,
+                      child: SafeArea(
+                        top: false,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _apagarSelecionadas,
+                                icon: const Icon(Icons.delete_rounded, size: 18),
+                                label: const Text('Excluir'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusActive,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                _marcarSelecionadasResolvidas(true),
-                            icon: const Icon(Icons.check_circle_rounded,
-                                size: 18),
-                            label: const Text('Resolver'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.statusResolved,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _marcarSelecionadasResolvidas(true),
+                                icon: const Icon(Icons.check_circle_rounded, size: 18),
+                                label: const Text('Resolver'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusResolved,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () =>
-                                _marcarSelecionadasResolvidas(false),
-                            icon: const Icon(Icons.refresh_rounded, size: 18),
-                            label: const Text('Reativar'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.statusEnRoute,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _marcarSelecionadasResolvidas(false),
+                                icon: const Icon(Icons.refresh_rounded, size: 18),
+                                label: const Text('Reativar'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.statusEnRoute,
+                                ),
+                              ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 )
@@ -541,24 +573,58 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     return ocorrencias;
   }
 
+  Future<void> _showResponsiveModal(BuildContext context, Widget Function(BuildContext) builder) async {
+    if (ResponsiveLayout.isDesktop(context)) {
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierColor: Colors.black54,
+        builder: (dialogCtx) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(dialogCtx).pop(),
+          child: GestureDetector(
+            onTap: () {}, // Impede que cliques dentro do card fechem o modal
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: builder(dialogCtx),
+            ),
+          ),
+        ),
+      );
+    } else {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: true,
+        enableDrag: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54,
+        builder: builder,
+      );
+    }
+  }
+
   void _mostrarDetalhesOcorrencia(
       BuildContext context, Ocorrencia pOcorrencia) {
     Ocorrencia ocorrencia = pOcorrencia;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        decoration:  const BoxDecoration(
-          color: AppColors.backgroundOffWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    _showResponsiveModal(
+      context,
+      (modalCtx) => Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxWidth: 600,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.backgroundOffWhite,
+            borderRadius: BorderRadius.all(Radius.circular(28)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // Handle
             Container(
               margin: const EdgeInsets.only(top: 12),
@@ -623,6 +689,18 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                    ),
+                    tooltip: 'Fechar',
+                    onPressed: () => Navigator.pop(modalCtx),
                   ),
                 ],
               ),
@@ -842,12 +920,22 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                           ],
                         ),
                       ),
+                    if (AdService.deveExibirAnuncio(
+                      usuarioLogado: context.read<UsuarioProvider>().usuarioLogado,
+                      cidadeAtiva: context.read<CidadeProvider>().cidadeAtiva,
+                      isVitalicio: context.read<UsuarioProvider>().isSemAnunciosVitalicio,
+                    ))
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16, bottom: 8),
+                        child: _buildDetalhesAdPlaceholder(),
+                      ),
                   ],
                 ),
               ),
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -904,14 +992,19 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
 
 
   void _alterarStatusOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
-    () async {
-      if (ocorrencia.status == OcorrenciaStatus.resolvida) {
-        await context.read<OcorrenciaProvider>().reativarOcorrencia(ocorrencia.id);
-      } else {
-        await context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id);
-      }
-      if (context.mounted) Navigator.pop(context);
-    }();
+    final messenger = ScaffoldMessenger.of(context);
+    
+    if (ocorrencia.status == OcorrenciaStatus.resolvida) {
+      context.read<OcorrenciaProvider>().reativarOcorrencia(ocorrencia.id).catchError((e) {
+        messenger.showSnackBar(SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red));
+      });
+    } else {
+      context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id).catchError((e) {
+        messenger.showSnackBar(SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red));
+      });
+    }
+    
+    Navigator.pop(context);
   }
 
   void _deletarOcorrencia(BuildContext context, Ocorrencia ocorrencia) {
@@ -957,15 +1050,22 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     });
   }
 
-  Future<void> _marcarSelecionadasResolvidas(bool resolvidas) async {
+  void _marcarSelecionadasResolvidas(bool resolvidas) {
     final provider = context.read<OcorrenciaProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    
     for (var id in _selecionadas.toList()) {
       if (resolvidas) {
-        await provider.resolverOcorrencia(id);
+        provider.resolverOcorrencia(id).catchError((e) {
+          messenger.showSnackBar(SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red));
+        });
       } else {
-        await provider.reativarOcorrencia(id);
+        provider.reativarOcorrencia(id).catchError((e) {
+          messenger.showSnackBar(SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red));
+        });
       }
     }
+    
     setState(() {
       _selecionadas.clear();
       _selectionMode = false;
@@ -1022,12 +1122,97 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.accentAmber),
                     ),
                   ),
+                  const Spacer(),
+                  InkWell(
+                    onTap: () {
+                      final email = context.read<UsuarioProvider>().usuarioLogado?.email ?? '';
+                      final url = email.isNotEmpty
+                          ? '${AppPagamentos.stripeLinkVitalicioSemAnuncios}?prefilled_email=${Uri.encodeComponent(email)}'
+                          : AppPagamentos.stripeLinkVitalicioSemAnuncios;
+                      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                    },
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.workspace_premium_rounded, size: 13, color: Colors.amber.shade800),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Remover anúncios',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.amber.shade900,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               SizedBox(
                 height: 120,
                 child: AdWidget(ad: nativeAd!),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetalhesAdPlaceholder() {
+    return StatefulBuilder(
+      builder: (context, setAdState) {
+        BannerAd? bannerAd;
+        bool isLoaded = false;
+
+        final adService = context.read<AdService>();
+        bannerAd = adService.criarBannerDetalhesAd(
+          onLoaded: () => setAdState(() => isLoaded = true),
+          onFailed: () => setAdState(() => isLoaded = false),
+        );
+        bannerAd.load();
+
+        if (!isLoaded) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: bannerAd.size.width.toDouble(),
+                height: bannerAd.size.height.toDouble(),
+                child: AdWidget(ad: bannerAd),
+              ),
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () {
+                  final email = context.read<UsuarioProvider>().usuarioLogado?.email ?? '';
+                  final url = email.isNotEmpty
+                      ? '${AppPagamentos.stripeLinkVitalicioSemAnuncios}?prefilled_email=${Uri.encodeComponent(email)}'
+                      : AppPagamentos.stripeLinkVitalicioSemAnuncios;
+                  launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
+                  child: Text(
+                    '👑 Remover anúncios para sempre no Stripe',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.amber.shade900,
+                      fontWeight: FontWeight.w600,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

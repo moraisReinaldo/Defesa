@@ -3,7 +3,8 @@ import 'package:uuid/uuid.dart';
 enum Role {
   cidadao,
   agente,
-  administrador
+  administrador,
+  superAdmin,
 }
 
 class Usuario {
@@ -19,6 +20,7 @@ class Usuario {
   final String? fcmToken;
   final DateTime dataCriacao;
   final String status; // PENDENTE ou ATIVO
+  final bool isSemAnunciosVitalicio; // Licença vitalícia que remove anúncios em qualquer cidade
 
   Usuario({
     String? id,
@@ -32,13 +34,16 @@ class Usuario {
     this.especialidade,
     this.fcmToken,
     this.status = 'ATIVO',
+    this.isSemAnunciosVitalicio = false,
     DateTime? dataCriacao,
   })  : id = id ?? const Uuid().v4(),
         dataCriacao = dataCriacao ?? DateTime.now();
 
-  bool get isAgente => role == Role.agente || role == Role.administrador;
-  bool get isAdmin => role == Role.administrador;
+  bool get isAgente => role == Role.agente || role == Role.administrador || role == Role.superAdmin;
+  bool get isAdmin => role == Role.administrador || role == Role.superAdmin;
+  bool get isSuperAdmin => role == Role.superAdmin;
   bool get isAtivo => status.toUpperCase() == 'ATIVO';
+  bool get isPendente => status.toUpperCase() == 'PENDENTE';
 
   // Converter para JSON
   Map<String, dynamic> toJson() {
@@ -54,6 +59,7 @@ class Usuario {
       'especialidade': especialidade,
       'fcmToken': fcmToken,
       'status': status,
+      'semAnunciosVitalicio': isSemAnunciosVitalicio,
       'dataCriacao': dataCriacao.toIso8601String(),
     };
   }
@@ -67,7 +73,9 @@ class Usuario {
       telefone: json['telefone'] ?? '',
       senha: json['senha'],
       role: Role.values.firstWhere(
-        (e) => e.name.toUpperCase() == (json['role'] as String?)?.toUpperCase(),
+        (e) => e.name.toUpperCase() == (json['role'] as String?)?.toUpperCase() ||
+               // Compatibilidade backend: SUPER_ADMIN -> superAdmin
+               e.name.toUpperCase().replaceAll('_', '') == (json['role'] as String?)?.toUpperCase().replaceAll('_', ''),
         orElse: () => json['isAgente'] == true ? Role.agente : Role.cidadao
       ),
       concordaLGPD: json['concordaLGPD'] ?? false,
@@ -75,6 +83,7 @@ class Usuario {
       especialidade: json['especialidade'],
       fcmToken: json['fcmToken'],
       status: json['status'] ?? 'ATIVO',
+      isSemAnunciosVitalicio: json['semAnunciosVitalicio'] == true || json['isSemAnunciosVitalicio'] == true,
       dataCriacao: _parseSafe(json['dataCriacao']) ?? DateTime.now(),
     );
   }

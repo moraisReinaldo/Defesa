@@ -14,8 +14,20 @@ public interface UsuarioRepository extends JpaRepository<Usuario, String> {
 
     Optional<Usuario> findByEmail(String email);
 
-    @Query("SELECT u FROM Usuario u WHERE u.role = :role AND (:cidade IS NULL OR u.cidade = :cidade)")
+    @Query("SELECT u FROM Usuario u WHERE u.role = :role AND (:cidade IS NULL OR LOWER(u.cidade) = LOWER(:cidade))")
     List<Usuario> findByCidadeAndRole(@Param("cidade") String cidade, @Param("role") String role);
 
     List<Usuario> findByCidadeIgnoreCaseAndRoleAndStatusIn(String cidade, String role, List<String> statuses);
+
+    List<Usuario> findByStatus(String status);
+
+    long countByCidadeIgnoreCaseAndRole(String cidade, String role);
+
+    List<Usuario> findByCidadeIgnoreCaseAndRole(String cidade, String role);
+
+    List<Usuario> findByCidadeIgnoreCase(String cidade);
+
+    List<Usuario> findByCidadeIgnoreCaseAndStatus(String cidade, String status);
+
+    List<Usuario> findByCidadeIgnoreCaseAndRoleOrderByDataCriacaoAsc(String cidade, String role);
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class LocalizacaoService {
   static final LocalizacaoService _instance = LocalizacaoService._internal();
@@ -12,8 +11,11 @@ class LocalizacaoService {
   LocalizacaoService._internal();
 
   Future<bool> verificarPermissoes() async {
-    final status = await Permission.location.request();
-    return status.isGranted;
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    return permission == LocationPermission.whileInUse || permission == LocationPermission.always;
   }
 
   Future<Position?> obterPosicaoAtual() async {
@@ -24,16 +26,29 @@ class LocalizacaoService {
         return null;
       }
 
-      // Verificar se o serviço de localização está habilitado
-      bool servicoHabilitado = await Geolocator.isLocationServiceEnabled();
-      if (!servicoHabilitado) {
-        return null;
+      // Verificar se o serviço de localização está habilitado (pular na web)
+      if (!kIsWeb) {
+        bool servicoHabilitado = await Geolocator.isLocationServiceEnabled();
+        if (!servicoHabilitado) {
+          return null;
+        }
       }
 
-      // Obter posição atual
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit:  const Duration(seconds: 10),
+      Position? position;
+      
+      try {
+        if (!kIsWeb) {
+          // getLastKnownPosition() geralmente não é suportado na Web e pode lançar exceção
+          position = await Geolocator.getLastKnownPosition();
+        }
+      } catch (e) {
+        if (kDebugMode) print('Erro ao obter última posição: $e');
+      }
+      
+      // Se não tiver, pedir a localização atual (com precisão menor na Web para evitar timeout)
+      position ??= await Geolocator.getCurrentPosition(
+        desiredAccuracy: kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
+        timeLimit: kIsWeb ? const Duration(seconds: 60) : const Duration(seconds: 15),
       );
 
       return position;

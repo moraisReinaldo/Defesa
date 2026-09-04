@@ -8,6 +8,7 @@ import '../providers/usuario_provider.dart';
 import '../services/api_service.dart';
 import '../services/localizacao_service.dart';
 import '../services/geocoding_service.dart';
+import '../widgets/responsive_layout.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool modoRegistro;
@@ -122,8 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
         if (ok && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(pendente 
-                ? 'Cadastro realizado! Aguardando aprovação por e-mail. 📧' 
-                : 'Cadastro realizado! Você já pode entrar. ✅'),
+                ? 'Bem-vindo! Seu cadastro foi realizado e está aguardando homologação do Super Admin. 🏛️' 
+                : 'Bem-vindo! Cadastro realizado com sucesso! ✅'),
               backgroundColor: AppColors.statusResolved));
           if (mounted) Navigator.pop(context, true);
         } else if (mounted) {
@@ -234,263 +235,269 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius:
                     BorderRadius.vertical(bottom: Radius.circular(32)),
               ),
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 16),
-                      child: GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 40, height: 40,
-                          decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(40),
-                              borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.arrow_back_rounded,
-                              color: Colors.white, size: 20),
+              child: ResponsiveContainer(
+                maxWidth: 600,
+                child: Column(
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 16),
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(40),
+                                borderRadius: BorderRadius.circular(12)),
+                            child: const Icon(Icons.arrow_back_rounded,
+                                color: Colors.white, size: 20),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: 90, height: 90,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [BoxShadow(color: Colors.black.withAlpha(50), blurRadius: 20, offset: const Offset(0, 8))],
+                    const SizedBox(height: 20),
+                    Container(
+                      width: 90, height: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(color: Colors.black.withAlpha(50), blurRadius: 20, offset: const Offset(0, 8))],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Image.asset('assets/images/defe.png', fit: BoxFit.contain),
+                      ),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: Image.asset('assets/images/defe.png', fit: BoxFit.contain),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(_modoRegistro ? 'Criar Conta' : 'Bem-vindo!',
-                      style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
-                  const SizedBox(height: 6),
-                  Text(_modoRegistro ? 'Cadastre-se para acompanhar ocorrências' : 'Entre com sua conta',
-                      style: TextStyle(fontSize: 14, color: Colors.white.withAlpha(180))),
-                ],
+                    const SizedBox(height: 20),
+                    Text(_modoRegistro ? 'Criar Conta' : 'Bem-vindo!',
+                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+                    const SizedBox(height: 6),
+                    Text(_modoRegistro ? 'Cadastre-se para acompanhar ocorrências' : 'Entre com sua conta',
+                        style: TextStyle(fontSize: 14, color: Colors.white.withAlpha(180))),
+                  ],
+                ),
               ),
             ),
           ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    if (_modoRegistro) ...[
-                      _field('Nome completo', _nomeController, Icons.person_rounded, 'Seu nome', 
-                        validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
-                      
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(value: 'CIDADAO', label: Text('Cidadão'), icon: Icon(Icons.person_outline_rounded)),
-                            ButtonSegment(value: 'ADMINISTRADOR', label: Text('Coordenador'), icon: Icon(Icons.admin_panel_settings_outlined)),
-                          ],
-                          selected: {_roleSelecionada},
-                          onSelectionChanged: (Set<String> selection) {
-                            setState(() => _roleSelecionada = selection.first);
-                          },
-                          style: SegmentedButton.styleFrom(
-                            selectedBackgroundColor: AppColors.primaryTeal,
-                            selectedForegroundColor: Colors.white,
-                            side: BorderSide(color: AppColors.primaryTeal.withAlpha(50)),
+              child: ResponsiveContainer(
+                maxWidth: 600,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      if (_modoRegistro) ...[
+                        _field('Nome completo', _nomeController, Icons.person_rounded, 'Seu nome', 
+                          validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
+                        
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<String>(
+                            segments: const [
+                              ButtonSegment(value: 'CIDADAO', label: Text('Cidadão'), icon: Icon(Icons.person_outline_rounded)),
+                              ButtonSegment(value: 'ADMINISTRADOR', label: Text('Coordenador'), icon: Icon(Icons.admin_panel_settings_outlined)),
+                            ],
+                            selected: {_roleSelecionada},
+                            onSelectionChanged: (Set<String> selection) {
+                              setState(() => _roleSelecionada = selection.first);
+                            },
+                            style: SegmentedButton.styleFrom(
+                              selectedBackgroundColor: AppColors.primaryTeal,
+                              selectedForegroundColor: Colors.white,
+                              side: BorderSide(color: AppColors.primaryTeal.withAlpha(50)),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                        const SizedBox(height: 16),
+                      ],
 
-                    _field('Email', _emailController, Icons.email_rounded, 'seu@email.com', 
-                      keyboardType: TextInputType.emailAddress, 
-                      validator: (v) { 
-                        if (v == null || v.isEmpty) return 'Obrigatório'; 
-                        if (!v.contains('@')) return 'Email inválido'; 
-                        return null; 
-                      }),
+                      _field('Email', _emailController, Icons.email_rounded, 'seu@email.com', 
+                        keyboardType: TextInputType.emailAddress, 
+                        validator: (v) { 
+                          if (v == null || v.isEmpty) return 'Obrigatório'; 
+                          if (!v.contains('@')) return 'Email inválido'; 
+                          return null; 
+                        }),
 
-                    if (_modoRegistro) ...[
-                      const SizedBox(height: 8),
-                      _field('Telefone / WhatsApp', _telefoneController, Icons.phone_android_rounded, '(00) 00000-0000', 
-                        keyboardType: TextInputType.phone,
-                        validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
-                    ],
+                      if (_modoRegistro) ...[
+                        const SizedBox(height: 8),
+                        _field('Telefone / WhatsApp', _telefoneController, Icons.phone_android_rounded, '(00) 00000-0000', 
+                          keyboardType: TextInputType.phone,
+                          validator: (v) => v == null || v.isEmpty ? 'Obrigatório' : null),
+                      ],
 
-                    if (_modoRegistro) ...[
-                      const SizedBox(height: 8),
-                      const Align(
-                        alignment: Alignment.centerLeft, 
-                        child: Text('Selecione sua Cidade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: _cidadeSelecionada,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      if (_modoRegistro) ...[
+                        const SizedBox(height: 8),
+                        const Align(
+                          alignment: Alignment.centerLeft, 
+                          child: Text('Selecione sua Cidade', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))
                         ),
-                        items: context.watch<UsuarioProvider>().cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
-                        onChanged: (v) => setState(() => _cidadeSelecionada = v),
-                        validator: (v) => v == null ? 'Selecione uma cidade' : null,
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      if (_roleSelecionada == 'ADMINISTRADOR')
-                        Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withAlpha(15),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.primaryTeal.withAlpha(50)),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          initialValue: _cidadeSelecionada,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 20),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.info_outline_rounded, color: AppColors.primaryTeal, size: 32),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'Solicitação Manual Necessária',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-                                textAlign: TextAlign.center,
-                              ),
-                                                    const Text(
-                                'Contas de administrador requerem aprovação manual. '
-                                'Você pode criar sua conta agora e, se desejar agilizar o processo, envie um e-mail para:',
-                                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              const SelectableText(
-                                'reinaldoinfra07@gmail.com',
-                                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryTeal, fontSize: 14),
-                              ),
-                              const SizedBox(height: 16),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: () async {
-                                    final Uri emailLaunchUri = Uri(
-                                      scheme: 'mailto',
-                                      path: 'reinaldoinfra07@gmail.com',
-                                      query: 'subject=Solicitação de Acesso - ADMINISTRADOR&body=Olá, gostaria de solicitar acesso como ADMINISTRADOR da cidade de ...',
-                                    );
-                                    try {
-                                      await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o app de e-mail')));
+                          items: context.watch<UsuarioProvider>().cidadesSuportadas.map((c) => DropdownMenuItem(value: c['codigo'], child: Text(c['nome']!))).toList(),
+                          onChanged: (v) => setState(() => _cidadeSelecionada = v),
+                          validator: (v) => v == null ? 'Selecione uma cidade' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        if (_roleSelecionada == 'ADMINISTRADOR')
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryTeal.withAlpha(15),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.primaryTeal.withAlpha(50)),
+                            ),
+                            child: Column(
+                              children: [
+                                const Icon(Icons.info_outline_rounded, color: AppColors.primaryTeal, size: 32),
+                                const SizedBox(height: 12),
+                                const Text(
+                                  'Solicitação Manual Necessária',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                                  textAlign: TextAlign.center,
+                                ),
+                                                      const Text(
+                                  'Contas de administrador requerem aprovação manual. '
+                                  'Você pode criar sua conta agora e, se desejar agilizar o processo, envie um e-mail para:',
+                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                const SelectableText(
+                                  'reinaldoinfra07@gmail.com',
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryTeal, fontSize: 14),
+                                ),
+                                const SizedBox(height: 16),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final Uri emailLaunchUri = Uri(
+                                        scheme: 'mailto',
+                                        path: 'reinaldoinfra07@gmail.com',
+                                        query: 'subject=Solicitação de Acesso - ADMINISTRADOR&body=Olá, gostaria de solicitar acesso como ADMINISTRADOR da cidade de ...',
+                                      );
+                                      try {
+                                        await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Não foi possível abrir o app de e-mail')));
+                                        }
                                       }
-                                    }
-                                  },
-                                  icon: const Icon(Icons.email_outlined, size: 18),
-                                  label: const Text('Enviar E-mail (Opcional)'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.primaryTeal,
-                                    side: const BorderSide(color: AppColors.primaryTeal),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    },
+                                    icon: const Icon(Icons.email_outlined, size: 18),
+                                    label: const Text('Enviar E-mail (Opcional)'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primaryTeal,
+                                      side: const BorderSide(color: AppColors.primaryTeal),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                      ],
+
+                      _field('Senha', _senhaController, Icons.lock_rounded, 'Sua senha', 
+                        obscure: !_senhaVisivel,
+                        suffixIcon: IconButton(
+                          icon: Icon(_senhaVisivel ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: AppColors.textLight), 
+                          onPressed: () => setState(() => _senhaVisivel = !_senhaVisivel)
+                        ),
+                        validator: (v) { 
+                          if (v == null || v.isEmpty) return 'Obrigatório'; 
+                          if (v.length < 6) return 'Mínimo 6 caracteres'; 
+                          return null; 
+                        }),
+                      
+                      if (_modoRegistro) ...[
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: _concordaLGPD,
+                              activeColor: AppColors.primaryTeal,
+                              onChanged: (v) => setState(() => _concordaLGPD = v ?? false),
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _mostrarTermos,
+                                child: RichText(
+                                  text: const TextSpan(
+                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    children: [
+                                      TextSpan(text: 'Eu concordo com os '),
+                                      TextSpan(
+                                        text: 'Termos de Privacidade e LGPD',
+                                        style: TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                    ],
-
-                    _field('Senha', _senhaController, Icons.lock_rounded, 'Sua senha', 
-                      obscure: !_senhaVisivel,
-                      suffixIcon: IconButton(
-                        icon: Icon(_senhaVisivel ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: AppColors.textLight), 
-                        onPressed: () => setState(() => _senhaVisivel = !_senhaVisivel)
-                      ),
-                      validator: (v) { 
-                        if (v == null || v.isEmpty) return 'Obrigatório'; 
-                        if (v.length < 6) return 'Mínimo 6 caracteres'; 
-                        return null; 
-                      }),
-                    
-                    if (_modoRegistro) ...[
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: _concordaLGPD,
-                            activeColor: AppColors.primaryTeal,
-                            onChanged: (v) => setState(() => _concordaLGPD = v ?? false),
-                          ),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: _mostrarTermos,
-                              child: RichText(
-                                text: const TextSpan(
-                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                  children: [
-                                    TextSpan(text: 'Eu concordo com os '),
-                                    TextSpan(
-                                      text: 'Termos de Privacidade e LGPD',
-                                      style: TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
-                                    ),
-                                  ],
-                                ),
-                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
 
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity, height: 56,
-                      child: ElevatedButton(
-                        onPressed: _carregando ? null : _enviar,
-                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentAmber, foregroundColor: AppColors.textOnAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 4, shadowColor: AppColors.accentAmber.withAlpha(100)),
-                        child: _carregando ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) : Text(_modoRegistro ? 'Criar Conta' : 'Entrar', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity, height: 56,
+                        child: ElevatedButton(
+                          onPressed: _carregando ? null : _enviar,
+                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentAmber, foregroundColor: AppColors.textOnAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), elevation: 4, shadowColor: AppColors.accentAmber.withAlpha(100)),
+                          child: _carregando ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) : Text(_modoRegistro ? 'Criar Conta' : 'Entrar', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (!_modoRegistro)
+                      const SizedBox(height: 16),
+                      if (!_modoRegistro)
+                        TextButton(
+                          onPressed: _esqueciSenha,
+                          child: const Text('Esqueci minha senha', style: TextStyle(color: AppColors.primaryTeal)),
+                        ),
+                      const SizedBox(height: 16),
                       TextButton(
-                        onPressed: _esqueciSenha,
-                        child: const Text('Esqueci minha senha', style: TextStyle(color: AppColors.primaryTeal)),
-                      ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () { 
-                        setState(() { 
-                          _modoRegistro = !_modoRegistro; 
-                          _formKey.currentState?.reset(); 
-                          _emailController.clear(); 
-                          _senhaController.clear(); 
-                          _nomeController.clear(); 
-                          _cidadeController.clear(); 
-                        }); 
-                      },
-                      child: RichText(
-                        text: TextSpan(
-                          style: const TextStyle(fontSize: 14), 
-                          children: [
-                            TextSpan(text: _modoRegistro ? 'Já tem conta? ' : 'Não tem conta? ', style: const TextStyle(color: AppColors.textSecondary)),
-                            TextSpan(text: _modoRegistro ? 'Entrar' : 'Criar conta', style: const TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.w700)),
-                          ]
+                        onPressed: () { 
+                          setState(() { 
+                            _modoRegistro = !_modoRegistro; 
+                            _formKey.currentState?.reset(); 
+                            _emailController.clear(); 
+                            _senhaController.clear(); 
+                            _nomeController.clear(); 
+                            _cidadeController.clear(); 
+                          }); 
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            style: const TextStyle(fontSize: 14), 
+                            children: [
+                              TextSpan(text: _modoRegistro ? 'Já tem conta? ' : 'Não tem conta? ', style: const TextStyle(color: AppColors.textSecondary)),
+                              TextSpan(text: _modoRegistro ? 'Entrar' : 'Criar conta', style: const TextStyle(color: AppColors.primaryTeal, fontWeight: FontWeight.w700)),
+                            ]
+                          )
                         )
-                      )
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

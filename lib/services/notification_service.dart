@@ -9,8 +9,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static const _channelId = 'defesa_civil_channel';
-  static const _channelName = 'Defesa Civil';
-  static const _channelDesc = 'Notificações do app Defesa Civil em Foco';
+  static const _channelName = 'Defesa em Foco';
+  static const _channelDesc = 'Notificações do app Defesa em Foco';
 
   // ID do app no OneSignal (configurado em main.dart)
   static const _oneSignalAppId = '6537856b-c264-42af-b2a9-583652a175d2';
@@ -18,10 +18,18 @@ class NotificationService {
   Future<void> init() async {
     // ── 1. Notificações LOCAIS ──────────────────────────────────────────────
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidSettings);
+    const iosSettings = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
 
     await _localNotifications.initialize(
-      settings: initSettings,
+      initSettings,
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
@@ -39,7 +47,9 @@ class NotificationService {
         ?.createNotificationChannel(channel);
 
     // ── 2. Push REMOTO via OneSignal ───────────────────────────────────────
-    _configurarOneSignal();
+    if (!kIsWeb) {
+      _configurarOneSignal();
+    }
 
     if (kDebugMode) print('✅ NotificationService inicializado (local + OneSignal)');
   }
@@ -53,7 +63,7 @@ class NotificationService {
       }
       // Exibir como notificação local também
       mostrarNotificacaoLocal(
-        titulo: event.notification.title ?? 'Defesa Civil em Foco',
+        titulo: event.notification.title ?? 'Defesa em Foco',
         corpo: event.notification.body ?? '',
         id: event.notification.hashCode,
       );
@@ -73,7 +83,8 @@ class NotificationService {
 
   /// Retorna o token/playerID do OneSignal para vincular ao usuário no backend.
   /// [CR3 - Recursos Nativos]: Token real de push notification.
-  Future<String?> getToken() async {
+  Future<String?> obterTokenPush() async {
+    if (kIsWeb) return null;
     try {
       final deviceState = OneSignal.User.pushSubscription;
       final token = deviceState.id; // OneSignal Player ID / Subscription ID
@@ -99,17 +110,26 @@ class NotificationService {
       priority: Priority.high,
       icon: '@mipmap/ic_launcher',
     );
-    const details = NotificationDetails(android: androidDetails);
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
     await _localNotifications.show(
-      id: id,
-      title: titulo,
-      body: corpo,
-      notificationDetails: details,
+      id,
+      titulo,
+      corpo,
+      details,
     );
   }
 
   /// Envia tag ao OneSignal para segmentação de notificações por cidade.
-  Future<void> definirTagCidade(String cidade) async {
+  Future<void> definirCidadeUsuario(String cidade) async {
+    if (kIsWeb) return;
     try {
       OneSignal.User.addTagWithKey('cidade', cidade);
       if (kDebugMode) print('🏷️ [OneSignal] Tag cidade=$cidade definida');
@@ -120,6 +140,7 @@ class NotificationService {
 
   /// Define o ID do usuário no OneSignal para envio direcionado.
   Future<void> vincularUsuario(String usuarioId) async {
+    if (kIsWeb) return;
     try {
       OneSignal.login(usuarioId);
       if (kDebugMode) print('👤 [OneSignal] Usuário vinculado: $usuarioId');
@@ -130,6 +151,7 @@ class NotificationService {
 
   /// Remove o vínculo do usuário ao fazer logout.
   Future<void> desvincularUsuario() async {
+    if (kIsWeb) return;
     try {
       OneSignal.logout();
       if (kDebugMode) print('👤 [OneSignal] Usuário desvinculado');

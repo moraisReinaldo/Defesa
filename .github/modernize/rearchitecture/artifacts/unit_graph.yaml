@@ -1,0 +1,333 @@
+---
+# Unit Graph for Defesa Civil System
+# Entry points: 11 mobile/web screens + 7 REST endpoints
+# Source: Flutter lib/screens/ + Spring Boot controllers/
+
+units:
+
+  # ─────────────────────────────────────────────────────────────────
+  # MOBILE/WEB SCREENS (Flutter - shared codebase)
+  # ─────────────────────────────────────────────────────────────────
+
+  - name: login_screen
+    kind: screen
+    description: Authentication entry point (mobile + web)
+    source_loc: lib/screens/login_screen.dart
+    exported_signature: |
+      void handleLogin(String email, String password) → Future<bool>
+      Parameters: email (String), password (String)
+      Returns: bool (success)
+      Side effects: Saves JWT token to Hive, navigates to home
+    dynamic_entrypoints:
+      - name: GoRouter push
+        pattern: GoRouter.of(context).go('/login')
+        note: Triggered by logout or session expiration
+    depends_on:
+      - auth_controller  # POST /api/auth/login
+    shared_refs:
+      - StorageService  # Save JWT token
+      - ApiService      # HTTP POST request
+
+  - name: mapa_screen
+    kind: screen
+    description: Live map view with incidents & POIs (mobile + web)
+    source_loc: lib/screens/mapa_screen.dart
+    exported_signature: |
+      void loadMap() → Future<void>
+      void handleMarkerTap(LatLng latLng, String markerId) → void
+      Parameters: latLng (latitude, longitude), markerId (incident or POI id)
+      Side effects: Displays map, shows incident detail bottom sheet, tracks GPS
+    dynamic_entrypoints:
+      - name: GeoLocator stream
+        pattern: Geolocator.getPositionStream()
+        note: Real-time user position tracking
+      - name: flutter_map tap handler
+        pattern: MapController.onTap(position)
+    depends_on:
+      - ocorrencia_controller  # GET /api/ocorrencia (list)
+      - ponto_interesse_controller  # GET /api/ponto_interesse (list)
+      - usuario_controller     # GET /api/usuario/{id} (for user location privacy)
+    shared_refs:
+      - OcorrenciaProvider   # Incident state
+      - StorageService       # Cached incident list
+      - HiveService          # Offline map data
+
+  - name: registro_ocorrencia_screen
+    kind: screen
+    description: Create/edit incident report (mobile primary, web secondary)
+    source_loc: lib/screens/registro_ocorrencia_screen.dart
+    exported_signature: |
+      void submitIncident(IncidentForm form) → Future<IncidentResponse>
+      Parameters: form { title, description, type, latitude, longitude, photos[] }
+      Returns: IncidentResponse { id, status, created_at }
+      Side effects: Uploads photos to MinIO, saves incident to PostgreSQL, triggers notification
+    dynamic_entrypoints:
+      - name: Camera plugin
+        pattern: ImagePicker.pickImage() / ImagePicker.pickVideo()
+        note: User selects 1+ photos from gallery/camera
+    depends_on:
+      - ocorrencia_controller  # POST /api/ocorrencia + photo multipart
+    shared_refs:
+      - OcorrenciaProvider     # Update incident list
+      - StorageService         # Cache offline draft
+      - HiveService            # Persist draft form until submitted
+
+  - name: historico_screen
+    kind: screen
+    description: List past incidents (mobile + web)
+    source_loc: lib/screens/historico_screen.dart
+    exported_signature: |
+      void loadHistory(int page, String? filterType) → Future<List<IncidentSummary>>
+      Parameters: page (1-based), filterType (optional: 'ACIDENTE', 'INCÊNDIO', etc.)
+      Returns: List<IncidentSummary> { id, title, status, created_at, thumbnail }
+      Side effects: Polls backend for new incidents, updates local cache
+    dynamic_entrypoints:
+      - name: Pull-to-refresh
+        pattern: RefreshIndicator.onRefresh()
+    depends_on:
+      - ocorrencia_controller  # GET /api/ocorrencia?page=X&tipo=Y
+    shared_refs:
+      - OcorrenciaProvider     # Cached incident list
+      - StorageService         # Pagination cursor
+
+  - name: perfil_screen
+    kind: screen
+    description: User profile & settings (mobile + web)
+    source_loc: lib/screens/perfil_screen.dart
+    exported_signature: |
+      void updateProfile(UserProfile profile) → Future<User>
+      void logout() → Future<void>
+      Parameters: profile { nome, email, phone, preferences }
+      Returns: User { id, nome, role }
+      Side effects: Updates backend user record, clears local JWT
+    depends_on:
+      - usuario_controller  # PUT /api/usuario/{id}, DELETE /api/auth/logout
+    shared_refs:
+      - UsuarioProvider      # Current user state
+      - StorageService       # Clear cached preferences
+
+  - name: detalhe_ocorrencia_screen
+    kind: screen
+    description: View single incident with photos & status (mobile + web)
+    source_loc: lib/screens/detalhe_ocorrencia_screen.dart
+    exported_signature: |
+      void loadIncidentDetail(String incidentId) → Future<IncidentDetail>
+      void updateStatus(String incidentId, String newStatus) → Future<void>
+      Parameters: incidentId (UUID), newStatus ('EM_PROGRESSO', 'RESOLVIDO', etc.)
+      Returns: IncidentDetail { incident, photos[], comments[], history[] }
+      Side effects: Displays photos from MinIO, polls for real-time status updates
+    dynamic_entrypoints:
+      - name: WebSocket or polling
+        pattern: Timer.periodic() / WebSocket stream
+        note: Real-time incident status updates
+    depends_on:
+      - ocorrencia_controller  # GET /api/ocorrencia/{id}, PATCH status
+    shared_refs:
+      - StorageService         # Cache incident detail
+      - HiveService            # Offline photo thumbnails
+
+  - name: gerenciamento_pois_screen
+    kind: screen
+    description: Manage Points of Interest (POI) - web admin only
+    source_loc: lib/screens/gerenciamento_pois_screen.dart
+    exported_signature: |
+      void createPOI(POIForm form) → Future<PointOfInterest>
+      void updatePOI(String poiId, POIForm form) → Future<void>
+      void deletePOI(String poiId) → Future<void>
+      Parameters: form { nome, tipo, latitude, longitude, cidade_id }
+      Side effects: Creates/updates POI markers on map, notifies field operators
+    depends_on:
+      - ponto_interesse_controller  # POST, PUT, DELETE /api/ponto_interesse
+      - cidade_controller           # GET /api/cidade (for dropdown)
+    shared_refs:
+      - StorageService         # Cache POI list
+
+  - name: dashboard_screen
+    kind: screen
+    description: Admin dashboard with incident overview (web only)
+    source_loc: lib/screens/dashboard_screen.dart
+    exported_signature: |
+      void loadDashboard() → Future<DashboardStats>
+      void assignIncident(String incidentId, String agentId) → Future<void>
+      Parameters: incidentId (UUID), agentId (UUID)
+      Returns: DashboardStats { total_incidents, by_status, by_type, response_time }
+      Side effects: Fetches real-time stats, updates incident assignments
+    dynamic_entrypoints:
+      - name: Auto-refresh timer
+        pattern: Timer.periodic(Duration(seconds: 30), ...)
+    depends_on:
+      - ocorrencia_controller  # GET /api/ocorrencia (with filters)
+      - usuario_controller     # GET /api/usuario/{id} (assign to agent)
+    shared_refs:
+      - OcorrenciaProvider     # Incident state
+      - UsuarioProvider        # Available agents
+
+  - name: gerenciamento_usuarios_screen
+    kind: screen
+    description: Manage users (web admin only)
+    source_loc: lib/screens/gerenciamento_usuarios_screen.dart
+    exported_signature: |
+      void createUser(UserForm form) → Future<User>
+      void updateUser(String userId, UserForm form) → Future<void>
+      void deactivateUser(String userId) → Future<void>
+      Parameters: form { email, nome, cpf, role }
+      Returns: User { id, email, role, active }
+      Side effects: Creates/deactivates user accounts, sends verification email
+    depends_on:
+      - usuario_controller  # POST, PUT, PATCH /api/usuario
+    shared_refs:
+      - UsuarioProvider      # Current users list
+      - StorageService       # Cache user directory
+
+  - name: alertas_screen
+    kind: screen
+    description: View push notifications & alerts (mobile + web)
+    source_loc: lib/screens/alertas_screen.dart
+    exported_signature: |
+      void loadAlerts(int page) → Future<List<Alert>>
+      void markAsRead(String alertId) → Future<void>
+      Parameters: page (1-based)
+      Returns: List<Alert> { id, tipo, mensagem, lido, created_at }
+      Side effects: Marks alerts read, navigates to related incident on tap
+    depends_on:
+      - alerta_controller  # GET /api/alerta?page=X, PATCH /api/alerta/{id}/read
+    shared_refs:
+      - StorageService     # Cache alert feed
+
+  - name: relatorio_screen
+    kind: screen
+    description: Generate/view incident reports (web admin only)
+    source_loc: lib/screens/relatorio_screen.dart
+    exported_signature: |
+      void generateReport(DateRange dateRange, String? filterType) → Future<ReportData>
+      void exportPDF(ReportData report) → Future<File>
+      Parameters: dateRange { start, end }, filterType (optional type filter)
+      Returns: ReportData { incidents[], stats, charts }
+      Side effects: Generates PDF report, downloads file to device
+    depends_on:
+      - ocorrencia_controller  # GET /api/ocorrencia (filtered by date)
+    shared_refs:
+      - StorageService         # Cache report templates
+
+  # ─────────────────────────────────────────────────────────────────
+  # BACKEND API ENDPOINTS (Spring Boot REST Controllers)
+  # ─────────────────────────────────────────────────────────────────
+
+  - name: auth_controller
+    kind: rest_endpoint
+    description: JWT authentication (login, logout, refresh)
+    source_loc: defesa-backend/src/main/java/com/defesacivil/backend/controller/AuthController.java
+    exported_signature: |
+      POST /api/auth/login {email, password} → {access_token, refresh_token, expires_in}
+      POST /api/auth/logout → {status}
+      GET /api/auth/refresh → {access_token}
+      POST /api/auth/validate → {valid}
+    dynamic_entrypoints:
+      - name: Spring Security filter chain
+        pattern: OncePerRequestFilter, SecurityContextHolder
+        note: JWT token validation on every request
+    depends_on: []
+    shared_refs:
+      - (none, auth is core)
+
+  - name: usuario_controller
+    kind: rest_endpoint
+    description: User management (CRUD, profiles, roles)
+    source_loc: defesa-backend/src/main/java/com/defesacivil/backend/controller/UsuarioController.java
+    exported_signature: |
+      GET /api/usuario/{id} → User
+      PUT /api/usuario/{id} {nome, email, phone} → User
+      POST /api/usuario {email, password, nome, cpf, role} → User
+      GET /api/usuario?role=AGENT → List<User>
+      PATCH /api/usuario/{id}/deactivate → {status}
+    dynamic_entrypoints:
+      - name: Spring Security @Secured
+        pattern: '@Secured("ROLE_ADMIN")'
+        note: Authorization gates (only admins can create/deactivate users)
+    depends_on: []
+    shared_refs:
+      - UsuarioRepository   # Database access
+      - PasswordEncoder     # Bcrypt hashing
+
+  - name: ocorrencia_controller
+    kind: rest_endpoint
+    description: Incident CRUD, photo upload, status tracking
+    source_loc: defesa-backend/src/main/java/com/defesacivil/backend/controller/OcorrenciaController.java
+    exported_signature: |
+      POST /api/ocorrencia {titulo, descricao, tipo, latitude, longitude} + multipart photos → Ocorrencia
+      GET /api/ocorrencia?status=ABERTO&page=0 → Page<Ocorrencia>
+      GET /api/ocorrencia/{id} → OcorrenciaDetail
+      PATCH /api/ocorrencia/{id}/status {newStatus} → Ocorrencia
+      POST /api/ocorrencia/{id}/upload multipart/form-data → List<Foto>
+    dynamic_entrypoints:
+      - name: Spring Security @Authenticated
+        pattern: '@Secured("ROLE_AGENT", "ROLE_ADMIN")'
+      - name: @RequestParam binding
+        pattern: '@RequestParam(required=false) String status'
+        note: Optional filter parameters
+    depends_on:
+      - alerta_controller  # Triggers incident creation alerts
+    shared_refs:
+      - OcorrenciaRepository   # Database
+      - MinioService           # Photo upload to S3
+      - FotoRepository         # Store photo metadata
+
+  - name: ponto_interesse_controller
+    kind: rest_endpoint
+    description: POI CRUD (map landmarks)
+    source_loc: defesa-backend/src/main/java/com/defesacivil/backend/controller/PontoInteresseController.java
+    exported_signature: |
+      POST /api/ponto_interesse {nome, tipo, latitude, longitude, cidade_id} → PointOfInterest
+      GET /api/ponto_interesse?tipo=HIDRANTE&cidade_id=X → List<PointOfInterest>
+      GET /api/ponto_interesse/{id} → PointOfInterest
+      PUT /api/ponto_interesse/{id} {nome, descricao, ...} → PointOfInterest
+      DELETE /api/ponto_interesse/{id} → {status}
+    dynamic_entrypoints:
+      - name: Spring Security @Secured("ROLE_ADMIN")
+        pattern: POST, PUT, DELETE require admin role
+    depends_on: []
+    shared_refs:
+      - PontoInteresseRepository   # Database
+      - CidadeRepository           # Foreign key lookup
+
+  - name: cidade_controller
+    kind: rest_endpoint
+    description: City/municipality lookup for POI geolocation
+    source_loc: defesa-backend/src/main/java/com/defesacivil/backend/controller/CidadeController.java
+    exported_signature: |
+      GET /api/cidade → List<Cidade>
+      GET /api/cidade?estado=SP → List<Cidade>
+      GET /api/cidade/{id} → Cidade
+    dynamic_entrypoints: []
+    depends_on: []
+    shared_refs:
+      - CidadeRepository   # Database (reference data)
+
+  - name: alerta_controller
+    kind: rest_endpoint
+    description: Alert/notification management (push + in-app)
+    source_loc: defesa-backend/src/main/java/com/defesacivil/backend/controller/AlertaController.java
+    exported_signature: |
+      GET /api/alerta?page=0&lido=false → Page<Alerta>
+      PATCH /api/alerta/{id}/read → Alerta
+      POST /api/alerta (internal, not exposed to clients)
+      DELETE /api/alerta/{id} → {status}
+    dynamic_entrypoints:
+      - name: n8n webhook handler
+        pattern: @PostMapping("/webhook/incident-created")
+        note: Receives incident creation events from n8n, triggers notifications
+    depends_on: []
+    shared_refs:
+      - AlertaRepository           # Database
+      - OneSignalService           # Push notification delivery
+
+  - name: health_controller
+    kind: rest_endpoint
+    description: Health check & actuator endpoints (Spring Boot Actuator)
+    source_loc: defesa-backend/src/main/java/com/defesacivil/backend/controller/HealthController.java
+    exported_signature: |
+      GET /actuator/health → {status: "UP"}
+      GET /actuator/metrics → {metrics...}
+    dynamic_entrypoints: []
+    depends_on: []
+    shared_refs: []

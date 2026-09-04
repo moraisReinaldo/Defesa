@@ -128,5 +128,13 @@ temp/
 android/local.properties
 
 # Backend sensitive configs (use env vars in production)
+**/application.properties
 **/application-prod.properties
 **/application-secret.properties
+
+ios/Pods/
+ios/.symlinks/
+macos/Pods/
+macos/.symlinks/
+.flutter-plugins
+.flutter-plugins-dependencies

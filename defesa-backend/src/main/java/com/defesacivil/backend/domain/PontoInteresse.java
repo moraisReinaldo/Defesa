@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "pontos_interesse")
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class PontoInteresse {
 
     @Id
@@ -37,6 +38,9 @@ public class PontoInteresse {
 
     @jakarta.persistence.Column(name = "criado_por", nullable = true)
     private String criadoPor;
+
+    @jakarta.persistence.Column(nullable = false)
+    private boolean disponivel = true;
 
     public PontoInteresse() {
     }
@@ -96,6 +100,14 @@ public class PontoInteresse {
 
     public void setCriadoPor(String criadoPor) {
         this.criadoPor = criadoPor;
+    }
+
+    public boolean isDisponivel() {
+        return disponivel;
+    }
+
+    public void setDisponivel(boolean disponivel) {
+        this.disponivel = disponivel;
     }
 
     public Cidade getCidadeEntidade() {

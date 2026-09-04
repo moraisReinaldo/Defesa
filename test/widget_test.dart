@@ -1,39 +1,56 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:defesa_civil_app/main.dart';
+import 'package:provider/provider.dart';
+import 'package:defesa_civil_app/screens/loading_screen.dart';
+import 'package:defesa_civil_app/providers/usuario_provider.dart';
 import 'package:defesa_civil_app/services/storage_service.dart';
 import 'package:defesa_civil_app/services/api_service.dart';
-import 'package:defesa_civil_app/services/notification_service.dart';
 import 'package:defesa_civil_app/services/hive_service.dart';
-import 'package:defesa_civil_app/services/ad_service.dart';
-
-// Devido ao uso de mocks e build_runner, vamos simplificar o teste básico
-// para apenas carregar o app com instâncias manuais (ou mocks se gerados).
 
 class FakeStorageService extends StorageService {}
+
 class FakeApiService extends ApiService {
   FakeApiService(super.storage);
 }
-class FakeNotificationService extends NotificationService {}
-class FakeHiveService extends HiveService {}
-class FakeAdService extends AdService {}
+
+class FakeHiveService extends HiveService {
+  @override
+  String? get cidadeFavorita => null;
+  @override
+  bool get temaEscuro => false;
+  @override
+  String get filtroStatus => 'TODOS';
+  @override
+  String get filtroTipo => 'TODOS';
+  @override
+  bool get notificacoesAtivas => true;
+  @override
+  DateTime? get ultimaAtualizacao => null;
+  @override
+  double get limiteChuvaDiaria => 50.0;
+  @override
+  Future<void> init() async {}
+}
 
 void main() {
-  testWidgets('Splash screen shows correctly', (WidgetTester tester) async {
+  testWidgets('Loading screen renders branding correctly', (WidgetTester tester) async {
     final storage = FakeStorageService();
     final api = FakeApiService(storage);
-    final notify = FakeNotificationService();
     final hive = FakeHiveService();
-    final ad = FakeAdService();
 
-    await tester.pumpWidget(MyApp(
-      storageService: storage,
-      apiService: api,
-      notificationService: notify,
-      hiveService: hive,
-      adService: ad,
-    ));
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+            create: (_) => UsuarioProvider(storage, api, hive),
+          ),
+        ],
+        child: const MaterialApp(
+          home: LoadingScreen(),
+        ),
+      ),
+    );
 
-    // O teste agora compila e respeita a Injeção de Dependência
-    expect(find.byType(MyApp), findsOneWidget);
+    expect(find.text('Reinaldo Henrique Morais'), findsOneWidget);
   });
 }

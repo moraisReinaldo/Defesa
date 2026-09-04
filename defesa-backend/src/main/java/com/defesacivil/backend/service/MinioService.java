@@ -1,5 +1,7 @@
 package com.defesacivil.backend.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -20,6 +22,12 @@ public class MinioService {
     private static final Logger log = LoggerFactory.getLogger(MinioService.class);
 
     private final MinioClient minioClient;
+
+    // Cache em memória de URLs presignadas com TTL de 50 minutos (a URL tem validade de 60 min)
+    private final Cache<String, String> presignedUrlCache = Caffeine.newBuilder()
+            .expireAfterWrite(50, TimeUnit.MINUTES)
+            .maximumSize(10000)
+            .build();
 
     @Value("${minio.bucket-name}")
     private String bucketName;
@@ -56,7 +64,16 @@ public class MinioService {
             }
 
             byte[] imageBytes = Base64.getDecoder().decode(pureBase64);
+
+            // SEGURANÇA: rejeitar imagens maiores que 10MB (previne ataque OOM via base64)
+            if (imageBytes.length > 10 * 1024 * 1024) {
+                log.warn("Upload rejeitado: imagem excede 10MB ({} bytes)", imageBytes.length);
+                throw new IllegalArgumentException("Imagem muito grande. Tamanho máximo permitido: 10MB.");
+            }
+
             String objectKey = folder + "/" + UUID.randomUUID().toString() + "." + extension;
+
+            garantirBucketExiste();
 
             minioClient.putObject(
                 PutObjectArgs.builder()
@@ -74,6 +91,22 @@ public class MinioService {
         }
     }
 
+    private void garantirBucketExiste() {
+        try {
+            boolean exists = minioClient.bucketExists(
+                io.minio.BucketExistsArgs.builder().bucket(bucketName).build()
+            );
+            if (!exists) {
+                minioClient.makeBucket(
+                    io.minio.MakeBucketArgs.builder().bucket(bucketName).build()
+                );
+                log.info("Bucket MinIO '{}' criado com sucesso.", bucketName);
+            }
+        } catch (Exception e) {
+            log.warn("Verificação de bucket MinIO: {}", e.getMessage());
+        }
+    }
+
     /**
      * Gera uma URL presigned com validade de 1 hora.
      * @param objectKey A chave do objeto no bucket (ex: ocorrencias/123.jpg)
@@ -84,18 +117,21 @@ public class MinioService {
             return objectKey; // Se já for URL (ex: antigas do firebase) ou null, retorna direto
         }
         
-        try {
-            return minioClient.getPresignedObjectUrl(
-                GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(bucketName)
-                    .object(objectKey)
-                    .expiry(1, TimeUnit.HOURS)
-                    .build()
-            );
-        } catch (Exception e) {
-            log.error("Erro ao gerar presigned URL: {}", e.getMessage(), e);
-            return null;
-        }
+        return presignedUrlCache.get(objectKey, key -> {
+            try {
+                String url = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                        .method(Method.GET)
+                        .bucket(bucketName)
+                        .object(key)
+                        .expiry(1, TimeUnit.HOURS)
+                        .build()
+                );
+                return (url != null && !url.isBlank()) ? url : key;
+            } catch (Exception e) {
+                log.error("Erro ao gerar presigned URL para {}: {}", key, e.getMessage());
+                return key;
+            }
+        });
     }
 }

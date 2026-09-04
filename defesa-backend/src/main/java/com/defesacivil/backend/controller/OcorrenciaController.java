@@ -50,6 +50,26 @@ public class OcorrenciaController {
         return ResponseEntity.ok(ocorrenciaService.buscarPorCidade(cidade, pageable));
     }
 
+    /**
+     * Exporta relatório oficial municipal em CSV com protocolo COBRADE.
+     * Restrito a Administradores, Agentes e Super Admin (configurado no SecurityConfig).
+     */
+    @GetMapping("/export/csv")
+    public ResponseEntity<byte[]> exportarCsv(
+            @RequestParam(required = false) String cidade,
+            @RequestParam(required = false) String status) {
+
+        byte[] csvData = ocorrenciaService.exportarOcorrenciasCsv(cidade, status);
+        String nomeCidade = (cidade != null && !cidade.isBlank()) ? cidade.replaceAll("[^a-zA-Z0-9_-]", "") : "geral";
+        String filename = "relatorio_defesa_civil_" + nomeCidade + ".csv";
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(org.springframework.http.HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, org.springframework.http.HttpHeaders.CONTENT_DISPOSITION)
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csvData);
+    }
+
     /** Aprovar — ADMINISTRADOR e AGENTE (protegido no SecurityConfig) */
     @PostMapping("/{id}/aprovar")
     public ResponseEntity<Ocorrencia> aprovar(@PathVariable String id) {

@@ -29,15 +29,20 @@ public class Ocorrencia {
     private String dataChegadaAgente; // Novo: data da chegada
     @Column(columnDefinition = "TEXT")
     private String descricaoSituacao; // Novo: Parecer técnico/situação atual
+    private String cobrade; // Código oficial COBRADE (ex: 1.2.3.0.0)
+    private String cobradeDescricao; // Descrição oficial do desastre segundo o MDR/S2ID
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cidade_id")
     private Cidade cidadeEntidade;
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "autor_id")
     private Usuario autor;
 
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "ocorrencia_agentes_atribuidos",
@@ -199,5 +204,21 @@ public class Ocorrencia {
 
     public void setAgentesAtribuidos(List<Usuario> agentesAtribuidos) {
         this.agentesAtribuidos = agentesAtribuidos;
+    }
+
+    public String getCobrade() {
+        return cobrade;
+    }
+
+    public void setCobrade(String cobrade) {
+        this.cobrade = cobrade;
+    }
+
+    public String getCobradeDescricao() {
+        return cobradeDescricao;
+    }
+
+    public void setCobradeDescricao(String cobradeDescricao) {
+        this.cobradeDescricao = cobradeDescricao;
     }
 }

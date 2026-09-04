@@ -12,13 +12,9 @@ class ApiClient {
   );
 
   static const List<Map<String, String>> fallbackCidades = [
-    {'nome': 'Atibaia', 'codigo': 'ATI'},
     {'nome': 'Bragança Paulista', 'codigo': 'BP'},
     {'nome': 'Joanópolis', 'codigo': 'JOA'},
-    {'nome': 'Nazaré Paulista', 'codigo': 'NAZ'},
     {'nome': 'Piracaia', 'codigo': 'PIR'},
-    {'nome': 'Tuiuti', 'codigo': 'TUI'},
-    {'nome': 'Vargem', 'codigo': 'VAR'},
   ];
 
   static const Duration _timeout = Duration(seconds: 60);
@@ -68,7 +64,17 @@ class ApiClient {
     try {
       final response = await dio.get('/cidades', options: Options(extra: {'secure': false}));
       if (response.data is List) {
-        return (response.data as List).map((c) => Map<String, String>.from(c)).toList();
+        final lista = (response.data as List).map((c) {
+          if (c is Map) {
+            return {
+              'id': c['id']?.toString() ?? '',
+              'codigo': c['codigo']?.toString() ?? '',
+              'nome': c['nome']?.toString() ?? '',
+            };
+          }
+          return <String, String>{};
+        }).where((m) => m['codigo'] != null && m['codigo']!.isNotEmpty).toList();
+        if (lista.isNotEmpty) return lista;
       }
       return fallbackCidades;
     } catch (e) {
@@ -79,6 +85,14 @@ class ApiClient {
   Exception handleDioError(DioException e) {
     final data = e.response?.data;
     final statusCode = e.response?.statusCode;
+    
+    if (statusCode == 401 || statusCode == 403) {
+      if (data is Map && data['message'] != null && data['message'].toString().isNotEmpty) {
+        return Exception(data['message'].toString());
+      }
+      return Exception('Sua sessão expirou. Por favor, acesse a aba Perfil, saia e faça login novamente.');
+    }
+
     String msg = 'Erro ao conectar com o servidor${statusCode != null ? ' (Status: $statusCode)' : ''}.';
     
     if (data is Map && data['message'] != null) {

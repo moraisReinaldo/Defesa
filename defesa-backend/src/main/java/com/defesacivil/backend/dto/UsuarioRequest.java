@@ -15,13 +15,7 @@ public class UsuarioRequest {
 
     private String telefone;
 
-    @NotBlank(message = "A senha é obrigatória")
-    @Size(min = 8, message = "A senha deve ter no mínimo 8 caracteres")
-    @jakarta.validation.constraints.Pattern(
-        regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).*$",
-        message = "A senha deve conter pelo menos uma letra maiúscula, uma minúscula e um número"
-    )
-    private String senha;
+    private String senha; // Opcional na atualização; validada manualmente no cadastro
 
     private String cidade; // Pode ser nulo para cidadãos em certas telas, mas validado no Service para Admins
 
@@ -30,6 +24,7 @@ public class UsuarioRequest {
 
     private boolean concordaLGPD;
     private String fcmToken;
+    private String especialidade;
 
     // Getters and Setters
     public String getNome() { return nome; }
@@ -48,4 +43,6 @@ public class UsuarioRequest {
     public void setConcordaLGPD(boolean concordaLGPD) { this.concordaLGPD = concordaLGPD; }
     public String getFcmToken() { return fcmToken; }
     public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+    public String getEspecialidade() { return especialidade; }
+    public void setEspecialidade(String especialidade) { this.especialidade = especialidade; }
 }

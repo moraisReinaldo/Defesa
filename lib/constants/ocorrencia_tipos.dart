@@ -12,7 +12,7 @@ class OcorrenciaTipos {
     'tempestade': 'Tempestade / Vendaval',
     'animais_peconhentos': 'Animais Peçonhentos',
     'obstrucao_via': 'Obstrução de Via',
-    'outro': 'Outro (Emergência)',
+    'outro': 'Outro Tipo',
   };
 
   static const Map<String, String> tiposDescricao = {
@@ -25,7 +25,7 @@ class OcorrenciaTipos {
     'tempestade': 'Tempestade, vendaval ou fenômeno meteorológico severo',
     'animais_peconhentos': 'Presença de animais perigosos (serpentes, escorpiões, etc.)',
     'obstrucao_via': 'Vias bloqueadas por detritos, quedas ou acidentes',
-    'outro': 'Outra emergência não classificada',
+    'outro': 'Outra observação',
   };
 
   static const Map<String, IconData> tiposIcones = {
@@ -41,12 +41,44 @@ class OcorrenciaTipos {
     'outro': Icons.emergency_rounded,
   };
 
+  static const Map<String, String> cobradeCodigos = {
+    'alagamento': '1.2.3.0.0',
+    'deslizamento': '1.3.2.1.1',
+    'queda_arvore': '1.3.1.1.1',
+    'incendio_vegetacao': '1.4.1.1.0',
+    'colapso_estrutural': '2.1.2.0.0',
+    'vazamento_perigoso': '2.2.2.0.0',
+    'tempestade': '1.3.2.1.4',
+    'animais_peconhentos': '1.4.2.1.0',
+    'obstrucao_via': '2.1.1.0.0',
+    'outro': '9.9.9.9.9',
+  };
+
+  static const Map<String, String> cobradeDescricoes = {
+    'alagamento': 'Alagamentos e Inundações Bruscas',
+    'deslizamento': 'Deslizamentos de Solo e/ou Rocha',
+    'queda_arvore': 'Vendavais / Queda de Árvores por Tempestades',
+    'incendio_vegetacao': 'Incêndio Florestal em Áreas de Vegetação',
+    'colapso_estrutural': 'Colapso de Edificações e Estruturas',
+    'vazamento_perigoso': 'Liberação de Substâncias Perigosas / Químicos',
+    'tempestade': 'Tempestades Convectivas - Chuvas Intensas / Granizo',
+    'animais_peconhentos': 'Infestações / Animais Peçonhentos',
+    'obstrucao_via': 'Interrupção de Vias Públicas e Transporte',
+    'outro': 'Outros Desastres e Ocorrências Locais',
+  };
+
   static List<String> getTiposLista() => tipos.keys.toList();
 
   static String getTipoNome(String tipo) => tipos[tipo] ?? 'Desconhecido';
 
   static String getTipoDescricao(String tipo) =>
-      tiposDescricao[tipo] ?? 'Emergência';
+      tiposDescricao[tipo] ?? 'Observação';
+
+  static String getCobradeCodigo(String tipo) =>
+      cobradeCodigos[tipo] ?? '9.9.9.9.9';
+
+  static String getCobradeDescricao(String tipo) =>
+      cobradeDescricoes[tipo] ?? 'Outros Desastres e Ocorrências Locais';
 
   static IconData getTipoIcone(String tipo) =>
       tiposIcones[tipo] ?? Icons.emergency_rounded;

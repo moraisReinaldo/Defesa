@@ -7,7 +7,7 @@ import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.dto.OcorrenciaRequest;
 import com.defesacivil.backend.repository.OcorrenciaRepository;
 import com.defesacivil.backend.repository.UsuarioRepository;
-import com.defesacivil.backend.repository.CidadeRepository;
+import com.defesacivil.backend.util.CobradeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -32,18 +32,18 @@ public class OcorrenciaService {
 
     private final OcorrenciaRepository ocorrenciaRepository;
     private final UsuarioRepository usuarioRepository;
-    private final CidadeRepository cidadeRepository;
+    private final CidadeService cidadeService;
     private final NotificationService notificationService;
     private final MinioService minioService;
 
     public OcorrenciaService(OcorrenciaRepository ocorrenciaRepository,
                              UsuarioRepository usuarioRepository,
-                             CidadeRepository cidadeRepository,
+                             CidadeService cidadeService,
                              NotificationService notificationService,
                              MinioService minioService) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.usuarioRepository = usuarioRepository;
-        this.cidadeRepository = cidadeRepository;
+        this.cidadeService = cidadeService;
         this.notificationService = notificationService;
         this.minioService = minioService;
     }
@@ -77,6 +77,11 @@ public class OcorrenciaService {
         return false;
     }
 
+    /** SUPER_ADMIN é o dono da plataforma — sem restrição geográfica. */
+    private boolean isSuperAdmin() {
+        return hasRole("SUPER_ADMIN");
+    }
+
     // ========== OPERAÇÕES ==========
 
     @Transactional(readOnly = true)
@@ -99,7 +104,11 @@ public class OcorrenciaService {
         oc.setDescricao(sanitizeInput(request.getDescricao()));
         oc.setLatitude(request.getLatitude());
         oc.setLongitude(request.getLongitude());
-        oc.setCidade(sanitizeInput(request.getCidade()));
+        String cidade = normalizarCodigoCidade(request.getCidade());
+        oc.setCidade(cidade);
+        if (cidade != null) {
+            cidadeService.buscarPorCodigo(cidade).ifPresent(oc::setCidadeEntidade);
+        }
         oc.setDataHora(request.getDataHora() != null ? request.getDataHora() : LocalDateTime.now().toString());
         
         // CORRETO - Segurança (Backend Bug 4)
@@ -109,6 +118,16 @@ public class OcorrenciaService {
             usuarioRepository.findByEmail(emailAutenticado).ifPresent(u -> {
                 oc.setUsuarioId(u.getId());
                 oc.setAutor(u);
+                if (Role.ADMINISTRADOR.name().equals(u.getRole()) || Role.AGENTE.name().equals(u.getRole())) {
+                    // REGRA DE NEGÓCIO: O admin só pode inserir ocorrências (do passado ou não) na sua própria cidade.
+                    if (u.getCidade() != null && !u.getCidade().isBlank()) {
+                        String cidAdmin = normalizarCodigoCidade(u.getCidade());
+                        oc.setCidade(cidAdmin);
+                        if (cidAdmin != null) {
+                            cidadeService.buscarPorCodigo(cidAdmin).ifPresent(oc::setCidadeEntidade);
+                        }
+                    }
+                }
             });
         } else {
             // Usuário anônimo (sem conta): não tem ID para associar
@@ -116,14 +135,37 @@ public class OcorrenciaService {
             oc.setAutor(null);
         }
 
-        if (request.getCidade() != null && !request.getCidade().isBlank()) {
-            cidadeRepository.findByNomeIgnoreCase(request.getCidade()).ifPresent(oc::setCidadeEntidade);
-        }
-
         oc.setCriadoPorAgente(request.isCriadoPorAgente());
         // Criador (agente/admin) já vem pré-escalado pelo app
         if (request.getAgentes() != null && !request.getAgentes().isBlank()) {
             oc.setAgentes(sanitizeInput(request.getAgentes()));
+        }
+
+        // PROTOCOLO COBRADE: Classificação e Codificação Brasileira de Desastres (MDR/S2ID)
+        if (request.getCobrade() != null && !request.getCobrade().isBlank()) {
+            oc.setCobrade(sanitizeInput(request.getCobrade()));
+            oc.setCobradeDescricao(request.getCobradeDescricao() != null
+                ? sanitizeInput(request.getCobradeDescricao())
+                : CobradeUtil.resolverPorTipo(oc.getTipo()).getDescricao());
+        } else {
+            CobradeUtil.CobradeInfo cobradeInfo = CobradeUtil.resolverPorTipo(oc.getTipo());
+            oc.setCobrade(cobradeInfo.getCodigo());
+            oc.setCobradeDescricao(cobradeInfo.getDescricao());
+        }
+
+        // Verifica se é uma ocorrência lançada no passado (dataHora foi fornecida)
+        boolean isPassado = false;
+        if (request.getDataHora() != null) {
+            try {
+                // Se a data informada for muito no passado (e.g. mais de 2 minutos atrás), 
+                // consideramos como um registro passado (Data Customizada do Admin)
+                LocalDateTime dt = LocalDateTime.parse(request.getDataHora());
+                if (dt.isBefore(LocalDateTime.now().minusMinutes(2))) {
+                    isPassado = true;
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
         }
 
         // Upload de foto Base64 para MinIO
@@ -135,8 +177,8 @@ public class OcorrenciaService {
             oc.setCaminhoFoto(foto);
         }
 
-        // Regra de auto-aprovação: Admins e Agentes são sempre aprovados automaticamente
-        boolean autoAprovado = oc.isCriadoPorAgente() || hasAnyRole("ADMINISTRADOR", "AGENTE");
+        // Regra de auto-aprovação: Admins, Agentes e Super_Admin são sempre aprovados automaticamente
+        boolean autoAprovado = oc.isCriadoPorAgente() || hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN");
 
         // Fallback: verificar pelo usuarioId no banco se a flag não veio do app
         if (!autoAprovado && oc.getUsuarioId() != null) {
@@ -148,8 +190,15 @@ public class OcorrenciaService {
         }
 
         if (autoAprovado) {
-            oc.setStatus(OcorrenciaStatus.APROVADA.name());
-            log.info("Ocorrência criada com auto-aprovação para usuário com privilégios.");
+            if (isPassado) {
+                // REGRA DE NEGÓCIO: Se lançada no passado (data customizada), já entra como resolvida
+                oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
+                oc.setDataResolucao(LocalDateTime.now().toString()); // Pode ser a data do ocorrido também, mas manteremos today para timestamp do fechamento
+                log.info("Ocorrência lançada no passado e automaticamente definida como RESOLVIDA.");
+            } else {
+                oc.setStatus(OcorrenciaStatus.APROVADA.name());
+                log.info("Ocorrência criada com auto-aprovação para usuário com privilégios.");
+            }
         } else {
             oc.setStatus(OcorrenciaStatus.PENDENTE_APROVACAO.name());
             // Notificar admins da cidade
@@ -223,7 +272,7 @@ public class OcorrenciaService {
         if (oc.getUsuarioId() != null) {
             usuarioRepository.findById(oc.getUsuarioId()).ifPresent(user ->
                 notificationService.sendPushNotification(
-                    user.getFcmToken(),
+                    user.getId(),
                     "Caso Resolvido!",
                     "A ocorrência em " + oc.getCidade() + " foi marcada como resolvida."
                 )
@@ -253,14 +302,28 @@ public class OcorrenciaService {
         return true;
     }
 
+    public String normalizarCodigoCidade(String cidade) {
+        return cidadeService.normalizarCodigoCidade(cidade);
+    }
+
+    public String obterNomeCidade(String cidade) {
+        return cidadeService.obterNomeCidade(cidade);
+    }
+
     private void checkJurisdiction(String cidadeOcorrencia) {
         if (cidadeOcorrencia == null || cidadeOcorrencia.trim().isEmpty()) return;
+        // SUPER_ADMIN: sem restrição geográfica — vê e gerencia tudo
+        if (isSuperAdmin()) return;
         if (hasAnyRole("ADMINISTRADOR", "AGENTE")) {
             String email = getAuthenticatedEmail();
             if (email != null) {
                 Usuario user = usuarioRepository.findByEmail(email).orElse(null);
-                if (user != null && user.getCidade() != null && !user.getCidade().trim().isEmpty() && !user.getCidade().equalsIgnoreCase(cidadeOcorrencia)) {
-                    throw new SecurityException("Acesso negado: Você só pode gerenciar itens de sua própria cidade.");
+                if (user != null && user.getCidade() != null && !user.getCidade().trim().isEmpty()) {
+                    String userCity = normalizarCodigoCidade(user.getCidade());
+                    String ocCity = normalizarCodigoCidade(cidadeOcorrencia);
+                    if (userCity != null && ocCity != null && !userCity.equalsIgnoreCase(ocCity)) {
+                        throw new SecurityException("Acesso negado: Você só pode gerenciar itens de sua própria cidade.");
+                    }
                 }
             }
         }
@@ -269,7 +332,19 @@ public class OcorrenciaService {
     public Ocorrencia atualizarOcorrencia(String id, OcorrenciaRequest request) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
+        
         checkJurisdiction(oc.getCidade());
+        
+        if (!hasAnyRole("ADMINISTRADOR", "AGENTE")) {
+            String email = getAuthenticatedEmail();
+            if (email == null) {
+                throw new SecurityException("Acesso negado: Usuário não autenticado.");
+            }
+            Usuario currentUser = usuarioRepository.findByEmail(email).orElse(null);
+            if (currentUser == null || oc.getUsuarioId() == null || !oc.getUsuarioId().equals(currentUser.getId())) {
+                throw new SecurityException("Acesso negado: Você só pode editar suas próprias ocorrências.");
+            }
+        }
 
         if (request.getTipo() != null) oc.setTipo(sanitizeInput(request.getTipo()));
         if (request.getDescricao() != null) oc.setDescricao(sanitizeInput(request.getDescricao()));
@@ -279,15 +354,41 @@ public class OcorrenciaService {
         if (request.getLongitude() != null && request.getLongitude() != 0) oc.setLongitude(request.getLongitude());
         
         if (request.getAgentes() != null) oc.setAgentes(request.getAgentes());
-        if (request.getStatus() != null) oc.setStatus(request.getStatus().toUpperCase());
-        if (request.getCidade() != null) oc.setCidade(sanitizeInput(request.getCidade()));
+        // SEGURANÇA: apenas AGENTE, ADMIN e SUPER_ADMIN podem alterar o status diretamente
+        if (request.getStatus() != null && hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN")) {
+            oc.setStatus(request.getStatus().toUpperCase());
+        }
+        if (request.getCidade() != null) {
+            String cidadeEditada = normalizarCodigoCidade(request.getCidade());
+            oc.setCidade(cidadeEditada);
+            if (cidadeEditada != null) {
+                cidadeService.buscarPorCodigo(cidadeEditada).ifPresent(oc::setCidadeEntidade);
+            }
+        }
         if (request.getDescricaoSituacao() != null) oc.setDescricaoSituacao(sanitizeInput(request.getDescricaoSituacao()));
+        if (request.getCobrade() != null && !request.getCobrade().isBlank()) {
+            oc.setCobrade(sanitizeInput(request.getCobrade()));
+            if (request.getCobradeDescricao() != null) {
+                oc.setCobradeDescricao(sanitizeInput(request.getCobradeDescricao()));
+            }
+        }
+
+        if (request.getCaminhoFoto() != null && !request.getCaminhoFoto().isBlank()) {
+            String foto = request.getCaminhoFoto();
+            if (foto.startsWith("data:image")) {
+                String objectKey = minioService.uploadBase64Image(foto, "ocorrencias");
+                oc.setCaminhoFoto(objectKey != null ? objectKey : foto);
+            } else {
+                oc.setCaminhoFoto(foto);
+            }
+        }
 
         return processarUrl(ocorrenciaRepository.save(oc));
     }
 
     @Transactional(readOnly = true)
     public Page<Ocorrencia> buscarPorCidade(String cidade, Pageable pageable) {
+        boolean superAdmin = isSuperAdmin();
         boolean admin = hasRole("ADMINISTRADOR");
         boolean agente = hasRole("AGENTE");
 
@@ -305,17 +406,38 @@ public class OcorrenciaService {
             }
         }
 
-        // Se for admin ou agente, DEVE ver apenas da própria cidade
-        if (admin || agente) {
-            String cidadeParaBuscar = (cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) ? cidadeUsuario : cidade;
-            if (cidadeParaBuscar == null || cidadeParaBuscar.trim().isEmpty()) {
-                return processarUrls(ocorrenciaRepository.findAll(pageable));
+        // SUPER_ADMIN: visibilidade total sem restrição geográfica
+        if (superAdmin) {
+            if (cidade != null && !cidade.trim().isEmpty()) {
+                String codigo = normalizarCodigoCidade(cidade);
+                String nome = obterNomeCidade(cidade);
+                return processarUrls(ocorrenciaRepository.findByCidadeFlexible(cidade, codigo, nome, pageable));
             }
-            return processarUrls(ocorrenciaRepository.findByCidadeIgnoreCaseOrderByDataHoraDesc(cidadeParaBuscar, pageable));
+            return processarUrls(ocorrenciaRepository.findAll(pageable));
         }
 
-        // CIDADÃO: vê aprovadas da cidade solicitada + suas próprias (qualquer status)
-        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreator(cidade, currentUserId, pageable));
+        String cidadeFiltro = (admin || agente)
+                ? ((cidadeUsuario != null && !cidadeUsuario.trim().isEmpty()) ? cidadeUsuario : cidade)
+                : cidade;
+
+        // Admin/Agente sem cidade configurada: retorna lista vazia (não expõe tudo)
+        if ((admin || agente) && (cidadeFiltro == null || cidadeFiltro.trim().isEmpty())) {
+            log.warn("Admin/Agente sem cidade configurada tentou buscar ocorrências. Retornando lista vazia.");
+            return Page.empty(pageable);
+        }
+
+        if (cidadeFiltro == null || cidadeFiltro.trim().isEmpty()) {
+            return processarUrls(ocorrenciaRepository.findPublicOcorrencias(currentUserId, pageable));
+        }
+
+        String codigo = normalizarCodigoCidade(cidadeFiltro);
+        String nome = obterNomeCidade(cidadeFiltro);
+
+        if (admin || agente) {
+            return processarUrls(ocorrenciaRepository.findByCidadeFlexible(cidadeFiltro, codigo, nome, pageable));
+        }
+
+        return processarUrls(ocorrenciaRepository.findPublicByCidadeOrCreatorFlexible(cidadeFiltro, codigo, nome, currentUserId, pageable));
     }
 
     // ========== HELPERS INTERNOS ==========
@@ -326,20 +448,34 @@ public class OcorrenciaService {
         // Criamos uma cópia para não correr risco de o Hibernate salvar a URL assinada no banco
         Ocorrencia copia = new Ocorrencia();
         copia.setId(oc.getId());
-        copia.setTipo(oc.getTipo());
-        copia.setDescricao(oc.getDescricao());
+        copia.setTipo(sanitizeInput(oc.getTipo()));
+        copia.setDescricao(sanitizeInput(oc.getDescricao()));
         copia.setLatitude(oc.getLatitude());
         copia.setLongitude(oc.getLongitude());
         copia.setCidade(oc.getCidade());
         copia.setDataHora(oc.getDataHora());
         copia.setStatus(oc.getStatus());
         copia.setUsuarioId(oc.getUsuarioId());
-        copia.setAgentes(oc.getAgentes());
+        copia.setAgentes(sanitizeInput(oc.getAgentes()));
         copia.setAgenteNoLocal(oc.isAgenteNoLocal());
         copia.setDataChegadaAgente(oc.getDataChegadaAgente());
         copia.setDataResolucao(oc.getDataResolucao());
         copia.setCriadoPorAgente(oc.isCriadoPorAgente());
-        copia.setDescricaoSituacao(oc.getDescricaoSituacao());
+        copia.setDescricaoSituacao(sanitizeInput(oc.getDescricaoSituacao()));
+        copia.setCidadeEntidade(oc.getCidadeEntidade());
+        copia.setAutor(oc.getAutor());
+        copia.setAgentesAtribuidos(oc.getAgentesAtribuidos());
+
+        // COBRADE
+        String cobrade = oc.getCobrade();
+        String cobradeDesc = oc.getCobradeDescricao();
+        if (cobrade == null || cobrade.isBlank()) {
+            CobradeUtil.CobradeInfo info = CobradeUtil.resolverPorTipo(oc.getTipo());
+            cobrade = info.getCodigo();
+            cobradeDesc = info.getDescricao();
+        }
+        copia.setCobrade(cobrade);
+        copia.setCobradeDescricao(cobradeDesc);
         
         String foto = oc.getCaminhoFoto();
         if (foto == null || foto.isBlank()) {
@@ -353,7 +489,8 @@ public class OcorrenciaService {
         }
         
         try {
-            copia.setCaminhoFoto(minioService.getPresignedUrl(foto));
+            String url = minioService.getPresignedUrl(foto);
+            copia.setCaminhoFoto((url != null && !url.isBlank()) ? url : foto);
         } catch (Exception e) {
             log.warn("❌ Erro ao gerar URL do MinIO para {}: {}", foto, e.getMessage());
             copia.setCaminhoFoto(foto);
@@ -378,6 +515,92 @@ public class OcorrenciaService {
 
     private String sanitizeInput(String input) {
         if (input == null) return null;
-        return HtmlUtils.htmlEscape(input.trim());
+        String text = input.trim();
+        // Desfaz entidades HTML que possam ter sido salvas anteriormente (ex: &quot;, &amp;, &#39;, &lt;, &gt;)
+        String previous;
+        int maxIterations = 3;
+        do {
+            previous = text;
+            text = HtmlUtils.htmlUnescape(text);
+            maxIterations--;
+        } while (!text.equals(previous) && maxIterations > 0);
+        return text;
+    }
+
+    /**
+     * Exporta o relatório oficial de ocorrências em formato CSV estruturado para Defesas Civis Municipais e CEPDEC.
+     * Inclui codificação COBRADE oficial, status de atendimento, geolocalização e pareceres técnicos.
+     */
+    @Transactional(readOnly = true)
+    public byte[] exportarOcorrenciasCsv(String cidade, String status) {
+        boolean superAdmin = isSuperAdmin();
+        String cidadeFiltro = cidade;
+
+        if (!superAdmin) {
+            String email = getAuthenticatedEmail();
+            if (email != null) {
+                Usuario user = usuarioRepository.findByEmail(email).orElse(null);
+                if (user != null && user.getCidade() != null && !user.getCidade().isBlank()) {
+                    cidadeFiltro = user.getCidade();
+                }
+            }
+        }
+
+        List<Ocorrencia> ocorrencias;
+        if (cidadeFiltro != null && !cidadeFiltro.isBlank()) {
+            String codigo = normalizarCodigoCidade(cidadeFiltro);
+            String nome = obterNomeCidade(cidadeFiltro);
+            ocorrencias = ocorrenciaRepository.findByCidadeFlexible(cidadeFiltro, codigo, nome, Pageable.unpaged()).getContent();
+        } else if (superAdmin) {
+            ocorrencias = ocorrenciaRepository.findAll(org.springframework.data.domain.Sort.by("dataHora").descending());
+        } else {
+            return new byte[0];
+        }
+
+        if (status != null && !status.isBlank() && !"TODOS".equalsIgnoreCase(status)) {
+            ocorrencias = ocorrencias.stream()
+                .filter(o -> status.equalsIgnoreCase(o.getStatus()))
+                .toList();
+        }
+
+        StringBuilder csv = new StringBuilder();
+        // UTF-8 BOM para garantir acentuação correta no Microsoft Excel e LibreOffice
+        csv.append('\uFEFF');
+        // Cabeçalhos oficiais no padrão de relatórios da Defesa Civil
+        csv.append("Protocolo;Data e Hora;Cidade;Tipo de Ocorrencia;Codigo COBRADE;Descricao COBRADE;Status;Latitude;Longitude;Agente no Local;Data Chegada;Data Resolucao;Agentes Atribuidos;Descricao do Cidadao;Parecer Tecnico / Situacao\n");
+
+        for (Ocorrencia o : ocorrencias) {
+            String cobrade = o.getCobrade();
+            String cobradeDesc = o.getCobradeDescricao();
+            if (cobrade == null || cobrade.isBlank()) {
+                CobradeUtil.CobradeInfo info = CobradeUtil.resolverPorTipo(o.getTipo());
+                cobrade = info.getCodigo();
+                cobradeDesc = info.getDescricao();
+            }
+
+            csv.append(escapeCsv(o.getId())).append(';')
+               .append(escapeCsv(o.getDataHora())).append(';')
+               .append(escapeCsv(obterNomeCidade(o.getCidade()))).append(';')
+               .append(escapeCsv(o.getTipo())).append(';')
+               .append(escapeCsv(cobrade)).append(';')
+               .append(escapeCsv(cobradeDesc)).append(';')
+               .append(escapeCsv(o.getStatus())).append(';')
+               .append(o.getLatitude()).append(';')
+               .append(o.getLongitude()).append(';')
+               .append(o.isAgenteNoLocal() ? "SIM" : "NAO").append(';')
+               .append(escapeCsv(o.getDataChegadaAgente())).append(';')
+               .append(escapeCsv(o.getDataResolucao())).append(';')
+               .append(escapeCsv(o.getAgentes())).append(';')
+               .append(escapeCsv(o.getDescricao())).append(';')
+               .append(escapeCsv(o.getDescricaoSituacao())).append('\n');
+        }
+
+        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private String escapeCsv(String val) {
+        if (val == null) return "";
+        String clean = val.replace("\"", "\"\"").replace("\n", " ").replace("\r", "");
+        return "\"" + clean + "\"";
     }
 }

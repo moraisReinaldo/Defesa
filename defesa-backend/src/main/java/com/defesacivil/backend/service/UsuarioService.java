@@ -1,5 +1,6 @@
 package com.defesacivil.backend.service;
 
+import com.defesacivil.backend.domain.Cidade;
 import com.defesacivil.backend.domain.Usuario;
 import com.defesacivil.backend.domain.enums.Role;
 import com.defesacivil.backend.domain.enums.Status;
@@ -29,15 +30,26 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
 
     // Carregada de variável de ambiente — nunca hardcoded
-    @Value("${app.admin.password:#{null}}")
+    @Value("${app.admin.password:}")
     private String adminPasswordHash;
 
+    private final CidadeService cidadeService;
+    private final StripeService stripeService;
+
     public UsuarioService(UsuarioRepository repository,
+                          CidadeService cidadeService,
                           EmailService emailService,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          StripeService stripeService) {
         this.repository = repository;
+        this.cidadeService = cidadeService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.stripeService = stripeService;
+    }
+
+    public String normalizarCodigoCidade(String cidade) {
+        return cidadeService.normalizarCodigoCidade(cidade);
     }
 
     public Usuario cadastrarUsuario(UsuarioRequest request) {
@@ -46,6 +58,14 @@ public class UsuarioService {
         }
         if (!request.isConcordaLGPD()) {
             throw new RuntimeException("É obrigatório concordar com os Termos de Privacidade (LGPD).");
+        }
+
+        // Validação de senha
+        if (request.getSenha() == null || request.getSenha().isBlank()) {
+            throw new RuntimeException("A senha é obrigatória");
+        }
+        if (request.getSenha().length() < 6) {
+            throw new RuntimeException("A senha deve ter no mínimo 6 caracteres");
         }
 
         Role roleReq;
@@ -57,8 +77,14 @@ public class UsuarioService {
 
         // Prevenir Role Injection: apenas admins autenticados podem criar outros admins/agentes
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isSolicitanteAdmin = auth != null && auth.isAuthenticated() &&
-            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        boolean isSuperAdminSolicitante = auth != null && auth.isAuthenticated() &&
+            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        boolean isSolicitanteAdmin = isSuperAdminSolicitante;
+        if (!isSolicitanteAdmin && auth != null && auth.isAuthenticated() &&
+            auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"))) {
+            Usuario solicitante = repository.findByEmail(auth.getName()).orElse(null);
+            isSolicitanteAdmin = solicitante != null && solicitante.getAdministradorTitular();
+        }
 
         if (!isSolicitanteAdmin) {
             if (roleReq == Role.AGENTE) {
@@ -69,22 +95,56 @@ public class UsuarioService {
             }
         }
 
-        // Auto-cadastro de Admin fica PENDENTE; admin criado por outro admin fica ATIVO
+        // Auto-cadastro de Admin fica PENDENTE; admin criado por outro admin ou agente criado por admin fica ATIVO
         Status statusInicial = (roleReq == Role.ADMINISTRADOR && !isSolicitanteAdmin)
             ? Status.PENDENTE : Status.ATIVO;
+
+        String cidNorm = normalizarCodigoCidade(request.getCidade());
+        if (isSolicitanteAdmin && roleReq != Role.CIDADAO && !isSuperAdminSolicitante) {
+            String adminEmail = auth.getName();
+            Usuario admin = repository.findByEmail(adminEmail).orElse(null);
+            if (admin != null && admin.getCidade() != null && !admin.getCidade().isBlank()) {
+                cidNorm = normalizarCodigoCidade(admin.getCidade());
+            }
+        }
+
+        Cidade cidadeEntidade = null;
+        if (cidNorm != null) {
+            cidadeEntidade = cidadeService.buscarOuCriarCidade(cidNorm);
+        }
+
+        // Validação de Limites por Plano de Cidade
+        if (roleReq == Role.ADMINISTRADOR && cidadeEntidade != null) {
+            long gestoresExistentes = repository.countByCidadeIgnoreCaseAndRole(cidadeEntidade.getCodigo(), Role.ADMINISTRADOR.name());
+            int limite = cidadeEntidade.getLimiteGestores();
+            if (gestoresExistentes >= limite) {
+                throw new IllegalArgumentException("Limite de gestores atingido para o município de " + cidadeEntidade.getNome() + 
+                    " (" + limite + " gestor(es) no plano " + cidadeEntidade.getPlanoEfetivo() + ").");
+            }
+        } else if (roleReq == Role.AGENTE && cidadeEntidade != null) {
+            if (!cidadeEntidade.isRecursoAgentesLiberado()) {
+                throw new IllegalArgumentException("O plano atual do município (" + cidadeEntidade.getPlanoEfetivo() + 
+                    ") não permite agentes de campo. É necessário o Plano PRO Municipal.");
+            }
+        }
 
         Usuario usuario = new Usuario();
         usuario.setNome(request.getNome());
         usuario.setEmail(request.getEmail());
         usuario.setTelefone(request.getTelefone());
         usuario.setSenha(passwordEncoder.encode(request.getSenha()));
-        usuario.setCidade(request.getCidade() != null ? request.getCidade().trim().toUpperCase() : null);
+        usuario.setEspecialidade(request.getEspecialidade());
+        usuario.setCidade(cidNorm);
+        if (cidadeEntidade != null) {
+            usuario.setCidadeEntidade(cidadeEntidade);
+        }
+
         usuario.setRole(roleReq.name());
         usuario.setStatus(statusInicial.name());
 
         Usuario salvo = repository.save(usuario);
 
-        if (roleReq == Role.ADMINISTRADOR) {
+        if (roleReq == Role.ADMINISTRADOR && !isSolicitanteAdmin) {
             emailService.enviarEmailAprovacaoAdmin(salvo);
         }
 
@@ -93,6 +153,7 @@ public class UsuarioService {
 
     public Optional<Usuario> login(String email, String senhaDigitada) {
         return repository.findByEmail(email)
+            .filter(u -> !"BLOQUEADO".equalsIgnoreCase(u.getStatus()))
             .filter(u -> passwordEncoder.matches(senhaDigitada, u.getSenha()));
     }
 
@@ -108,23 +169,17 @@ public class UsuarioService {
 
     /**
      * Valida a senha master do administrador.
-     * SEGURANÇA: A senha no application.properties deve estar em BCrypt para produção.
-     * Em desenvolvimento, aceita texto plano como fallback.
+     * A senha deve ser um hash BCrypt válido configurado via variável de ambiente.
      */
     public boolean validarSenhaAdmin(String senhaDigitada) {
-        if (adminPasswordHash == null || adminPasswordHash.isEmpty()) {
-            log.warn("Senha de admin não configurada em app.admin.password!");
-            return false;
-        }
-        // Tenta comparação BCrypt primeiro (produção); fallback para texto plano (dev)
-        if (adminPasswordHash.startsWith("$2")) {
-            return passwordEncoder.matches(senhaDigitada, adminPasswordHash);
-        }
-        // Comparação de tempo constante para evitar timing attacks
-        return java.security.MessageDigest.isEqual(
-            adminPasswordHash.getBytes(),
-            senhaDigitada.getBytes()
-        );
+       if (adminPasswordHash == null || adminPasswordHash.isBlank()) {
+           log.warn("Senha de admin não configurada em app.admin.password!");
+           return false;
+       }
+       if (!adminPasswordHash.startsWith("$2")) {
+           throw new IllegalStateException("app.admin.password deve ser um hash BCrypt válido configurado via variável de ambiente.");
+       }
+       return passwordEncoder.matches(senhaDigitada, adminPasswordHash);
     }
 
     public List<Usuario> buscarUsuariosPorRole(String role, String cidade) {
@@ -144,12 +199,25 @@ public class UsuarioService {
         // Se for admin e tiver cidade, ignora o parâmetro e força a busca na jurisdição
         String cidadeBusca;
         if (adminCity != null && !adminCity.trim().isEmpty()) {
-            cidadeBusca = adminCity.trim().toUpperCase();
+            cidadeBusca = normalizarCodigoCidade(adminCity);
         } else {
-            cidadeBusca = (cidade != null && !cidade.isBlank()) ? cidade.trim().toUpperCase() : null;
+            cidadeBusca = normalizarCodigoCidade(cidade);
         }
 
         return repository.findByCidadeAndRole(cidadeBusca, role);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Usuario> listarPendentes() {
+        return repository.findByStatus(Status.PENDENTE.name());
+    }
+
+    public Usuario aprovarUsuario(String id) {
+        Usuario usuario = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado: " + id));
+        checkUserJurisdiction(usuario);
+        usuario.setStatus(Status.ATIVO.name());
+        return repository.save(usuario);
     }
 
     /**
@@ -160,6 +228,15 @@ public class UsuarioService {
         Usuario usuario = repository.findByEmail(email)
             .orElseThrow(() -> new RuntimeException("Usuário não encontrado com e-mail: " + email));
         checkUserJurisdiction(usuario);
+
+        if (usuario.getCidade() != null) {
+            Cidade cidade = cidadeService.buscarPorCodigo(usuario.getCidade()).orElse(null);
+            if (cidade != null && !cidade.isRecursoAgentesLiberado()) {
+                throw new IllegalArgumentException("O plano do município (" + cidade.getPlanoEfetivo() + 
+                    ") não contempla agentes de campo. É necessário o Plano PRO Municipal.");
+            }
+        }
+
         usuario.setRole(Role.AGENTE.name());
         usuario.setStatus(Status.ATIVO.name());
         return repository.save(usuario);
@@ -168,6 +245,11 @@ public class UsuarioService {
     private void checkUserJurisdiction(Usuario targetUser) {
         if (targetUser == null || targetUser.getCidade() == null || targetUser.getCidade().trim().isEmpty()) return;
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        // SUPER_ADMIN: sem restrição geográfica — gerencia usuários de todas as cidades
+        boolean isSuperAdmin = auth != null && auth.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        if (isSuperAdmin) return;
+
         boolean isAdmin = auth != null && auth.getAuthorities().stream()
             .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
         
@@ -175,7 +257,9 @@ public class UsuarioService {
             String adminEmail = auth.getName();
             Usuario admin = repository.findByEmail(adminEmail).orElse(null);
             if (admin != null && admin.getCidade() != null && !admin.getCidade().trim().isEmpty()) {
-                if (!admin.getCidade().equalsIgnoreCase(targetUser.getCidade())) {
+                String adminCid = normalizarCodigoCidade(admin.getCidade());
+                String targetCid = normalizarCodigoCidade(targetUser.getCidade());
+                if (adminCid != null && targetCid != null && !adminCid.equalsIgnoreCase(targetCid)) {
                     throw new SecurityException("Acesso negado: Você só pode modificar usuários da sua própria cidade.");
                 }
             }
@@ -192,6 +276,31 @@ public class UsuarioService {
         checkUserJurisdiction(usuario);
         repository.deleteById(id);
         return true;
+    }
+
+    /**
+     * Exclui a própria conta do usuário autenticado.
+     * Em vez de DELETE físico (quebraria FKs com ocorrências),
+     * anonimiza todos os dados pessoais (LGPD) e marca como DELETADO.
+     */
+    public void excluirPropriaConta(String email) {
+        Usuario usuario = repository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+
+        log.info("Exclusão de conta solicitada pelo usuário: {} (id: {})", email, usuario.getId());
+
+        // Anonimização LGPD — remove todos os dados pessoais
+        usuario.setNome("Usuário Removido");
+        usuario.setEmail("deletado_" + usuario.getId() + "@removed.local");
+        usuario.setTelefone(null);
+        usuario.setSenha(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        usuario.setFcmToken(null);
+        usuario.setResetSenhaCodigo(null);
+        usuario.setResetSenhaExpiracao(null);
+        usuario.setStatus("DELETADO");
+
+        repository.save(usuario);
+        log.info("Conta anonimizada com sucesso (id: {})", usuario.getId());
     }
 
     public Usuario atualizarUsuario(String id, UsuarioRequest request) {
@@ -214,7 +323,13 @@ public class UsuarioService {
 
         if (request.getNome() != null) usuario.setNome(request.getNome());
         if (request.getTelefone() != null) usuario.setTelefone(request.getTelefone());
-        if (request.getCidade() != null) usuario.setCidade(request.getCidade().trim().toUpperCase());
+        if (request.getCidade() != null) {
+            String norm = normalizarCodigoCidade(request.getCidade());
+            usuario.setCidade(norm);
+            if (norm != null) {
+                cidadeService.buscarPorCodigo(norm).ifPresent(usuario::setCidadeEntidade);
+            }
+        }
         if (request.getFcmToken() != null) usuario.setFcmToken(request.getFcmToken());
 
         // Apenas admins podem mudar a role de outros usuários
@@ -234,9 +349,10 @@ public class UsuarioService {
 
         Usuario user = userOpt.get();
         // Gerar código de 6 dígitos
-        String codigo = String.format("%06d", new java.util.Random().nextInt(999999));
+        String codigo = String.format("%06d", new java.security.SecureRandom().nextInt(999999));
         user.setResetSenhaCodigo(codigo);
         user.setResetSenhaExpiracao(LocalDateTime.now().plusMinutes(15));
+        user.setResetSenhaTentativas(0); // Reinicia contador ao solicitar novo código
         repository.save(user);
 
         emailService.enviarEmailRecuperacaoSenha(email, codigo);
@@ -248,18 +364,69 @@ public class UsuarioService {
         if (userOpt.isEmpty()) return false;
 
         Usuario user = userOpt.get();
-        if (user.getResetSenhaCodigo() == null || !user.getResetSenhaCodigo().equals(codigo)) {
+
+        // SEGURANÇA (VULN-08): Bloquear se já excedeu 5 tentativas
+        if (user.getResetSenhaTentativas() >= 5) {
+            user.setResetSenhaCodigo(null);
+            user.setResetSenhaExpiracao(null);
+            repository.save(user);
             return false;
         }
 
-        if (user.getResetSenhaExpiracao().isBefore(LocalDateTime.now())) {
+        if (user.getResetSenhaExpiracao() == null || user.getResetSenhaExpiracao().isBefore(LocalDateTime.now())) {
+            user.setResetSenhaCodigo(null);
+            user.setResetSenhaExpiracao(null);
+            repository.save(user);
+            return false;
+        }
+
+        if (user.getResetSenhaCodigo() == null || !user.getResetSenhaCodigo().equals(codigo)) {
+            user.setResetSenhaTentativas(user.getResetSenhaTentativas() + 1);
+            if (user.getResetSenhaTentativas() >= 5) {
+                // Invalida o código imediatamente após 5 erros
+                user.setResetSenhaCodigo(null);
+                user.setResetSenhaExpiracao(null);
+            }
+            repository.save(user);
             return false;
         }
 
         user.setSenha(passwordEncoder.encode(novaSenha));
         user.setResetSenhaCodigo(null);
         user.setResetSenhaExpiracao(null);
+        user.setResetSenhaTentativas(0);
         repository.save(user);
         return true;
+    }
+
+    @Transactional
+    public Usuario ativarSemAnunciosVitalicio(String email, boolean exigirVerificacaoStripe) {
+        Usuario usuario = repository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado com e-mail: " + email));
+
+        // Se já está ativo, apenas retorna
+        if (Boolean.TRUE.equals(usuario.getSemAnunciosVitalicio())) {
+            return usuario;
+        }
+
+        if (exigirVerificacaoStripe) {
+            if (stripeService.isConfigurado()) {
+                boolean pago = stripeService.verificarPagamentoVitalicio(email);
+                if (!pago) {
+                    throw new IllegalStateException("Nenhum pagamento aprovado foi localizado no Stripe para o e-mail: " + email + ". Por favor, conclua o pagamento pelo link oficial antes de ativar.");
+                }
+            } else {
+                log.warn("[STRIPE] Chave do Stripe não configurada. Ativação em modo de desenvolvimento para: {}", email);
+            }
+        }
+
+        usuario.setSemAnunciosVitalicio(true);
+        log.info("[VITALÍCIO] Licença vitalícia sem anúncios ativada com sucesso para: {}", email);
+        return repository.save(usuario);
+    }
+
+    @Transactional
+    public Usuario ativarSemAnunciosVitalicio(String email) {
+        return ativarSemAnunciosVitalicio(email, false);
     }
 }

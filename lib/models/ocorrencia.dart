@@ -1,4 +1,6 @@
 import 'package:uuid/uuid.dart';
+import 'usuario.dart';
+import '../constants/ocorrencia_tipos.dart';
 
 enum OcorrenciaStatus {
   pendenteAprovacao,
@@ -27,6 +29,10 @@ class Ocorrencia {
   final bool agenteNoLocal;
   final DateTime? dataChegadaAgente;
   final String? descricaoSituacao;
+  final String? cobrade;
+  final String? cobradeDescricao;
+  final Usuario? autor;
+  final List<Usuario>? agentesAtribuidos;
   /// true = salvo apenas localmente, não sincronizado com o servidor
   final bool isLocal;
 
@@ -47,9 +53,28 @@ class Ocorrencia {
     this.agenteNoLocal = false,
     this.dataChegadaAgente,
     this.descricaoSituacao,
+    this.cobrade,
+    this.cobradeDescricao,
+    this.autor,
+    this.agentesAtribuidos,
     this.isLocal = false,
   })  : id = id ?? const Uuid().v4(),
         dataHora = dataHora ?? DateTime.now();
+
+  static String _statusToString(OcorrenciaStatus s) {
+    switch (s) {
+      case OcorrenciaStatus.pendenteAprovacao:
+        return 'PENDENTE_APROVACAO';
+      case OcorrenciaStatus.aprovada:
+        return 'APROVADA';
+      case OcorrenciaStatus.trabalhandoAtualmente:
+        return 'TRABALHANDO_ATUALMENTE';
+      case OcorrenciaStatus.recusada:
+        return 'RECUSADA';
+      case OcorrenciaStatus.resolvida:
+        return 'RESOLVIDA';
+    }
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -62,20 +87,23 @@ class Ocorrencia {
       'caminhoFoto': caminhoFoto,
       'dataHora': dataHora.toIso8601String(),
       'usuarioId': usuarioId,
-      'status': status.name.replaceAllMapped(
-        RegExp(r'([A-Z])'),
-        (m) => '_${m.group(0)!}',
-      ).toUpperCase(),
+      'status': _statusToString(status),
       'dataResolucao': dataResolucao?.toIso8601String(),
       'agentes': agentes,
       'criadoPorAgente': criadoPorAgente,
       'agenteNoLocal': agenteNoLocal,
       'dataChegadaAgente': dataChegadaAgente?.toIso8601String(),
       'descricaoSituacao': descricaoSituacao,
+      'cobrade': cobrade,
+      'cobradeDescricao': cobradeDescricao,
+      if (autor != null) 'autor': autor!.toJson(),
+      if (agentesAtribuidos != null)
+        'agentesAtribuidos': agentesAtribuidos!.map((a) => a.toJson()).toList(),
     };
   }
 
   factory Ocorrencia.fromJson(Map<String, dynamic> json) {
+    final tipoStr = (json['tipo'] as String?)?.toLowerCase() ?? 'outro';
     return Ocorrencia(
       id: json['id'] ?? '',
       tipo: json['tipo'] ?? 'OUTROS',
@@ -89,7 +117,7 @@ class Ocorrencia {
       status: OcorrenciaStatus.values.firstWhere(
         (e) {
           final jsonStatus = (json['status'] as String?)?.toUpperCase().replaceAll('_', '') ?? '';
-          final enumStatus = e.name.toUpperCase();
+          final enumStatus = e.name.toUpperCase().replaceAll('_', '');
           return enumStatus == jsonStatus;
         },
         orElse: () => OcorrenciaStatus.pendenteAprovacao,
@@ -100,6 +128,14 @@ class Ocorrencia {
       agenteNoLocal: json['agenteNoLocal'] ?? false,
       dataChegadaAgente: _parseSafe(json['dataChegadaAgente']),
       descricaoSituacao: json['descricaoSituacao'],
+      cobrade: json['cobrade'] ?? OcorrenciaTipos.getCobradeCodigo(tipoStr),
+      cobradeDescricao: json['cobradeDescricao'] ?? OcorrenciaTipos.getCobradeDescricao(tipoStr),
+      autor: json['autor'] != null ? Usuario.fromJson(json['autor']) : null,
+      agentesAtribuidos: json['agentesAtribuidos'] != null
+          ? (json['agentesAtribuidos'] as List)
+              .map((a) => Usuario.fromJson(a as Map<String, dynamic>))
+              .toList()
+          : null,
     );
   }
 
@@ -136,6 +172,10 @@ class Ocorrencia {
     bool? agenteNoLocal,
     Object? dataChegadaAgente = _omit,
     String? descricaoSituacao,
+    String? cobrade,
+    String? cobradeDescricao,
+    Usuario? autor,
+    List<Usuario>? agentesAtribuidos,
     bool? isLocal,
   }) {
     return Ocorrencia(
@@ -159,6 +199,10 @@ class Ocorrencia {
           ? this.dataChegadaAgente
           : dataChegadaAgente as DateTime?,
       descricaoSituacao: descricaoSituacao ?? this.descricaoSituacao,
+      cobrade: cobrade ?? this.cobrade,
+      cobradeDescricao: cobradeDescricao ?? this.cobradeDescricao,
+      autor: autor ?? this.autor,
+      agentesAtribuidos: agentesAtribuidos ?? this.agentesAtribuidos,
       isLocal: isLocal ?? this.isLocal,
     );
   }

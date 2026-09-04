@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/ocorrencia.dart';
 import 'api_client.dart';
 
@@ -9,6 +9,22 @@ class OcorrenciaService {
   final ApiClient _client;
 
   OcorrenciaService(this._client);
+
+  Future<String?> _prepararFotoBase64(String? caminhoFoto) async {
+    if (caminhoFoto == null || caminhoFoto.isEmpty) return null;
+    if (caminhoFoto.startsWith('data:image') || caminhoFoto.startsWith('http')) {
+      return caminhoFoto;
+    }
+    try {
+      final bytes = await XFile(caminhoFoto).readAsBytes();
+      if (bytes.isNotEmpty) {
+        return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      }
+    } catch (e) {
+      debugPrint('Erro ao ler bytes da imagem ($caminhoFoto): $e');
+    }
+    return caminhoFoto;
+  }
 
   Future<List<Ocorrencia>> listarOcorrencias({String? cidade, int page = 0, int size = 50}) async {
     try {
@@ -43,11 +59,7 @@ class OcorrenciaService {
     final Map<String, dynamic> body = ocorrencia.toJson();
 
     if (ocorrencia.caminhoFoto != null && ocorrencia.caminhoFoto!.isNotEmpty) {
-      final file = File(ocorrencia.caminhoFoto!);
-      if (await file.exists()) {
-        final bytes = await file.readAsBytes();
-        body['caminhoFoto'] = 'data:image/jpeg;base64,${base64Encode(bytes)}';
-      }
+      body['caminhoFoto'] = await _prepararFotoBase64(ocorrencia.caminhoFoto);
     }
 
     try {
@@ -102,7 +114,11 @@ class OcorrenciaService {
 
   Future<Ocorrencia?> atualizarOcorrencia(Ocorrencia ocorrencia) async {
     try {
-      final res = await _client.dio.patch('/ocorrencias/${ocorrencia.id}', data: ocorrencia.toJson());
+      final Map<String, dynamic> body = ocorrencia.toJson();
+      if (ocorrencia.caminhoFoto != null && ocorrencia.caminhoFoto!.isNotEmpty) {
+        body['caminhoFoto'] = await _prepararFotoBase64(ocorrencia.caminhoFoto);
+      }
+      final res = await _client.dio.patch('/ocorrencias/${ocorrencia.id}', data: body);
       return Ocorrencia.fromJson(res.data);
     } on DioException catch (e) {
       throw _client.handleDioError(e);

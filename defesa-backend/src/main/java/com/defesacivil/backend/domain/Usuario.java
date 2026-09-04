@@ -14,6 +14,7 @@ import jakarta.persistence.FetchType;
 
 @Entity
 @Table(name = "usuarios")
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Usuario {
 
     @Id
@@ -33,13 +34,17 @@ public class Usuario {
     private String especialidade;
     private String role;
     private String status;
+    private Boolean administradorTitular = false;
     @JsonIgnore
     private String dataCriacao;
-    private String fcmToken; // Token para Push (FCM)
+    @JsonIgnore
+    private String fcmToken; // Token para Push (FCM) — nunca expor na API
     @JsonIgnore
     private String resetSenhaCodigo;
     @JsonIgnore
     private LocalDateTime resetSenhaExpiracao;
+    @JsonIgnore
+    private Integer resetSenhaTentativas = 0;
 
     public Usuario() {
         this.dataCriacao = LocalDateTime.now().toString();
@@ -118,6 +123,14 @@ public class Usuario {
         this.status = status;
     }
 
+    public Boolean getAdministradorTitular() {
+        return administradorTitular != null && administradorTitular;
+    }
+
+    public void setAdministradorTitular(Boolean administradorTitular) {
+        this.administradorTitular = administradorTitular;
+    }
+
     public String getDataCriacao() {
         return dataCriacao;
     }
@@ -156,5 +169,23 @@ public class Usuario {
 
     public void setCidadeEntidade(Cidade cidadeEntidade) {
         this.cidadeEntidade = cidadeEntidade;
+    }
+
+    public Integer getResetSenhaTentativas() {
+        return resetSenhaTentativas != null ? resetSenhaTentativas : 0;
+    }
+
+    public void setResetSenhaTentativas(Integer resetSenhaTentativas) {
+        this.resetSenhaTentativas = resetSenhaTentativas;
+    }
+
+    private Boolean semAnunciosVitalicio = false;
+
+    public Boolean getSemAnunciosVitalicio() {
+        return semAnunciosVitalicio != null ? semAnunciosVitalicio : false;
+    }
+
+    public void setSemAnunciosVitalicio(Boolean semAnunciosVitalicio) {
+        this.semAnunciosVitalicio = semAnunciosVitalicio;
     }
 }

@@ -33,6 +33,14 @@ public class CidadeController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/codigo/{codigo}")
+    public ResponseEntity<Cidade> buscarPorCodigo(@PathVariable String codigo) {
+        String codigoNorm = service.normalizarCodigoCidade(codigo);
+        return service.buscarPorCodigo(codigoNorm)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public ResponseEntity<Cidade> criar(@RequestBody Cidade cidade) {
         return ResponseEntity.ok(service.salvar(cidade));

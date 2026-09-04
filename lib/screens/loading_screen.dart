@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart';
 import '../constants/app_colors.dart';
 import '../providers/usuario_provider.dart';
+import '../providers/ocorrencia_provider.dart';
+import '../providers/ponto_interesse_provider.dart';
 import 'mapa_screen.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -20,35 +23,49 @@ class _LoadingScreenState extends State<LoadingScreen> {
   void initState() {
     super.initState();
     
-    // Sequência de Inicialização Crítica e Bloqueante
+    // Sequência de Inicialização Crítica e Otimizada
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userProv = context.read<UsuarioProvider>();
       
-      // 1. Permissões (Pilar 1)
+      // 1. Permissões no mobile
       await _solicitarPermissoesIniciais();
       
       if (mounted) {
+        final ocorrenciaProv = context.read<OcorrenciaProvider>();
+        final pontoProv = context.read<PontoInteresseProvider>();
+
         // 2. Carga Base: Cidades e Sessão (Pilar 2)
-        // Isso garante que temos a lista de cidades suportadas para o 'match' do GPS
         await userProv.carregarTudo();
         
-        // 3. Contexto Geográfico (Pilar 3)
-        // Só tentamos o GPS se não houver um usuário logado (que já tem cidade no perfil)
-        if (userProv.usuarioLogado == null) {
-          setState(() {
-            _mensagem = 'Localizando sua região...';
-            _subMensagem = 'Isolando ocorrências próximas';
-          });
-          await userProv.determinarCidadePorGps();
+        // 3. Pré-carregar Ocorrências e (se admin/agente) Pontos de Interesse em paralelo
+        final cidade = userProv.cidadeAtiva;
+        final futures = <Future>[
+          ocorrenciaProv.carregarOcorrencias(
+            cidade: cidade,
+            userId: userProv.usuarioLogado?.id,
+            isAdmin: userProv.isAdmin,
+          ),
+        ];
+        // POIs são restritos a admin e agentes — não carrega para cidadãos/anônimos
+        if (userProv.isAdmin || userProv.isAgente) {
+          futures.add(pontoProv.carregarPontos(cidade: cidade));
         }
-        
-        // FIM: A UI reagirá ao 'estaInicializado' setado no final do carregarTudo
-        // ou podemos forçar um notify se necessário.
+        await Future.wait(futures);
+
+        // 4. Libera a tela do mapa com os pontos e ocorrências já prontos na memória
+        userProv.finalizarInicializacao();
+
+        // 5. Se anônimo e sem GPS prévio, dispara geolocalização em segundo plano
+        if (userProv.usuarioLogado == null && userProv.cidadeAtiva == null) {
+          userProv.determinarCidadePorGps();
+        }
       }
     });
   }
 
   Future<void> _solicitarPermissoesIniciais() async {
+    if (kIsWeb) return; // Web permissions are handled natively by the browser
+
     setState(() {
       _mensagem = 'Verificando acesso...';
       _subMensagem = 'Preparando sua localização';
@@ -160,7 +177,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Reinaldo Henrique Morais e Pedro Guedes de Azevedo',
+                    'Reinaldo Henrique Morais',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,

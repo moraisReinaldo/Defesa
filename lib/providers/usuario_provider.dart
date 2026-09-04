@@ -19,6 +19,7 @@ class UsuarioProvider extends ChangeNotifier {
   List<Usuario> _todosAgentes = [];
   List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeDetectadaGps;
+  String? _cidadeSuperAdmin;
 
   UsuarioProvider(this._storageService, this._apiService, this._hiveService) {
     // Carregar cidade salva no Hive como fallback rápido (sem esperar GPS)
@@ -29,57 +30,70 @@ class UsuarioProvider extends ChangeNotifier {
   /// Retorna a cidade "ativa" para o contexto atual:
   /// 1. Cidade do perfil se logado
   /// 2. Cidade detectada via GPS se anônimo
-  String? get cidadeAtiva => _usuarioLogado?.cidade ?? _cidadeDetectadaGps;
+  String? get cidadeAtiva =>
+      isSuperAdmin ? (_cidadeSuperAdmin ?? _usuarioLogado?.cidade) : (_usuarioLogado?.cidade ?? _cidadeDetectadaGps);
 
   ApiService get apiService => _apiService;
+  StorageService get storageService => _storageService;
   Usuario? get usuarioLogado => _usuarioLogado;
   bool get estaLogado => _usuarioLogado != null;
   bool get isAdmin => _isAdmin;
   bool get isAgente => _usuarioLogado?.isAgente ?? false;
+  bool get isSuperAdmin => _usuarioLogado?.isSuperAdmin ?? false;
+  bool get isSemAnunciosVitalicio =>
+      (_usuarioLogado?.isSemAnunciosVitalicio == true) ||
+      _hiveService.isSemAnunciosVitalicio ||
+      _storageService.obterStatusVitalicio();
   bool get isLoading => _isLoading;
   List<Map<String, String>> get cidadesSuportadas => _cidadesSuportadas;
   List<Usuario> get todosAgentes => _todosAgentes;
+  String? get cidadeSuperAdmin => _cidadeSuperAdmin;
 
   DateTime? _ultimoSync;
 
+  void finalizarInicializacao() {
+    _estaInicializado = true;
+    notifyListeners();
+  }
+
   Future<void> carregarTudo() async {
     try {
+      _cidadeSuperAdmin ??= _storageService.obterCidadeSuperAdmin();
       // 1. Cidades Suportadas (CRÍTICO: essencial para mapear localização)
       await carregarCidades();
       
       // 2. Verificar Sessão (CRÍTICO: define se usamos perfil ou GPS)
       await verificarUsuarioLogado();
       
-      // Nesse ponto, cidades e usuário estão resolvidos.
-      // O GPS será tratado pela LoadingScreen se necessário.
-    } catch (e) {
-      if (kDebugMode) print('Erro na carga crítica: $e');
-    } finally {
-      // NOTA: O LoadingScreen chamará 'determinarCidadePorGps' antes de liberar,
-      // então 'estaInicializado' pode ser setado aqui ou pela LoadingScreen.
-      // Vamos setar aqui como sinalizador de que a Carga Base acabou.
-      _estaInicializado = true;
-      notifyListeners();
-
       // Tarefas não-críticas rodam silenciosamente em background
       if (_isAdmin) {
         carregarAgentes();
       }
+
       _ultimoSync = DateTime.now();
+    } catch (e) {
+      if (kDebugMode) print('Erro na carga crítica: $e');
     }
+  }
+
+  Future<void> selecionarCidadeSuperAdmin(String? codigo) async {
+    if (!isSuperAdmin || codigo == null || codigo.isEmpty) return;
+    _cidadeSuperAdmin = codigo;
+    await _storageService.salvarCidadeSuperAdmin(codigo);
+    notifyListeners();
   }
 
   /// Determina a cidade atual via GPS para usuários não logados.
   Future<void> determinarCidadePorGps() async {
     try {
-      // 1. Obter coordenadas com timeout agressivo
+      // 1. Obter coordenadas com timeout adaptado (maior na Web para dar tempo de aceitar a permissão)
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low, 
         timeLimit: const Duration(seconds: 4),
       );
 
       // 2. Tentar geocoding com timeout manual (pois a lib geocoding não tem nativo)
-      final placemarks = await Future.any([
+      final placemarks = await Future.any(<Future<List<Placemark>>>[
         placemarkFromCoordinates(position.latitude, position.longitude),
         Future.delayed(const Duration(seconds: 3)).then((_) => <Placemark>[])
       ]);
@@ -211,7 +225,7 @@ class UsuarioProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> cadastrarAgente({
+  Future<Map<String, dynamic>> cadastrarAgente({
     required String nome,
     required String email,
     required String telefone,
@@ -227,11 +241,12 @@ class UsuarioProvider extends ChangeNotifier {
       role: 'AGENTE',
       cidade: cidade ?? _usuarioLogado?.cidade ?? '',
       concordaLGPD: true,
+      especialidade: especialidade,
     ));
     if (res['sucesso'] == true) {
       await carregarAgentes();
     }
-    return res['sucesso'] == true;
+    return res;
   }
 
   // ========== LOGIN & AUTH ==========
@@ -243,25 +258,31 @@ class UsuarioProvider extends ChangeNotifier {
       
       if (response != null) {
         final usuario = Usuario.fromJson(response['usuario']);
-        
-        if (usuario.status.toUpperCase() == 'PENDENTE') {
-          throw Exception('Conta de administrador aguardando ativação manual. Solicite via e-mail.');
-        }
-
         final token = response['token'];
 
-        // Salvar sessão segura
+        // Salvar sessão segura (inclusive para coordenador pendente de homologação)
         await _storageService.salvarUsuarioLogado(usuario);
         await _storageService.salvarToken(token);
 
         _usuarioLogado = usuario;
-        _isAdmin = usuario.role == Role.administrador;
+        _isAdmin = usuario.role == Role.administrador || usuario.role == Role.superAdmin;
+
+        // Sincronizar status vitalício com armazenamentos locais resilientes
+        if (usuario.isSemAnunciosVitalicio) {
+          await _hiveService.salvarStatusVitalicio(true);
+          await _storageService.salvarStatusVitalicio(true);
+        } else if (_hiveService.isSemAnunciosVitalicio || _storageService.obterStatusVitalicio()) {
+          // Se o cache local tem registro mas o backend ainda não, sincroniza com o servidor
+          _apiService.ativarSemAnunciosVitalicio();
+        }
         
         // Registrar ID no OneSignal para receber push diretos
-        OneSignal.login(usuario.id);
-        // Tag de cidade para segmentação de notificações [CR3 - Recursos Nativos]
-        if (usuario.cidade != null && usuario.cidade!.isNotEmpty) {
-          OneSignal.User.addTagWithKey('cidade', usuario.cidade!);
+        if (!kIsWeb) {
+          OneSignal.login(usuario.id);
+          // Tag de cidade para segmentação de notificações [CR3 - Recursos Nativos]
+          if (usuario.cidade != null && usuario.cidade!.isNotEmpty) {
+            OneSignal.User.addTagWithKey('cidade', usuario.cidade!);
+          }
         }
         
         notifyListeners();
@@ -270,7 +291,7 @@ class UsuarioProvider extends ChangeNotifier {
       return false;
     } catch (e) {
       if (kDebugMode) print('Erro ao fazer login: $e');
-      rethrow; // Repassar para a UI tratar (ex: conta pendente 403)
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -289,9 +310,29 @@ class UsuarioProvider extends ChangeNotifier {
     try {
       final response = await _apiService.cadastrarUsuario(request);
       if (response != null && response['sucesso'] != false) {
+        // Auto-login imediato: salvar sessão se token e usuário foram retornados
+        if (response['token'] != null && response['usuario'] != null) {
+          final usuario = Usuario.fromJson(response['usuario']);
+          final token = response['token'];
+
+          await _storageService.salvarUsuarioLogado(usuario);
+          await _storageService.salvarToken(token);
+
+          _usuarioLogado = usuario;
+          _isAdmin = usuario.role == Role.administrador || usuario.role == Role.superAdmin;
+
+          if (!kIsWeb) {
+            OneSignal.login(usuario.id);
+            if (usuario.cidade != null && usuario.cidade!.isNotEmpty) {
+              OneSignal.User.addTagWithKey('cidade', usuario.cidade!);
+            }
+          }
+          notifyListeners();
+        }
+
         return {
           'sucesso': true,
-          'message': response['message'] ?? response['msg'] ?? 'Sucesso!',
+          'message': response['message'] ?? response['msg'] ?? 'Cadastro realizado com sucesso!',
           'pendente': response['pendente'] == true || request.status == 'PENDENTE',
         };
       } else {
@@ -302,7 +343,26 @@ class UsuarioProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) print('Erro no cadastro: $e');
-      return {'sucesso': false, 'message': 'Erro de conexão ou servidor.'};
+      String erroMsg = 'Erro de conexão ou servidor. Verifique sua internet.';
+      if (e.toString().contains('E-mail já cadastrado') || e.toString().contains('Exception:')) {
+        erroMsg = e.toString().replaceAll('Exception: ', '');
+      }
+      return {'sucesso': false, 'message': erroMsg};
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  /// Exclui a própria conta do usuário autenticado.
+  /// Chama a API primeiro (precisa do token), depois faz logout local.
+  Future<void> excluirMinhaConta() async {
+    _setLoading(true);
+    try {
+      await _apiService.excluirMinhaConta();
+      await logout();
+    } catch (e) {
+      if (kDebugMode) print('Erro ao excluir conta: $e');
+      rethrow;
     } finally {
       _setLoading(false);
     }
@@ -318,7 +378,9 @@ class UsuarioProvider extends ChangeNotifier {
     _todosAgentes = [];
     _cidadesSuportadas = [];
     _cidadeDetectadaGps = null;
-    OneSignal.logout();
+    if (!kIsWeb) {
+      OneSignal.logout();
+    }
     notifyListeners();
   }
 
@@ -352,11 +414,75 @@ class UsuarioProvider extends ChangeNotifier {
     
     if (logado != null && token != null) {
       _usuarioLogado = logado;
-      _isAdmin = logado.role == Role.administrador;
+      _isAdmin = logado.role == Role.administrador || logado.role == Role.superAdmin;
+
+      // Sincronizar status vitalício com armazenamentos locais resilientes
+      if (logado.isSemAnunciosVitalicio) {
+        await _hiveService.salvarStatusVitalicio(true);
+        await _storageService.salvarStatusVitalicio(true);
+      } else if (_hiveService.isSemAnunciosVitalicio || _storageService.obterStatusVitalicio()) {
+        _apiService.ativarSemAnunciosVitalicio();
+      }
+
       if (_isAdmin) {
         carregarAgentes();
       }
+      
+      // Registrar ID no OneSignal para usuários que já estavam logados
+      if (!kIsWeb) {
+        OneSignal.login(logado.id);
+        if (logado.cidade != null && logado.cidade!.isNotEmpty) {
+          OneSignal.User.addTagWithKey('cidade', logado.cidade!);
+        }
+      }
+
       notifyListeners();
+    }
+  }
+
+  /// Ativa a licença vitalícia sem anúncios vinculada a tudo (Hive, Storage e Backend)
+  /// Valida obrigatoriamente a confirmação de pagamento junto à API / Stripe antes de autorizar.
+  Future<bool> ativarAcessoVitalicio() async {
+    try {
+      if (!estaLogado) {
+        return false;
+      }
+
+      // 1. Chama o backend, que valida se há pagamento confirmado na API do Stripe
+      final sucesso = await _apiService.ativarSemAnunciosVitalicio();
+      if (!sucesso) {
+        if (kDebugMode) print('Pagamento não localizado no Stripe ou não aprovado.');
+        return false;
+      }
+
+      // 2. Pagamento 100% confirmado: grava nos armazenamentos locais resilientes
+      await _hiveService.salvarStatusVitalicio(true);
+      await _storageService.salvarStatusVitalicio(true);
+
+      if (_usuarioLogado != null) {
+        final atualizado = Usuario(
+          id: _usuarioLogado!.id,
+          nome: _usuarioLogado!.nome,
+          email: _usuarioLogado!.email,
+          telefone: _usuarioLogado!.telefone,
+          role: _usuarioLogado!.role,
+          concordaLGPD: _usuarioLogado!.concordaLGPD,
+          cidade: _usuarioLogado!.cidade,
+          especialidade: _usuarioLogado!.especialidade,
+          fcmToken: _usuarioLogado!.fcmToken,
+          status: _usuarioLogado!.status,
+          isSemAnunciosVitalicio: true,
+          dataCriacao: _usuarioLogado!.dataCriacao,
+        );
+        _usuarioLogado = atualizado;
+        await _storageService.salvarUsuarioLogado(atualizado);
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao ativar acesso vitalício: $e');
+      return false;
     }
   }
 
@@ -365,9 +491,9 @@ class UsuarioProvider extends ChangeNotifier {
       String? originalCidade = _usuarioLogado?.cidade;
       String? cidadeBusca = originalCidade;
       
-      // Mapeamento de Nome para Código (Garante que enviamos o código pro backend)
+      // Mapeamento de Nome para Código
       if (cidadeBusca != null && cidadeBusca.isNotEmpty) {
-        final searchCidade = cidadeBusca; // Captura para estabilizar o null-safety
+        final searchCidade = cidadeBusca;
         final cidades = await _apiService.listarCidades();
         final correspondente = cidades.firstWhere(
           (c) => c['nome']?.toLowerCase() == searchCidade.toLowerCase() || 
@@ -383,8 +509,11 @@ class UsuarioProvider extends ChangeNotifier {
       
       var agentes = await _apiService.listarAgentes(cidade: cidadeBusca);
       
-      // (Fallback global removido a pedido do usuário: agentes fora da jurisdição não devem ser exibidos/vistos na listagem)
-
+      // Fallback: se não encontrou com o código (ex: PIR), tenta pelo nome completo original (ex: PIRACAIA)
+      if (agentes.isEmpty && originalCidade != null && originalCidade != cidadeBusca) {
+        if (kDebugMode) print('🔄 Tentando fallback com nome original da cidade: $originalCidade');
+        agentes = await _apiService.listarAgentes(cidade: originalCidade);
+      }
 
       _todosAgentes = agentes;
       if (kDebugMode) print('✅ Agentes carregados: ${agentes.length}');

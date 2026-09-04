@@ -30,15 +30,33 @@ public class EmailService {
     public void enviarEmailAprovacaoAdmin(Usuario admin) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(adminNotificationEmail);
-        message.setSubject("Aprovação de Novo Administrador: " + admin.getCidade());
-        message.setText("Olá,\n\n" +
-                "Um novo usuário solicitou acesso como ADMINISTRADOR.\n\n" +
+        message.setSubject("🚨 Nova Solicitação de Adesão Municipal: " + admin.getCidade());
+
+        String telefone = (admin.getTelefone() != null && !admin.getTelefone().isBlank()) 
+            ? admin.getTelefone() 
+            : "Não informado";
+            
+        String waLink = (admin.getTelefone() != null && !admin.getTelefone().isBlank())
+            ? "https://wa.me/55" + admin.getTelefone().replaceAll("\\D", "")
+            : "N/A";
+
+        String corpo = "Olá Reinaldo,\n\n" +
+                "Um novo Coordenador solicitou acesso e credenciamento municipal para sua cidade!\n\n" +
+                "--------------------------------------------------\n" +
+                "DADOS DO SOLICITANTE:\n" +
                 "Nome: " + admin.getNome() + "\n" +
                 "E-mail: " + admin.getEmail() + "\n" +
-                "Cidade: " + admin.getCidade() + "\n\n" +
-                "Acesse o sistema para aprovar a solicitação.\n\n" +
+                "Telefone / WhatsApp: " + telefone + "\n" +
+                "Conversa Direta WhatsApp: " + waLink + "\n" +
+                "Cidade / Jurisdição: " + admin.getCidade() + "\n" +
+                "--------------------------------------------------\n\n" +
+                "AÇÃO NECESSÁRIA:\n" +
+                "Acesse o painel do Super Admin no app ou web para HOMOLOGAR o município.\n" +
+                "Ao aprovar, a cidade receberá 90 DIAS DE TRIAL PRO MUNICIPAL GRATUITO automaticamente!\n\n" +
                 "Atenciosamente,\n" +
-                "Equipe Defesa Civil");
+                "Sistema Integrado Defesa em Foco";
+
+        message.setText(corpo);
         
         try {
             message.setFrom(mailFrom);

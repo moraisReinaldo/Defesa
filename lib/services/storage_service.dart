@@ -8,9 +8,29 @@ class StorageService {
   static const String _ocorrenciasKey = 'ocorrencias';
   static const String _usuarioLogadoKey = 'usuario_logado';
   static const String _tokenKey = 'auth_token';
+  static const String _avisoAceitoKey = 'aviso_comunitario_aceito';
+  static const String _superAdminCidadeKey = 'super_admin_cidade';
 
   late SharedPreferences _prefs;
   final _secureStorage = const FlutterSecureStorage();
+
+  // ========== AVISO COMUNITÁRIO ==========
+
+  Future<void> salvarAvisoComunitarioAceito(bool aceito) async {
+    await _prefs.setBool(_avisoAceitoKey, aceito);
+  }
+
+  bool obterAvisoComunitarioAceito() {
+    return _prefs.getBool(_avisoAceitoKey) ?? false;
+  }
+
+  Future<void> salvarCidadeSuperAdmin(String codigo) async {
+    await _prefs.setString(_superAdminCidadeKey, codigo);
+  }
+
+  String? obterCidadeSuperAdmin() {
+    return _prefs.getString(_superAdminCidadeKey);
+  }
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -87,6 +107,18 @@ class StorageService {
   Future<bool> temUsuarioLogado() async {
     final token = await obterToken();
     return token != null && _prefs.containsKey(_usuarioLogadoKey);
+  }
+
+  // ========== STATUS VITALÍCIO (PERSISTÊNCIA REDUNDANTE PREFS + SECURE) ==========
+  static const String _vitalicioKey = 'sem_anuncios_vitalicio';
+
+  Future<void> salvarStatusVitalicio(bool ativo) async {
+    await _prefs.setBool(_vitalicioKey, ativo);
+    await _secureStorage.write(key: _vitalicioKey, value: ativo ? 'true' : 'false');
+  }
+
+  bool obterStatusVitalicio() {
+    return _prefs.getBool(_vitalicioKey) ?? false;
   }
 
   // ========== LIMPEZA ==========

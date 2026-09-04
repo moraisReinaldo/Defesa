@@ -6,6 +6,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
@@ -15,14 +17,25 @@ import '../providers/ocorrencia_provider.dart';
 import '../providers/usuario_provider.dart';
 import '../providers/ponto_interesse_provider.dart';
 import '../services/localizacao_service.dart';
+import '../services/clima_service.dart';
+import '../services/geocoding_service.dart';
 import '../widgets/search_bar_widget.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/ocorrencia_card.dart';
 import '../widgets/ocorrencia_image.dart';
+import '../widgets/aviso_comunitario_dialog.dart';
+import '../widgets/responsive_layout.dart';
 import 'registro_ocorrencia_screen.dart'; // Contém SelecaoTipoOcorrenciaScreen
 import 'historico_screen.dart';
 import 'perfil_screen.dart';
 import 'registro_ponto_interesse_screen.dart';
+import 'dashboard_relatorios_screen.dart';
+import 'cadastro_agente_screen.dart';
+import 'gerenciar_poi_screen.dart';
+import 'super_admin_screen.dart';
+import '../providers/cidade_provider.dart';
+import '../widgets/alerta_banner_widget.dart';
+import '../widgets/mapa_context_menu_widget.dart';
 
 class MapaScreen extends StatefulWidget {
    const MapaScreen({super.key});
@@ -34,6 +47,7 @@ class MapaScreen extends StatefulWidget {
 class _MapaScreenState extends State<MapaScreen> {
   final MapController _mapController = MapController();
   final LocalizacaoService _localizacaoService = LocalizacaoService();
+  final GeocodingService _geocodingService = GeocodingService();
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _comentarioController = TextEditingController();
@@ -42,15 +56,45 @@ class _MapaScreenState extends State<MapaScreen> {
   int _indiceAbaAtual = 0;
   String _searchQuery = '';
   bool _showSearchResults = false;
+  List<EnderecoSugestao> _enderecoSugestoes = [];
+  bool _buscandoEnderecos = false;
+  Timer? _searchDebounce;
+  LatLng? _marcadorEnderecoSelecionado;
+  String? _nomeEnderecoSelecionado;
   
   StreamSubscription<Position>? _positionSubscription;
   bool _mapaCentralizadoInicialmente = false;
+  UsuarioProvider? _usuarioProviderRef;
+  String? _ultimaCidadeCarregada;
+  String? _ultimoUsuarioId;
 
   @override
   void initState() {
     super.initState();
+    _usuarioProviderRef = context.read<UsuarioProvider>();
+    _usuarioProviderRef?.addListener(_onUsuarioProviderChanged);
+    _ultimaCidadeCarregada = _usuarioProviderRef?.cidadeAtiva;
+    _ultimoUsuarioId = _usuarioProviderRef?.usuarioLogado?.id;
+    
     _inicializarMapa();
     _iniciarSeguimentoLocalizacao();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final storage = context.read<UsuarioProvider>().storageService;
+      AvisoComunitarioDialog.exibirSeNecessario(context, storage);
+    });
+  }
+
+  void _onUsuarioProviderChanged() {
+    if (!mounted) return;
+    final userProv = context.read<UsuarioProvider>();
+    final cidadeAtual = userProv.cidadeAtiva;
+    final userIdAtual = userProv.usuarioLogado?.id;
+
+    if (cidadeAtual != _ultimaCidadeCarregada || userIdAtual != _ultimoUsuarioId) {
+      _ultimaCidadeCarregada = cidadeAtual;
+      _ultimoUsuarioId = userIdAtual;
+      _inicializarMapa(forcar: true);
+    }
   }
 
   void _iniciarSeguimentoLocalizacao() {
@@ -71,34 +115,65 @@ class _MapaScreenState extends State<MapaScreen> {
 
   @override
   void dispose() {
+    _usuarioProviderRef?.removeListener(_onUsuarioProviderChanged);
     _positionSubscription?.cancel();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _comentarioController.dispose();
     super.dispose();
   }
 
-  Future<void> _inicializarMapa() async {
-    // Buscar localização IMEDIATAMENTE (sem travar a thread)
-    _centralizarLocalizacao(animar: true);
+  void _aoAlterarBusca(String v) {
+    setState(() {
+      _searchQuery = v;
+      _showSearchResults = v.isNotEmpty;
+    });
 
+    _searchDebounce?.cancel();
+    if (v.trim().length >= 3) {
+      setState(() => _buscandoEnderecos = true);
+      _searchDebounce = Timer(const Duration(milliseconds: 500), () async {
+        final resultados = await _geocodingService.buscarEnderecos(v);
+        if (mounted && _searchQuery == v) {
+          setState(() {
+            _enderecoSugestoes = resultados;
+            _buscandoEnderecos = false;
+          });
+        }
+      });
+    } else {
+      setState(() {
+        _enderecoSugestoes = [];
+        _buscandoEnderecos = false;
+      });
+    }
+  }
+
+  Future<void> _inicializarMapa({bool forcar = false}) async {
     final usuarioProv = context.read<UsuarioProvider>();
     final ocorrenciaProv = context.read<OcorrenciaProvider>();
-    
-    // Prioridade: Cidade Ativa (Logado ou GPS Detectado)
+    final pontoProv = context.read<PontoInteresseProvider>();
     final cidadeFiltro = usuarioProv.cidadeAtiva;
-    
-    if (usuarioProv.isAdmin || (cidadeFiltro != null && cidadeFiltro.isNotEmpty)) {
-      await ocorrenciaProv.carregarOcorrencias(
+
+    // Centraliza o mapa na cidade selecionada ou no centro da região
+    final coords = ClimaService.obterCoordenadasCidade(cidadeFiltro);
+    final double zoomNivel = (cidadeFiltro == null || cidadeFiltro.isEmpty) ? 11.5 : 14.0;
+    _mapController.move(LatLng(coords['lat']!, coords['lng']!), zoomNivel);
+
+    // Se for atualização forçada ou a memória ainda estiver vazia, busca na API
+    if (forcar || (ocorrenciaProv.ocorrenciasAtivas.isEmpty && pontoProv.pontos.isEmpty)) {
+      final carregarOc = ocorrenciaProv.carregarOcorrencias(
         cidade: cidadeFiltro, 
         userId: usuarioProv.usuarioLogado?.id,
         isAdmin: usuarioProv.isAdmin,
       );
-      if (!mounted) return;
-      if (cidadeFiltro != null && cidadeFiltro.isNotEmpty) {
-        await context.read<PontoInteresseProvider>().carregarPontos(cidade: cidadeFiltro);
-      }
-    } else {
-      debugPrint('⚠️ Mapa inicializado sem cidade de contexto. Nada será exibido.');
+      final carregarPoi = pontoProv.carregarPontos(cidade: cidadeFiltro);
+      await Future.wait([carregarOc, carregarPoi]);
+    }
+
+    // Atualiza GPS em segundo plano sem travar o carregamento inicial
+    if (cidadeFiltro == null || cidadeFiltro.isEmpty) {
+      _centralizarLocalizacao(animar: false);
     }
   }
 
@@ -130,23 +205,57 @@ class _MapaScreenState extends State<MapaScreen> {
     }).toList();
   }
 
+  Future<void> _showResponsiveModal(BuildContext context, Widget Function(BuildContext) builder) async {
+    if (ResponsiveLayout.isDesktop(context)) {
+      await showDialog(
+        context: context,
+        barrierDismissible: true,
+        barrierColor: Colors.black54,
+        builder: (dialogCtx) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(dialogCtx).pop(),
+          child: GestureDetector(
+            onTap: () {}, // Impede que cliques dentro do card fechem o modal
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: builder(dialogCtx),
+            ),
+          ),
+        ),
+      );
+    } else {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: true,
+        enableDrag: true,
+        backgroundColor: Colors.transparent,
+        barrierColor: Colors.black54,
+        builder: builder,
+      );
+    }
+  }
+
   void _mostrarDetalhesOcorrencia(Ocorrencia pOcorrencia) {
     Ocorrencia ocorrencia = pOcorrencia;
     final usuarioProvider = context.read<UsuarioProvider>();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        decoration:  const BoxDecoration(
-          color: AppColors.backgroundOffWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
+    _showResponsiveModal(
+      context,
+      (context) => Center(
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85,
+            maxWidth: 600,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.backgroundOffWhite,
+            borderRadius: BorderRadius.all(Radius.circular(28)),
+          ),
+          clipBehavior: Clip.antiAlias,
         child: Builder(
-          builder: (context) {
+          builder: (modalCtx) {
             final usuarioLogado = usuarioProvider.usuarioLogado;
             final meuNome = usuarioLogado?.nome.trim().toLowerCase() ?? '';
             final listaAgentes = ocorrencia.agentes?.split(',').map((s) => s.trim().toLowerCase()).toList() ?? [];
@@ -215,6 +324,18 @@ class _MapaScreenState extends State<MapaScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.close_rounded, color: Colors.white, size: 18),
+                    ),
+                    tooltip: 'Fechar',
+                    onPressed: () => Navigator.pop(modalCtx),
                   ),
                 ],
               ),
@@ -427,20 +548,23 @@ class _MapaScreenState extends State<MapaScreen> {
                         child: SizedBox(
                           width: double.infinity, 
                           child: ElevatedButton.icon(
-                            onPressed: () async {
+                            onPressed: () {
                               final messenger = ScaffoldMessenger.of(context);
-                              try {
-                                final parecer = _comentarioController.text.trim();
-                                await context.read<OcorrenciaProvider>().resolverOcorrencia(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null);
-                                _comentarioController.clear();
-                                if (mounted) Navigator.pop(context);
-                              } catch (e) {
-                                if (mounted) {
+                              final parecer = _comentarioController.text.trim();
+                              
+                              context.read<OcorrenciaProvider>()
+                                .resolverOcorrencia(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null)
+                                .catchError((e) {
                                   messenger.showSnackBar(
-                                    SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
+                                    SnackBar(
+                                      content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), 
+                                      backgroundColor: Colors.red
+                                    ),
                                   );
-                                }
-                              }
+                                });
+                                
+                              _comentarioController.clear();
+                              Navigator.pop(context);
                             }, 
                             icon: const Icon(Icons.check_circle_rounded, size: 18), 
                             label: const Text('Marcar como Resolvida'), 
@@ -457,6 +581,7 @@ class _MapaScreenState extends State<MapaScreen> {
             );
           }
         ),
+      ),
       ),
     ).then((_) {
       // Ao fechar o painel de detalhes, recarregar para refletir mudanças de status
@@ -508,13 +633,13 @@ class _MapaScreenState extends State<MapaScreen> {
   void _deletarOcorrencia(Ocorrencia ocorrencia) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Excluir?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Não')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Não')),
           ElevatedButton(onPressed: () { 
             context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id); 
-            Navigator.pop(context); 
+            Navigator.pop(ctx); 
             Navigator.pop(context); 
           }, child: const Text('Sim')),
         ],
@@ -569,23 +694,33 @@ class _MapaScreenState extends State<MapaScreen> {
     final Map<String, IconData> poiIcons = {'PONTO_COLETA_AGUA': Icons.water_drop, 'AREA_RISCO': Icons.warning, 'ABRIGO': Icons.home, 'BASE_DEFESA': Icons.security, 'DESLIZAMENTO': Icons.terrain, 'OUTRO': Icons.location_on};
     final Map<String, Color> poiColors = {'PONTO_COLETA_AGUA': Colors.blue, 'AREA_RISCO': Colors.orange, 'ABRIGO': Colors.green, 'BASE_DEFESA': Colors.indigo, 'DESLIZAMENTO': Colors.brown, 'OUTRO': Colors.grey};
 
-    for (final p in poiProvider.pontos) {
-      final color = poiColors[p.tipo] ?? Colors.grey;
-      markers.add(Marker(
-        point: LatLng(p.latitude, p.longitude), 
-        child: GestureDetector(
-          onTap: () => _mostrarDetalhesPOI(p), 
-          child: Container(
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
-            child: Icon(poiIcons[p.tipo] ?? Icons.place, color: Colors.white, size: 20)
+    final cidadeProv = context.watch<CidadeProvider>();
+
+    // POIs visíveis apenas para ADMIN e AGENTE se o plano liberar (Plano PRO Municipal ou Super Admin)
+    if ((usuarioProvider.isAdmin || usuarioProvider.isAgente) && 
+        (cidadeProv.recursoPoiLiberado || usuarioProvider.isSuperAdmin)) {
+      for (final p in poiProvider.pontos) {
+        final color = poiColors[p.tipo] ?? Colors.grey;
+        markers.add(Marker(
+          width: 36,
+          height: 36,
+          point: LatLng(p.latitude, p.longitude), 
+          child: GestureDetector(
+            onTap: () => _mostrarDetalhesPOI(p), 
+            child: Container(
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)), 
+              child: Icon(poiIcons[p.tipo] ?? Icons.place, color: Colors.white, size: 20)
+            )
           )
-        )
-      ));
+        ));
+      }
     }
 
     for (final o in ocorrenciaProvider.ocorrenciasAtivas) {
       final color = AppColors.getTipoColor(o.tipo);
       markers.add(Marker(
+        width: 36,
+        height: 36,
         point: LatLng(o.latitude, o.longitude), 
         child: GestureDetector(
           onTap: () => _mostrarDetalhesOcorrencia(o), 
@@ -610,54 +745,455 @@ class _MapaScreenState extends State<MapaScreen> {
       ));
     }
 
-    return Scaffold(
-      body: _indiceAbaAtual == 0
-          ? _construirTelaMapa(nomeUsuario, markers, usuarioProvider)
-          : _indiceAbaAtual == 1 ?  const HistoricoScreen() :  const PerfilScreen(),
-      floatingActionButton: _indiceAbaAtual == 0 
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (usuarioProvider.isAdmin) ...[
-                  FloatingActionButton.extended(
-                    heroTag: 'fab_poi',
-                    onPressed: () => _confirmarNovoPontoInteresse(_mapController.camera.center),
-                    icon: const Icon(Icons.add_location_alt_rounded),
-                    label: const Text('Ponto de Interesse'),
-                    backgroundColor: Colors.orange,
-                  ),
-                  const SizedBox(height: 12),
-                ],
+    final bodyContent = IndexedStack(
+      index: _indiceAbaAtual,
+      children: [
+        _construirTelaMapa(nomeUsuario, markers, usuarioProvider),
+        const HistoricoScreen(),
+        const PerfilScreen(),
+      ],
+    );
+    final fabContent = _indiceAbaAtual == 0
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (usuarioProvider.isAdmin) ...[
                 FloatingActionButton.extended(
-                  heroTag: 'fab_ocorrencia',
-                  onPressed: () async {
-                    final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) =>  const SelecaoTipoOcorrenciaScreen()));
-                    if (res == true && mounted) {
-                      _inicializarMapa();
-                    }
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Nova Ocorrência'),
+                  heroTag: 'fab_poi',
+                  onPressed: _onNovoPontoInteressePressed,
+                  icon: const Icon(Icons.add_location_alt_rounded),
+                  label: const Text('Ponto de Interesse'),
+                  backgroundColor: Colors.orange,
                 ),
                 const SizedBox(height: 12),
-                FloatingActionButton(
-                  mini: true,
-                  heroTag: 'fab_gps',
-                  onPressed: () => _centralizarLocalizacao(),
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primaryTeal,
-                  child: const Icon(Icons.my_location_rounded),
-                ),
               ],
-            )
-          : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indiceAbaAtual,
-        onTap: (i) => setState(() => _indiceAbaAtual = i),
-        items: const [BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Mapa'), BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'), BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil')],
+              FloatingActionButton.extended(
+                heroTag: 'fab_ocorrencia',
+                onPressed: () => _onNovaOcorrenciaPressed(usuarioProvider),
+                icon: const Icon(Icons.add),
+                label: const Text('Nova Ocorrência'),
+              ),
+              const SizedBox(height: 12),
+              FloatingActionButton(
+                mini: true,
+                heroTag: 'fab_gps',
+                onPressed: () => _centralizarLocalizacao(),
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.primaryTeal,
+                child: const Icon(Icons.my_location_rounded),
+              ),
+            ],
+          )
+        : null;
+
+    return ResponsiveLayout(
+      mobile: Scaffold(
+        body: bodyContent,
+        floatingActionButton: fabContent,
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _indiceAbaAtual,
+          onTap: (i) {
+            if (i == 0) _inicializarMapa(forcar: true);
+            setState(() => _indiceAbaAtual = i);
+          },
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.map_rounded), label: 'Mapa'), 
+            BottomNavigationBarItem(icon: Icon(Icons.history_rounded), label: 'Histórico'), 
+            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Perfil')
+          ],
+        ),
+      ),
+      desktop: Scaffold(
+        body: Row(
+          children: [
+            _buildModernSidebar(usuarioProvider),
+            Expanded(
+              child: Scaffold(
+                body: bodyContent,
+                // O FAB flutuante no desktop agora é o botão da sidebar
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  void _executarAcaoContextMenu(MapaAction acao, LatLng latlng, UsuarioProvider userProv) {
+    switch (acao) {
+      case MapaAction.novoPontoInteresse:
+        _confirmarNovoPontoInteresse(latlng);
+        break;
+      case MapaAction.novaOcorrencia:
+        _onNovaOcorrenciaPressed(userProv, latlng: latlng);
+        break;
+      case MapaAction.emitirAlerta:
+        final cidadeCod = userProv.cidadeAtiva;
+        final cidadeNome = userProv.cidadesSuportadas.firstWhere(
+          (c) => c['codigo'] == cidadeCod,
+          orElse: () => {'nome': cidadeCod ?? 'Sua Jurisdição'},
+        )['nome']!;
+        AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome);
+        break;
+    }
+  }
+
+  Widget _buildModernSidebar(UsuarioProvider usuarioProvider) {
+    final cidadeCodigo = usuarioProvider.cidadeAtiva;
+    final cidadeNome = usuarioProvider.cidadesSuportadas.firstWhere(
+      (c) => c['codigo'] == cidadeCodigo,
+      orElse: () => {'nome': cidadeCodigo ?? 'Jurisdição Geral'},
+    )['nome']!;
+    final cidadeProv = context.watch<CidadeProvider>();
+
+    return Container(
+      width: 270,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: const Border(
+          right: BorderSide(color: AppColors.borderLight, width: 1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(4, 0),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header com Logo, Título e Jurisdição da Cidade
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.shield_rounded, color: AppColors.primaryTeal, size: 26),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Defesa em Foco',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (usuarioProvider.isAdmin) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_city_rounded, size: 14, color: AppColors.primaryTeal),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Jurisdição: $cidadeNome',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryTeal,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Itens Principais de Navegação
+          _buildSidebarItem(0, Icons.map_rounded, 'Mapa Operacional', Icons.map_outlined),
+          _buildSidebarItem(1, Icons.history_rounded, 'Histórico', Icons.history_outlined),
+          _buildSidebarItem(2, Icons.person_rounded, 'Meu Perfil', Icons.person_outline_rounded),
+
+          // Módulos Exclusivos do Administrador no Web
+          if (usuarioProvider.isAdmin) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Text(
+                'PAINEL DO ADMINISTRADOR',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textLight,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            _buildCustomSidebarAction(
+              icon: Icons.dashboard_rounded,
+              label: 'Dashboard & Clima',
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DashboardRelatoriosScreen())),
+            ),
+            if (usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.admin_panel_settings_rounded,
+                label: 'Painel Geral Super Admin',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuperAdminScreen())),
+              ),
+            if (cidadeProv.recursoAgentesLiberado || usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.badge_rounded,
+                label: 'Agentes da Cidade',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadastroAgenteScreen())),
+              ),
+            if (cidadeProv.recursoPoiLiberado || usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.roofing_rounded,
+                label: 'Pontos de Apoio / Abrigos',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GerenciarPOIScreen())),
+              ),
+            if (cidadeProv.recursoAlertasLiberado || usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.campaign_rounded,
+                label: 'Emitir Alerta Geral',
+                onTap: () => AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome),
+              ),
+          ],
+
+          const Spacer(),
+
+          // Ações Rápidas de Cadastro
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (usuarioProvider.isAdmin) ...[
+                  ElevatedButton.icon(
+                    onPressed: _onNovoPontoInteressePressed,
+                    icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                    label: const Text('Ponto Interesse'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                ElevatedButton.icon(
+                  onPressed: () => _onNovaOcorrenciaPressed(usuarioProvider),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Nova Ocorrência'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomSidebarAction({required IconData icon, required String label, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        hoverColor: AppColors.primaryTeal.withValues(alpha: 0.05),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.textSecondary),
+              const SizedBox(width: 14),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSidebarItem(int index, IconData iconSelected, String label, IconData iconUnselected) {
+    final isSelected = _indiceAbaAtual == index;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          if (index == 0) _inicializarMapa(forcar: true);
+          setState(() => _indiceAbaAtual = index);
+        },
+        hoverColor: AppColors.primaryTeal.withValues(alpha: 0.05),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryTeal.withValues(alpha: 0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(isSelected ? iconSelected : iconUnselected, 
+                  size: 24, 
+                  color: isSelected ? AppColors.primaryTeal : AppColors.textSecondary),
+              const SizedBox(width: 16),
+              Text(label, style: TextStyle(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppColors.primaryTeal : AppColors.textSecondary,
+              )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onNovaOcorrenciaPressed(UsuarioProvider usuarioProvider, {LatLng? latlng}) async {
+    if (kIsWeb) {
+      if (!usuarioProvider.isAdmin) {
+        // Exibe modal de download do aplicativo para cidadãos na web
+        showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            child: Container(
+              width: 400,
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.app_shortcut_rounded, size: 64, color: AppColors.primaryTeal),
+                  const SizedBox(height: 16),
+                  const Text('Aplicativo Necessário', 
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 16),
+                  const Text('Para registrar ocorrências em tempo real com precisão de GPS e envio de mídia, utilize nosso aplicativo para Android ou iOS.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.5)),
+                  const SizedBox(height: 32),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=defesa.civil.foco&hl=pt_BR'));
+                      },
+                      icon: const Icon(Icons.android, color: Colors.white),
+                      label: const Text('Baixar no Google Play'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF3DDC84),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        launchUrl(Uri.parse('https://apps.apple.com/br/app/defesa-em-foco/id6782083182'));
+                      },
+                      icon: const Icon(Icons.apple, color: Colors.white),
+                      label: const Text('Baixar na App Store'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: const Text('Entendi'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Web + Administrador: Abre Dialog de cadastro com as coordenadas do ponto clicado no mapa
+      final res = await showDialog<bool>(
+        context: context,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 850),
+            decoration: BoxDecoration(color: AppColors.backgroundOffWhite, borderRadius: BorderRadius.circular(24)),
+            clipBehavior: Clip.antiAlias,
+            child: Navigator(
+              onGenerateRoute: (settings) => MaterialPageRoute(
+                builder: (context) => SelecaoTipoOcorrenciaScreen(posicaoInicial: latlng),
+              ),
+            ),
+          ),
+        ),
+      );
+      if (res == true && mounted) _inicializarMapa();
+      return;
+    } else {
+      // Mobile (Android / iOS)
+      final res = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SelecaoTipoOcorrenciaScreen(posicaoInicial: latlng),
+        ),
+      );
+      if (res == true && mounted) _inicializarMapa();
+    }
+  }
+
 
   Widget _construirTelaMapa(String nomeUsuario, List<Marker> markers, UsuarioProvider userProv) {
     final searchResults = _getFilteredOcorrencias();
@@ -666,12 +1202,28 @@ class _MapaScreenState extends State<MapaScreen> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            initialCenter: _posicaoAtual != null ? LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude) :  const LatLng(-22.9292, -46.2753),
-            initialZoom: 14,
+            initialCenter: LatLng(
+              ClimaService.obterCoordenadasCidade(userProv.cidadeAtiva)['lat']!,
+              ClimaService.obterCoordenadasCidade(userProv.cidadeAtiva)['lng']!,
+            ),
+            initialZoom: (userProv.cidadeAtiva == null || userProv.cidadeAtiva!.isEmpty) ? 11.5 : 14.0,
             minZoom: 5,
             maxZoom: 18,
             onTap: (_, __) => setState(() => _showSearchResults = false),
-            onLongPress: (_, latlng) { if (userProv.isAdmin) _confirmarNovoPontoInteresse(latlng); },
+            onSecondaryTap: (_, latlng) async {
+              final isGestor = userProv.isAdmin || userProv.isAgente;
+              final acao = await MapaContextMenuWidget.exibir(context, latlng, isGestor: isGestor);
+              if (acao != null && mounted) {
+                _executarAcaoContextMenu(acao, latlng, userProv);
+              }
+            },
+            onLongPress: (_, latlng) async {
+              final isGestor = userProv.isAdmin || userProv.isAgente;
+              final acao = await MapaContextMenuWidget.exibir(context, latlng, isGestor: isGestor);
+              if (acao != null && mounted) {
+                _executarAcaoContextMenu(acao, latlng, userProv);
+              }
+            },
             cameraConstraint: CameraConstraint.containCenter(
               bounds: LatLngBounds(
                 const LatLng(-33.0, -73.0),
@@ -684,26 +1236,263 @@ class _MapaScreenState extends State<MapaScreen> {
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.defesacivil.app',
             ),
-            MarkerLayer(markers: markers),
+            MarkerLayer(markers: [
+              ...markers,
+              if (_marcadorEnderecoSelecionado != null)
+                Marker(
+                  point: _marcadorEnderecoSelecionado!,
+                  width: 44,
+                  height: 44,
+                  child: GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(_nomeEnderecoSelecionado ?? 'Local pesquisado'),
+                          action: SnackBarAction(
+                            label: 'REMOVER',
+                            onPressed: () => setState(() {
+                              _marcadorEnderecoSelecionado = null;
+                              _nomeEnderecoSelecionado = null;
+                            }),
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Icon(Icons.location_on_rounded, color: Colors.redAccent, size: 40),
+                  ),
+                ),
+            ]),
             if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), child: const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
           ],
         ),
         Positioned(
           top: 0, left: 0, right: 0,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration:  const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
-            child: SafeArea(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.refresh, color: Colors.white), onPressed: _inicializarMapa)]), const SizedBox(height: 16), SearchBarWidget(controller: _searchController, hintText: 'Buscar...', onChanged: (v) => setState(() { _searchQuery = v; _showSearchResults = v.isNotEmpty; }))])),
+          child: ResponsiveContainer(
+            maxWidth: 800,
+            centerContent: false, 
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(gradient: AppColors.headerGradient, borderRadius: BorderRadius.vertical(bottom: Radius.circular(28))),
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Olá, $nomeUsuario!', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: const Icon(Icons.refresh, color: Colors.white), 
+                              onPressed: () => _inicializarMapa(forcar: true),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        SearchBarWidget(
+                          controller: _searchController,
+                          hintText: 'Buscar ocorrência ou endereço...',
+                          onChanged: _aoAlterarBusca,
+                          onClear: () => setState(() {
+                            _searchQuery = '';
+                            _enderecoSugestoes = [];
+                            _showSearchResults = false;
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const AlertaBannerWidget(),
+              ],
+            ),
           ),
         ),
-        if (_showSearchResults && searchResults.isNotEmpty) Positioned(top: 180, left: 16, right: 16, bottom: 100, child: Container(color: Colors.white, child: ListView.builder(itemCount: searchResults.length, itemBuilder: (_, i) => OcorrenciaCard(ocorrencia: searchResults[i], onTap: () { setState(() { _showSearchResults = false; _searchController.clear(); _searchQuery = ''; }); _mapController.move(LatLng(searchResults[i].latitude, searchResults[i].longitude), 16); _mostrarDetalhesOcorrencia(searchResults[i]); })))),
+        if (_showSearchResults) _buildSearchResultsOverlay(searchResults),
       ],
+    );
+  }
+
+  Widget _buildSearchResultsOverlay(List<Ocorrencia> searchResults) {
+    final temOcorrencias = searchResults.isNotEmpty;
+    final temEnderecos = _enderecoSugestoes.isNotEmpty;
+    final nenhumResultado = !temOcorrencias && !temEnderecos && !_buscandoEnderecos;
+
+    return Positioned(
+      top: 175,
+      left: 16,
+      right: 16,
+      bottom: 90,
+      child: ResponsiveContainer(
+        maxWidth: 600,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withAlpha(45),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              children: [
+                if (_buscandoEnderecos)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryTeal),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Buscando endereços...', style: TextStyle(fontSize: 13, color: AppColors.textLight)),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (temEnderecos) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on_rounded, size: 16, color: AppColors.primaryTeal),
+                        const SizedBox(width: 6),
+                        Text(
+                          'ENDEREÇOS E LOCAIS (${_enderecoSugestoes.length})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryTeal,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ..._enderecoSugestoes.map((end) => ListTile(
+                    dense: true,
+                    leading: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryTeal.withAlpha(25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.place_rounded, color: AppColors.primaryTeal, size: 18),
+                    ),
+                    title: Text(
+                      end.displayNome,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _showSearchResults = false;
+                        _searchController.text = end.displayNome.split(',').first;
+                        _searchQuery = '';
+                        _marcadorEnderecoSelecionado = LatLng(end.lat, end.lng);
+                        _nomeEnderecoSelecionado = end.displayNome;
+                      });
+                      _mapController.move(LatLng(end.lat, end.lng), 16);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('📍 Localizado: ${end.displayNome.split(',').take(2).join(',')}'),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                    },
+                  )),
+                  if (temOcorrencias) const Divider(height: 20),
+                ],
+                if (temOcorrencias) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 16, color: Colors.deepOrange),
+                        const SizedBox(width: 6),
+                        Text(
+                          'OCORRÊNCIAS (${searchResults.length})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepOrange,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...searchResults.map((oc) => OcorrenciaCard(
+                    ocorrencia: oc,
+                    onTap: () {
+                      setState(() {
+                        _showSearchResults = false;
+                        _searchController.clear();
+                        _searchQuery = '';
+                      });
+                      _mapController.move(LatLng(oc.latitude, oc.longitude), 16);
+                      _mostrarDetalhesOcorrencia(oc);
+                    },
+                  )),
+                ],
+                if (nenhumResultado)
+                  Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.search_off_rounded, size: 40, color: Colors.grey.shade400),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Nenhum resultado para "$_searchQuery"',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   // _buildOcorrenciaImage removido pois agora usamos o widget OcorrenciaImage
 
   // _buildOcorrenciaImage removido pois agora usamos o widget OcorrenciaImage
+
+  void _onNovoPontoInteressePressed() async {
+    LatLng? coordenadas;
+    if (_posicaoAtual != null) {
+      coordenadas = LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude);
+    } else {
+      final pos = await _localizacaoService.obterPosicaoAtual();
+      if (pos != null) {
+        if (mounted) setState(() => _posicaoAtual = pos);
+        coordenadas = LatLng(pos.latitude, pos.longitude);
+      } else {
+        coordenadas = _mapController.camera.center;
+      }
+    }
+    if (mounted) {
+      _confirmarNovoPontoInteresse(coordenadas);
+    }
+  }
 
   void _confirmarNovoPontoInteresse(LatLng latlng) async {
     final res = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => RegistroPontoInteresseScreen(posicao: latlng)));
@@ -713,15 +1502,16 @@ class _MapaScreenState extends State<MapaScreen> {
   }
 
   void _mostrarDetalhesPOI(PontoInteresse p) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 24),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
+    _showResponsiveModal(
+      context,
+      (context) => Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(context).padding.bottom + 24),
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,6 +1549,7 @@ class _MapaScreenState extends State<MapaScreen> {
             ],
           ],
         ),
+      ),
       ),
     );
   }
