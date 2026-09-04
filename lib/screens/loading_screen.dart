@@ -25,6 +25,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
     
     // Sequência de Inicialização Crítica e Otimizada
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       final userProv = context.read<UsuarioProvider>();
       
       // 1. Permissões no mobile

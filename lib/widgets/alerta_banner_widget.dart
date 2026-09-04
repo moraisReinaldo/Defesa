@@ -137,6 +137,7 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final cidade = context.read<UsuarioProvider>().cidadeAtiva;
       context.read<AlertaProvider>().carregarAlertas(cidade: cidade);
     });

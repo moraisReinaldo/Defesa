@@ -41,6 +41,7 @@ class _DashboardRelatoriosScreenState extends State<DashboardRelatoriosScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final userProv = context.read<UsuarioProvider>();
       final cidade = userProv.cidadeAtiva;
       final userId = userProv.usuarioLogado?.id;

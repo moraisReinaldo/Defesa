@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -79,6 +77,7 @@ class _MapaScreenState extends State<MapaScreen> {
     _inicializarMapa();
     _iniciarSeguimentoLocalizacao();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final storage = context.read<UsuarioProvider>().storageService;
       AvisoComunitarioDialog.exibirSeNecessario(context, storage);
     });
@@ -478,6 +477,7 @@ class _MapaScreenState extends State<MapaScreen> {
                           width: double.infinity,
                           child: ElevatedButton.icon(
                           onPressed: () async { 
+                            final ocorrenciaProvider = context.read<OcorrenciaProvider>();
                             try {
                               // Auto-atribuição: adiciona o agente à lista se ainda não estiver
                               final nomeAgente = usuarioLogado?.nome.trim() ?? '';
@@ -493,19 +493,19 @@ class _MapaScreenState extends State<MapaScreen> {
                                   final ocorrenciaAtualizada = ocorrencia.copyWith(
                                     agentes: agentesAtuais.join(', '),
                                   );
-                                  await context.read<OcorrenciaProvider>().atualizarOcorrencia(ocorrenciaAtualizada);
+                                  await ocorrenciaProvider.atualizarOcorrencia(ocorrenciaAtualizada);
+                                  if (!mounted) return;
                                   // Atualiza referência local para refletir os novos agentes
                                   ocorrencia = ocorrenciaAtualizada;
                                 }
                               }
 
-                              ScaffoldMessenger.of(context);
                               final parecer = _comentarioController.text.trim();
-                              await context.read<OcorrenciaProvider>().registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
+                              await ocorrenciaProvider.registrarChegadaAgente(ocorrencia.id, parecer: parecer.isNotEmpty ? parecer : null); 
                               _comentarioController.clear();
-                              if (mounted) Navigator.pop(context); 
+                              if (context.mounted) Navigator.pop(context); 
                             } catch (e) {
-                              if (mounted) {
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text('Falha na sincronização: ${e.toString().replaceAll('Exception: ', '')}'), backgroundColor: Colors.red),
                                 );

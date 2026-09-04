@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -42,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _detectarCidadeAtual() async {
+    if (!mounted) return;
     try {
       final prov = context.read<UsuarioProvider>();
       final locSvc = LocalizacaoService();
@@ -205,9 +204,11 @@ class _LoginScreenState extends State<LoginScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCELAR')),
           ElevatedButton(
             onPressed: () async {
-              final ok = await context.read<UsuarioProvider>().resetarSenha(email, codigoCtrl.text, novaSenhaCtrl.text);
-              if (ok && mounted) {
-                Navigator.pop(ctx);
+              final usuarioProvider = context.read<UsuarioProvider>();
+              final ok = await usuarioProvider.resetarSenha(email, codigoCtrl.text, novaSenhaCtrl.text);
+              if (!mounted) return;
+              if (ok) {
+                if (ctx.mounted) Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha alterada! Agora você pode entrar.'), backgroundColor: Colors.green));
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Código inválido ou erro no servidor.'), backgroundColor: Colors.red));

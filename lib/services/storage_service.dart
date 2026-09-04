@@ -52,18 +52,32 @@ class StorageService {
 
   // ========== OCORRÊNCIAS (LOCAL CACHE) ==========
 
+  /// Salva (ou atualiza, se já existir um registro com o mesmo id) uma ocorrência no cache local.
   Future<void> salvarOcorrencia(Ocorrencia ocorrencia) async {
     final ocorrencias = await obterOcorrencias();
-    ocorrencias.add(ocorrencia);
+    final index = ocorrencias.indexWhere((o) => o.id == ocorrencia.id);
+    if (index != -1) {
+      ocorrencias[index] = ocorrencia;
+    } else {
+      ocorrencias.add(ocorrencia);
+    }
     final json = ocorrencias.map((o) => jsonEncode(o.toJson())).toList();
     await _prefs.setStringList(_ocorrenciasKey, json);
   }
 
   Future<List<Ocorrencia>> obterOcorrencias() async {
     final json = _prefs.getStringList(_ocorrenciasKey) ?? [];
-    return json
+    final lista = json
         .map((j) => Ocorrencia.fromJson(jsonDecode(j)))
         .toList();
+    // Auto-cura: remove duplicatas de instalações antigas (mesmo id salvo múltiplas
+    // vezes), mantendo sempre a versão mais recente de cada ocorrência.
+    final idsVistos = <String>{};
+    final semDuplicatas = <Ocorrencia>[];
+    for (final oc in lista.reversed) {
+      if (idsVistos.add(oc.id)) semDuplicatas.add(oc);
+    }
+    return semDuplicatas.reversed.toList();
   }
 
   Future<void> atualizarOcorrencia(Ocorrencia ocorrencia) async {

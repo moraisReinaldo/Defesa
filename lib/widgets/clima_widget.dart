@@ -16,6 +16,7 @@ class _ClimaWidgetState extends State<ClimaWidget> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final cidade = context.read<UsuarioProvider>().cidadeAtiva;
       context.read<ClimaProvider>().carregarClima(cidade);
     });

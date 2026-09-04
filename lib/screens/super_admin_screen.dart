@@ -544,7 +544,8 @@ class _SuperAdminScreenState extends State<SuperAdminScreen> with SingleTickerPr
         final item = _pendentes[index];
         final cidade = item['cidade'];
         final gestores = item['gestores'] as List? ?? [];
-        final primeiroGestor = gestores.isNotEmpty ? gestores.first : null;
+        final primeiroGestorRaw = gestores.isNotEmpty ? gestores.first : null;
+        final primeiroGestor = primeiroGestorRaw is Map ? primeiroGestorRaw : null;
 
         final telefone = primeiroGestor?['telefone']?.toString() ?? 'Não informado';
         final waClean = telefone.replaceAll(RegExp(r'\D'), '');
