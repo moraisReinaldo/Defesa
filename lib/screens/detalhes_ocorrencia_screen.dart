@@ -519,7 +519,10 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao registrar ocorrência: $e")),
+          SnackBar(
+            content: Text("Erro ao registrar ocorrência: $e"),
+            backgroundColor: AppColors.statusActive,
+          ),
         );
       }
     } finally {

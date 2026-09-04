@@ -30,7 +30,20 @@ public class NotificationService {
     }
 
     public void sendPushNotification(String userId, String title, String body) {
-        if (userId == null || userId.isEmpty() || onesignalRestKey == null || onesignalRestKey.isBlank()) return;
+        sendPushNotificationToUsers(userId == null ? List.of() : List.of(userId), title, body);
+    }
+
+    public void sendPushNotificationToUsers(List<String> userIds, String title, String body) {
+        List<String> validUserIds = userIds == null ? List.of() : userIds.stream()
+            .filter(id -> id != null && !id.isBlank())
+            .distinct()
+            .toList();
+        if (validUserIds.isEmpty() || onesignalRestKey == null || onesignalRestKey.isBlank()) {
+            if (onesignalRestKey == null || onesignalRestKey.isBlank()) {
+                log.warn("[OneSignal] REST key nao configurada; push nao enviado.");
+            }
+            return;
+        }
         
         java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
@@ -44,14 +57,14 @@ public class NotificationService {
                 Map<String, Object> payload = new HashMap<>();
                 payload.put("app_id", onesignalAppId);
                 payload.put("target_channel", "push");
-                payload.put("include_aliases", Map.of("external_id", List.of(userId)));
+                payload.put("include_aliases", Map.of("external_id", validUserIds));
                 payload.put("headings", Map.of("en", title, "pt", title));
                 payload.put("contents", Map.of("en", body, "pt", body));
                 
                 HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
                 ResponseEntity<String> response = restTemplate.postForEntity(url, request, String.class);
                 
-                log.info("[OneSignal] Notificação enviada para {}. Status: {}", userId, response.getStatusCode());
+                log.info("[OneSignal] Notificacao enviada para {} usuarios. Status: {}", validUserIds.size(), response.getStatusCode());
             } catch (Exception e) {
                 log.error("[OneSignal] Erro ao enviar notificação: {}", e.getMessage());
             }

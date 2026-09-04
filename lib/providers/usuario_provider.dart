@@ -19,6 +19,7 @@ class UsuarioProvider extends ChangeNotifier {
   List<Usuario> _todosAgentes = [];
   List<Map<String, String>> _cidadesSuportadas = [];
   String? _cidadeDetectadaGps;
+  String? _cidadeSuperAdmin;
 
   UsuarioProvider(this._storageService, this._apiService, this._hiveService) {
     // Carregar cidade salva no Hive como fallback rápido (sem esperar GPS)
@@ -29,7 +30,8 @@ class UsuarioProvider extends ChangeNotifier {
   /// Retorna a cidade "ativa" para o contexto atual:
   /// 1. Cidade do perfil se logado
   /// 2. Cidade detectada via GPS se anônimo
-  String? get cidadeAtiva => _usuarioLogado?.cidade ?? _cidadeDetectadaGps;
+  String? get cidadeAtiva =>
+      isSuperAdmin ? (_cidadeSuperAdmin ?? _usuarioLogado?.cidade) : (_usuarioLogado?.cidade ?? _cidadeDetectadaGps);
 
   ApiService get apiService => _apiService;
   StorageService get storageService => _storageService;
@@ -45,6 +47,7 @@ class UsuarioProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   List<Map<String, String>> get cidadesSuportadas => _cidadesSuportadas;
   List<Usuario> get todosAgentes => _todosAgentes;
+  String? get cidadeSuperAdmin => _cidadeSuperAdmin;
 
   DateTime? _ultimoSync;
 
@@ -55,6 +58,7 @@ class UsuarioProvider extends ChangeNotifier {
 
   Future<void> carregarTudo() async {
     try {
+      _cidadeSuperAdmin ??= _storageService.obterCidadeSuperAdmin();
       // 1. Cidades Suportadas (CRÍTICO: essencial para mapear localização)
       await carregarCidades();
       
@@ -65,10 +69,18 @@ class UsuarioProvider extends ChangeNotifier {
       if (_isAdmin) {
         carregarAgentes();
       }
+
       _ultimoSync = DateTime.now();
     } catch (e) {
       if (kDebugMode) print('Erro na carga crítica: $e');
     }
+  }
+
+  Future<void> selecionarCidadeSuperAdmin(String? codigo) async {
+    if (!isSuperAdmin || codigo == null || codigo.isEmpty) return;
+    _cidadeSuperAdmin = codigo;
+    await _storageService.salvarCidadeSuperAdmin(codigo);
+    notifyListeners();
   }
 
   /// Determina a cidade atual via GPS para usuários não logados.
