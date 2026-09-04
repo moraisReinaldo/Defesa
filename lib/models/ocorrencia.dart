@@ -117,7 +117,7 @@ class Ocorrencia {
       status: OcorrenciaStatus.values.firstWhere(
         (e) {
           final jsonStatus = (json['status'] as String?)?.toUpperCase().replaceAll('_', '') ?? '';
-          final enumStatus = e.name.toUpperCase();
+          final enumStatus = e.name.toUpperCase().replaceAll('_', '');
           return enumStatus == jsonStatus;
         },
         orElse: () => OcorrenciaStatus.pendenteAprovacao,

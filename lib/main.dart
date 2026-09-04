@@ -116,7 +116,7 @@ class MyApp extends StatelessWidget {
       child: Builder(
         builder: (context) {
           return MaterialApp(
-            title: 'Defesa Civil em Foco',
+            title: 'Defesa em Foco',
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               useMaterial3: true,

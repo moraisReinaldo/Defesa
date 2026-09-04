@@ -147,6 +147,7 @@ public class UsuarioService {
 
     public Optional<Usuario> login(String email, String senhaDigitada) {
         return repository.findByEmail(email)
+            .filter(u -> !"BLOQUEADO".equalsIgnoreCase(u.getStatus()))
             .filter(u -> passwordEncoder.matches(senhaDigitada, u.getSenha()));
     }
 

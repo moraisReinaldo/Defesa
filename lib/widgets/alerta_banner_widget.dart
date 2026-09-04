@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/alerta_provider.dart';
@@ -121,6 +122,7 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _pulseAnimation;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
@@ -138,11 +140,17 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
       final cidade = context.read<UsuarioProvider>().cidadeAtiva;
       context.read<AlertaProvider>().carregarAlertas(cidade: cidade);
     });
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final cidade = context.read<UsuarioProvider>().cidadeAtiva;
+      context.read<AlertaProvider>().carregarAlertas(cidade: cidade);
+    });
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -268,7 +276,7 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
 
     // Filtrar alertas para exibir SOMENTE alertas correspondentes à cidade ativa do usuário
     final alertasLocais = provider.alertasAtivos.where((a) {
-      if (cidadeAtiva == null || cidadeAtiva.isEmpty) return true;
+      if (usuarioProv.isSuperAdmin || cidadeAtiva == null || cidadeAtiva.isEmpty) return true;
       final cTarget = cidadeAtiva.toLowerCase().trim();
       final cAlerta = a.cidade.toLowerCase().trim();
       if (cAlerta == cTarget) return true;

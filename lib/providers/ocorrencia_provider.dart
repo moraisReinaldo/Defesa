@@ -175,6 +175,8 @@ class OcorrenciaProvider extends ChangeNotifier {
       if (salvaNaApi != null) {
         _ocorrencias.add(salvaNaApi);
         notifyListeners();
+      } else {
+        throw StateError('A API nao retornou a ocorrencia criada.');
       }
       // Sem fallback — se a API retornou null inesperadamente, lançamos erro
       // para o usuário saber que algo errado aconteceu

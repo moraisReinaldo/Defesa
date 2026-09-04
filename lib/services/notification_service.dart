@@ -9,8 +9,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static const _channelId = 'defesa_civil_channel';
-  static const _channelName = 'Defesa Civil';
-  static const _channelDesc = 'Notificações do app Defesa Civil em Foco';
+  static const _channelName = 'Defesa em Foco';
+  static const _channelDesc = 'Notificações do app Defesa em Foco';
 
   // ID do app no OneSignal (configurado em main.dart)
   static const _oneSignalAppId = '6537856b-c264-42af-b2a9-583652a175d2';
@@ -63,7 +63,7 @@ class NotificationService {
       }
       // Exibir como notificação local também
       mostrarNotificacaoLocal(
-        titulo: event.notification.title ?? 'Defesa Civil em Foco',
+        titulo: event.notification.title ?? 'Defesa em Foco',
         corpo: event.notification.body ?? '',
         id: event.notification.hashCode,
       );

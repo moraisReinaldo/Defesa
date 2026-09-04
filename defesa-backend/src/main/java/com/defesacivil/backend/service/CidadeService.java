@@ -65,7 +65,7 @@ public class CidadeService {
     }
 
     @Transactional
-    public Cidade aprovarCidadeComTrial90Dias(String cidadeId) {
+    public Cidade aprovarCidadeComTrial120Dias(String cidadeId) {
         Cidade cidade = repository.findById(cidadeId)
             .orElseThrow(() -> new IllegalArgumentException("Cidade não encontrada com ID: " + cidadeId));
 
@@ -73,7 +73,7 @@ public class CidadeService {
         cidade.setStatus(StatusCidade.TRIAL_ATIVO);
         cidade.setPlano(PlanoCidade.PRO_MUNICIPAL);
         cidade.setTrialInicio(agora);
-        cidade.setTrialFim(agora.plusDays(90));
+        cidade.setTrialFim(agora.plusDays(120));
 
         return repository.save(cidade);
     }
@@ -90,27 +90,27 @@ public class CidadeService {
         return repository.save(cidade);
     }
 
-    public String obterClausulaTrial90Dias(String cidadeNome, String codigo) {
+    public String obterClausulaTrial120Dias(String cidadeNome, String codigo) {
         String dataHoje = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        String dataFim = LocalDateTime.now().plusDays(90).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String dataFim = LocalDateTime.now().plusDays(120).format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 
         return "=========================================================================================\n" +
-               "TERMO DE HOMOLOGAÇÃO E COOPERAÇÃO TÉCNICA - DEGUSTAÇÃO OPERACIONAL (TRIAL 90 DIAS)\n" +
+               "TERMO DE HOMOLOGAÇÃO E COOPERAÇÃO TÉCNICA - DEGUSTAÇÃO OPERACIONAL (TRIAL 120 DIAS)\n" +
                "PLATAFORMA INTEGRADA DE PROTEÇÃO E DEFESA CIVIL - DEFESA EM FOCO\n" +
                "=========================================================================================\n\n" +
                "MUNICÍPIO BENEFICIÁRIO: " + cidadeNome + " (" + codigo + ")\n" +
-               "PERÍODO DE VIGÊNCIA: 90 DIAS CORRIDOS (De " + dataHoje + " até " + dataFim + ")\n" +
+               "PERÍODO DE VIGÊNCIA: 120 DIAS CORRIDOS (De " + dataHoje + " até " + dataFim + ")\n" +
                "STATUS DO PLANO: PLANO PRO MUNICIPAL (ACESSO TOTAL LIBERADO)\n\n" +
                "CLÁUSULA PRIMEIRA - DO OBJETO E CONCESSÃO\n" +
                "O presente instrumento formaliza a liberação de acesso pleno, gratuito e irrestrito à plataforma\n" +
-               "Defesa em Foco sob o PLANO PRO MUNICIPAL pelo prazo improrrogável de 90 (noventa) dias corridos,\n" +
+               "Defesa em Foco sob o PLANO PRO MUNICIPAL pelo prazo improrrogável de 120 (cento e vinte) dias corridos,\n" +
                "em favor da Coordenadoria Municipal de Defesa Civil do Município de " + cidadeNome + ".\n\n" +
                "CLÁUSULA SEGUNDA - DA GRATUIDADE E AUSÊNCIA DE ÔNUS\n" +
                "A disponibilização do período de avaliação dar-se-á a título de cooperação e validação tecnológica,\n" +
                "sem qualquer cobrança, taxa de implantação, exigência de contrapartida financeira ou obrigação de\n" +
                "permanência futura para os cofres públicos municipais durante a vigência deste período.\n\n" +
                "CLÁUSULA TERCEIRA - DOS RECURSOS E MÓDULOS LIBERADOS\n" +
-               "Durante o período de 90 dias, o MUNICÍPIO terá acesso irrestrito aos seguintes módulos avançados:\n" +
+               "Durante o período de 120 dias, o MUNICÍPIO terá acesso irrestrito aos seguintes módulos avançados:\n" +
                "  I - Gestão Integrada de Gabinete e Painel Web para até 5 (cinco) Gestores credenciados;\n" +
                "  II - Módulo de Equipe de Rua com Agentes de Campo ilimitados, despacho, mapa e rotas em tempo real;\n" +
                "  III - Sistema de Alertas de Emergência e Notificações Push à População via OneSignal;\n" +
@@ -122,7 +122,7 @@ public class CidadeService {
                "Os dados de ocorrências, munícipes e agentes coletados permanecem sob custódia e titularidade do\n" +
                "MUNICÍPIO, sendo assegurada a exportação integral das informações a qualquer tempo.\n\n" +
                "CLÁUSULA QUINTA - DO ENCERRAMENTO E TRANSIÇÃO\n" +
-               "Ao término dos 90 (noventa) dias de vigência:\n" +
+               "Ao término dos 120 (cento e vinte) dias de vigência:\n" +
                "  I - O MUNICÍPIO poderá formalizar a contratação definitiva por meio de Dispensa de Licitação,\n" +
                "      com fulcro no art. 75, inciso II, da Lei Federal nº 14.133/2021 (Nova Lei de Licitações);\n" +
                "  II - Não havendo interesse na contratação onerosa, o acesso do MUNICÍPIO será automaticamente\n" +
@@ -177,4 +177,3 @@ public class CidadeService {
             });
     }
 }
-
