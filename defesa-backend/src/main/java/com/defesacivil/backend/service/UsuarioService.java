@@ -34,15 +34,18 @@ public class UsuarioService {
     private String adminPasswordHash;
 
     private final CidadeService cidadeService;
+    private final StripeService stripeService;
 
     public UsuarioService(UsuarioRepository repository,
                           CidadeService cidadeService,
                           EmailService emailService,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          StripeService stripeService) {
         this.repository = repository;
         this.cidadeService = cidadeService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.stripeService = stripeService;
     }
 
     public String normalizarCodigoCidade(String cidade) {
@@ -390,10 +393,33 @@ public class UsuarioService {
     }
 
     @Transactional
-    public Usuario ativarSemAnunciosVitalicio(String email) {
+    public Usuario ativarSemAnunciosVitalicio(String email, boolean exigirVerificacaoStripe) {
         Usuario usuario = repository.findByEmail(email)
             .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado com e-mail: " + email));
+
+        // Se já está ativo, apenas retorna
+        if (Boolean.TRUE.equals(usuario.getSemAnunciosVitalicio())) {
+            return usuario;
+        }
+
+        if (exigirVerificacaoStripe) {
+            if (stripeService.isConfigurado()) {
+                boolean pago = stripeService.verificarPagamentoVitalicio(email);
+                if (!pago) {
+                    throw new IllegalStateException("Nenhum pagamento aprovado foi localizado no Stripe para o e-mail: " + email + ". Por favor, conclua o pagamento pelo link oficial antes de ativar.");
+                }
+            } else {
+                log.warn("[STRIPE] Chave do Stripe não configurada. Ativação em modo de desenvolvimento para: {}", email);
+            }
+        }
+
         usuario.setSemAnunciosVitalicio(true);
+        log.info("[VITALÍCIO] Licença vitalícia sem anúncios ativada com sucesso para: {}", email);
         return repository.save(usuario);
+    }
+
+    @Transactional
+    public Usuario ativarSemAnunciosVitalicio(String email) {
+        return ativarSemAnunciosVitalicio(email, false);
     }
 }

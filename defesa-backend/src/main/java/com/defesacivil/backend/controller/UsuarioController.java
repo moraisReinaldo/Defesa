@@ -130,12 +130,24 @@ public class UsuarioController {
             return ResponseEntity.status(401).body(Map.of("message", "Usuário precisa estar autenticado.", "sucesso", false));
         }
         String email = auth.getName();
-        Usuario atualizado = usuarioService.ativarSemAnunciosVitalicio(email);
-        atualizado.setSenha(null);
-        return ResponseEntity.ok(Map.of(
-            "message", "Acesso Vitalício Sem Anúncios ativado com sucesso!",
-            "usuario", atualizado,
-            "sucesso", true
-        ));
+        try {
+            Usuario atualizado = usuarioService.ativarSemAnunciosVitalicio(email, true);
+            atualizado.setSenha(null);
+            return ResponseEntity.ok(Map.of(
+                "message", "Acesso Vitalício Sem Anúncios ativado com sucesso!",
+                "usuario", atualizado,
+                "sucesso", true
+            ));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(402).body(Map.of(
+                "message", e.getMessage(),
+                "sucesso", false
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", e.getMessage(),
+                "sucesso", false
+            ));
+        }
     }
 }

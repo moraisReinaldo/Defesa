@@ -362,8 +362,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       SnackBar(
                         content: Text(ok
                             ? '⭐ Licença Vitalícia ativada com sucesso! Você nunca mais verá anúncios.'
-                            : 'Status vitalício verificado e salvo com sucesso!'),
-                        backgroundColor: Colors.green,
+                            : '❌ Nenhum pagamento aprovado no Stripe foi encontrado para o seu e-mail (${usuario.email}). Conclua o pagamento pelo botão acima antes de ativar.'),
+                        backgroundColor: ok ? Colors.green : Colors.redAccent.shade700,
+                        duration: const Duration(seconds: 4),
                       ),
                     );
                   }

@@ -429,41 +429,48 @@ class UsuarioProvider extends ChangeNotifier {
   }
 
   /// Ativa a licença vitalícia sem anúncios vinculada a tudo (Hive, Storage e Backend)
+  /// Valida obrigatoriamente a confirmação de pagamento junto à API / Stripe antes de autorizar.
   Future<bool> ativarAcessoVitalicio() async {
     try {
-      // 1. Gravar imediatamente nos armazenamentos locais resilientes
+      if (!estaLogado) {
+        return false;
+      }
+
+      // 1. Chama o backend, que valida se há pagamento confirmado na API do Stripe
+      final sucesso = await _apiService.ativarSemAnunciosVitalicio();
+      if (!sucesso) {
+        if (kDebugMode) print('Pagamento não localizado no Stripe ou não aprovado.');
+        return false;
+      }
+
+      // 2. Pagamento 100% confirmado: grava nos armazenamentos locais resilientes
       await _hiveService.salvarStatusVitalicio(true);
       await _storageService.salvarStatusVitalicio(true);
 
-      // 2. Se logado, gravar no banco de dados do servidor
-      if (estaLogado) {
-        await _apiService.ativarSemAnunciosVitalicio();
-        if (_usuarioLogado != null) {
-          final atualizado = Usuario(
-            id: _usuarioLogado!.id,
-            nome: _usuarioLogado!.nome,
-            email: _usuarioLogado!.email,
-            telefone: _usuarioLogado!.telefone,
-            role: _usuarioLogado!.role,
-            concordaLGPD: _usuarioLogado!.concordaLGPD,
-            cidade: _usuarioLogado!.cidade,
-            especialidade: _usuarioLogado!.especialidade,
-            fcmToken: _usuarioLogado!.fcmToken,
-            status: _usuarioLogado!.status,
-            isSemAnunciosVitalicio: true,
-            dataCriacao: _usuarioLogado!.dataCriacao,
-          );
-          _usuarioLogado = atualizado;
-          await _storageService.salvarUsuarioLogado(atualizado);
-        }
+      if (_usuarioLogado != null) {
+        final atualizado = Usuario(
+          id: _usuarioLogado!.id,
+          nome: _usuarioLogado!.nome,
+          email: _usuarioLogado!.email,
+          telefone: _usuarioLogado!.telefone,
+          role: _usuarioLogado!.role,
+          concordaLGPD: _usuarioLogado!.concordaLGPD,
+          cidade: _usuarioLogado!.cidade,
+          especialidade: _usuarioLogado!.especialidade,
+          fcmToken: _usuarioLogado!.fcmToken,
+          status: _usuarioLogado!.status,
+          isSemAnunciosVitalicio: true,
+          dataCriacao: _usuarioLogado!.dataCriacao,
+        );
+        _usuarioLogado = atualizado;
+        await _storageService.salvarUsuarioLogado(atualizado);
       }
 
       notifyListeners();
       return true;
     } catch (e) {
       if (kDebugMode) print('Erro ao ativar acesso vitalício: $e');
-      notifyListeners();
-      return true; // Localmente já foi ativado com sucesso absoluto
+      return false;
     }
   }
 

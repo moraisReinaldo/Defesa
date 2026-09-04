@@ -12,6 +12,8 @@ import java.util.Optional;
 public interface CidadeRepository extends JpaRepository<Cidade, String> {
     Optional<Cidade> findByNomeIgnoreCase(String nome);
     Optional<Cidade> findByCodigoIgnoreCase(String codigo);
+    Optional<Cidade> findByCodigo(String codigo);
+    Optional<Cidade> findByStripeSubscriptionId(String stripeSubscriptionId);
     List<Cidade> findByStatus(StatusCidade status);
 }
 
