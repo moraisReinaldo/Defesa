@@ -44,9 +44,9 @@ void main() async {
 
   final apiService = ApiService(storageService);
 
-  // Inicializar AdMob
+  // Inicializar AdMob (solicita ATT no iOS antes de inicializar o SDK)
   final adService = AdService();
-  adService.initialize();
+  await adService.initialize();
 
   // Inicializar OneSignal
   if (!kIsWeb) {

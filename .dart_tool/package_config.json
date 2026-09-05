@@ -14,6 +14,12 @@
       "languageVersion": "3.9"
     },
     {
+      "name": "app_tracking_transparency",
+      "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/app_tracking_transparency-2.0.7",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "archive",
       "rootUri": "file:///C:/Users/RhGameplay/AppData/Local/Pub/Cache/hosted/pub.dev/archive-4.2.0",
       "packageUri": "lib/",

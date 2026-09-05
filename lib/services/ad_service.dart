@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import '../models/cidade.dart';
 import '../models/usuario.dart';
 
@@ -10,6 +12,11 @@ import '../models/usuario.dart';
 /// - Plano Gestão Municipal, PRO ou Trial PRO (120 Dias): ZERO ANÚNCIOS para toda a cidade.
 /// - Super Admin: ZERO ANÚNCIOS sempre.
 /// - Anúncios de tela cheia (Interstitial) FORAM REMOVIDOS para manter a usabilidade perfeita.
+///
+/// iOS ATT (App Tracking Transparency):
+/// - O prompt de permissão é exibido ANTES da inicialização do AdMob.
+/// - Se o usuário negar, o AdMob serve anúncios não personalizados automaticamente.
+/// - A chave NSUserTrackingUsageDescription está configurada no Info.plist.
 class AdService extends ChangeNotifier {
   bool _isInitialized = false;
 
@@ -54,13 +61,48 @@ class AdService extends ChangeNotifier {
     return true;
   }
 
+  /// Solicita permissão ATT no iOS antes de inicializar o AdMob.
+  ///
+  /// No Android, pula direto para a inicialização do SDK.
+  /// No iOS, exibe o prompt nativo de App Tracking Transparency.
+  /// Se o usuário negar, o AdMob serve anúncios não personalizados automaticamente.
+  Future<void> _solicitarATT() async {
+    if (!Platform.isIOS) return;
+
+    try {
+      // Verificar status atual do ATT
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      if (kDebugMode) print('🔒 ATT Status atual: $status');
+
+      // Só exibir o prompt se o status ainda for "não determinado"
+      if (status == TrackingStatus.notDetermined) {
+        // Pequeno delay para garantir que o app já renderizou a tela inicial
+        // (Apple recomenda não mostrar o prompt imediatamente no launch)
+        await Future.delayed(const Duration(milliseconds: 500));
+        final resultado = await AppTrackingTransparency.requestTrackingAuthorization();
+        if (kDebugMode) print('🔒 ATT Resultado da solicitação: $resultado');
+      }
+    } catch (e) {
+      // Em caso de erro (simulador, versão antiga do iOS, etc.), continua normalmente
+      if (kDebugMode) print('⚠️ ATT não disponível ou erro: $e');
+    }
+  }
+
   /// Inicializa o SDK do Google Mobile Ads.
+  ///
+  /// No iOS, solicita permissão ATT ANTES de inicializar o AdMob.
+  /// Isso garante que o SDK do Google receba o status correto do IDFA
+  /// e sirva anúncios personalizados (se permitido) ou não personalizados.
   Future<void> initialize() async {
     if (_isInitialized) return;
     try {
+      // 1. Solicitar ATT no iOS (ANTES do AdMob)
+      await _solicitarATT();
+
+      // 2. Inicializar o SDK do AdMob (já recebe o status ATT correto)
       await MobileAds.instance.initialize();
       _isInitialized = true;
-      if (kDebugMode) print('✅ AdMob SDK inicializado com sucesso (Modo Discreto)');
+      if (kDebugMode) print('✅ AdMob SDK inicializado com sucesso (ATT processado)');
     } catch (e) {
       if (kDebugMode) print('⚠️ Erro ao inicializar AdMob: $e');
     }

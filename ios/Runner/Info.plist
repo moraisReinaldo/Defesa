@@ -259,6 +259,9 @@
 	<!-- Permissões para galeria -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Este aplicativo precisa acessar sua galeria de fotos para selecionar imagens das ocorrências.</string>
+	<!-- Permissão de Rastreamento (ATT) para Anúncios Personalizados -->
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Seus dados serão usados apenas para exibir anúncios mais relevantes para você. Nenhuma informação pessoal será compartilhada com terceiros.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
