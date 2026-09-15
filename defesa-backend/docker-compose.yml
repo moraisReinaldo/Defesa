@@ -1,36 +1,81 @@
-version: '3.8'
+# ==============================================================
+# docker-compose.yml — Defesa Civil Backend
+# ==============================================================
+# Uso:
+#   docker compose up -d          # Subir tudo
+#   docker compose ps             # Ver status + health
+#   docker compose logs -f        # Acompanhar logs
+#   docker compose down           # Derrubar tudo
+# ==============================================================
 
+# ── Configuração compartilhada (YAML Anchor) ─────────────────
+x-backend: &backend-defaults
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file: .env
+  restart: unless-stopped
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  networks:
+    - defesa-net
+  deploy:
+    resources:
+      limits:
+        memory: 768M
+        cpus: '1.0'
+      reservations:
+        memory: 256M
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  healthcheck:
+    test: ["CMD", "curl", "-sf", "http://localhost:8080/actuator/health"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    start_period: 60s
+
+# ── Serviços ──────────────────────────────────────────────────
 services:
   backend1:
-    build: .
-    environment:
-      - DATABASE_URL=jdbc:postgresql://host.docker.internal:5432/defesacivil_db
-      - DATABASE_USERNAME=${DATABASE_USERNAME:-defesacivil}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-defesa@2025}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-https://seeker-with-interviews-findarticles.trycloudflare.com}
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-defesa@2025}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    <<: *backend-defaults
+    container_name: defesa-backend-1
 
   backend2:
-    build: .
-    environment:
-      - DATABASE_URL=jdbc:postgresql://host.docker.internal:5432/defesacivil_db
-      - DATABASE_USERNAME=${DATABASE_USERNAME:-defesacivil}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-defesa@2025}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT:-https://seeker-with-interviews-findarticles.trycloudflare.com}
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-admin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-defesa@2025}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    <<: *backend-defaults
+    container_name: defesa-backend-2
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
+    container_name: defesa-nginx
+    restart: unless-stopped
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "80:80"
     depends_on:
-      - backend1
-      - backend2
+      backend1:
+        condition: service_healthy
+      backend2:
+        condition: service_healthy
+    networks:
+      - defesa-net
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Rede isolada ──────────────────────────────────────────────
+networks:
+  defesa-net:
+    driver: bridge
+    name: defesa-civil-network

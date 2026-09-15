@@ -1,12 +1,41 @@
+# Excluir do build context do Docker tudo que não é necessário para compilar
 target/
 *.jar
+
+# Maven Wrapper (recriado no stage de build)
 .mvn/
 mvnw
 mvnw.cmd
+
+# Git
 .git/
 .gitignore
 .gitattributes
+
+# Docker (meta-arquivos)
 Dockerfile
 .dockerignore
-HELP.md
-README.md
+docker-compose.yml
+
+# IDE e editores
+.vscode/
+.idea/
+*.iml
+
+# Nginx (montado como volume, não precisa no build)
+nginx/
+
+# Ambiente e secrets
+.env
+.env.*
+
+# Testes e docs
+.thunder/
+testlog.txt
+*.md
+*.pdf
+*.json
+!pom.xml
+
+# Logs
+*.log
