@@ -52,7 +52,7 @@ public class EmailService {
                 "--------------------------------------------------\n\n" +
                 "AÇÃO NECESSÁRIA:\n" +
                 "Acesse o painel do Super Admin no app ou web para HOMOLOGAR o município.\n" +
-                "Ao aprovar, a cidade receberá 90 DIAS DE TRIAL PRO MUNICIPAL GRATUITO automaticamente!\n\n" +
+                "Ao aprovar, a cidade receberá 120 DIAS DE TRIAL PRO MUNICIPAL GRATUITO automaticamente!\n\n" +
                 "Atenciosamente,\n" +
                 "Sistema Integrado Defesa em Foco";
 

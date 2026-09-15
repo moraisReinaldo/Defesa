@@ -78,6 +78,10 @@ class ClimaService {
     'BP': {'lat': -22.9525, 'lng': -46.5419},  // Bragança Paulista
     'JOA': {'lat': -22.9292, 'lng': -46.2753}, // Joanópolis
     'PIR': {'lat': -23.0539, 'lng': -46.3575}, // Piracaia
+    'ATI': {'lat': -23.1171, 'lng': -46.5503}, // Atibaia
+    'NAZ': {'lat': -23.1811, 'lng': -46.3975}, // Nazaré Paulista
+    'TUI': {'lat': -22.8164, 'lng': -46.6897}, // Tuiuti
+    'VAR': {'lat': -22.8892, 'lng': -46.4150}, // Vargem
   };
 
   static Map<String, double> obterCoordenadasCidade(String? codigoOuNome) {
@@ -94,6 +98,10 @@ class ClimaService {
     if (key.contains('BRAGAN') || key.contains('PAULISTA') || key == 'BP') return _coordenadasCidades['BP']!;
     if (key.contains('JOAN') || key == 'JOA') return _coordenadasCidades['JOA']!;
     if (key.contains('PIRACAIA') || key == 'PIR') return _coordenadasCidades['PIR']!;
+    if (key.contains('ATIBAIA') || key == 'ATI') return _coordenadasCidades['ATI']!;
+    if (key.contains('NAZAR') || key == 'NAZ') return _coordenadasCidades['NAZ']!;
+    if (key.contains('TUIUTI') || key == 'TUI') return _coordenadasCidades['TUI']!;
+    if (key.contains('VARGEM') || key == 'VAR') return _coordenadasCidades['VAR']!;
 
     return {'lat': -22.9525, 'lng': -46.5419};
   }

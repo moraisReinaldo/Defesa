@@ -8,7 +8,8 @@ class PontoInteresseProvider extends ChangeNotifier {
 
   PontoInteresseProvider(this._apiService);
 
-  List<PontoInteresse> get pontos => _pontos;
+  List<PontoInteresse> get pontos => _pontos.where((p) => p.disponivel).toList();
+  List<PontoInteresse> get todosPontos => _pontos;
 
   Future<void> carregarPontos({String? cidade}) async {
     try {

@@ -121,7 +121,8 @@ public class AlertaService {
     public void cancelarAlerta(String id) {
         alertaRepository.findById(id).ifPresent(alerta -> {
             checkJurisdiction(alerta.getCidade());
-            alertaRepository.delete(alerta);
+            alerta.setAtivo(false);
+            alertaRepository.save(alerta);
         });
     }
 }

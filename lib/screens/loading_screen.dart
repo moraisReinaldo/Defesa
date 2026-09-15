@@ -7,6 +7,7 @@ import '../providers/usuario_provider.dart';
 import '../providers/ocorrencia_provider.dart';
 import '../providers/ponto_interesse_provider.dart';
 import 'mapa_screen.dart';
+import '../services/ad_service.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -25,6 +26,17 @@ class _LoadingScreenState extends State<LoadingScreen> {
     
     // Sequência de Inicialização Crítica e Otimizada
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      // 0. ATT + AdMob — DEVE ser a PRIMEIRA coisa após o primeiro frame.
+      // No iPadOS 27+ com SceneDelegate, o prompt ATT só aparece se a
+      // janela do app estiver ativa. addPostFrameCallback garante isso.
+      // No Android, o ATT é automaticamente ignorado dentro de initialize().
+      if (!kIsWeb) {
+        final adService = context.read<AdService>();
+        await adService.initialize();
+      }
+
       if (!mounted) return;
       final userProv = context.read<UsuarioProvider>();
       

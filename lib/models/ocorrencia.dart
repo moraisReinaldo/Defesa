@@ -106,7 +106,7 @@ class Ocorrencia {
     final tipoStr = (json['tipo'] as String?)?.toLowerCase() ?? 'outro';
     return Ocorrencia(
       id: json['id'] ?? '',
-      tipo: json['tipo'] ?? 'OUTROS',
+      tipo: tipoStr,
       descricao: json['descricao'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
       longitude: (json['longitude'] ?? 0.0).toDouble(),

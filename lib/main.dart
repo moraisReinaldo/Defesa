@@ -44,14 +44,17 @@ void main() async {
 
   final apiService = ApiService(storageService);
 
-  // Inicializar AdMob (solicita ATT no iOS antes de inicializar o SDK)
+  // AdService criado aqui, mas a inicialização (ATT + AdMob) acontece
+  // no LoadingScreen após o primeiro frame renderizar.
+  // Isso é OBRIGATÓRIO no iPadOS 27+ com SceneDelegate — chamar
+  // requestTrackingAuthorization() antes de runApp() faz o prompt
+  // ATT falhar silenciosamente pois a janela ainda não está ativa.
   final adService = AdService();
-  await adService.initialize();
 
   // Inicializar OneSignal
   if (!kIsWeb) {
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-    OneSignal.initialize("6537856b-c264-42af-b2a9-583652a175d2");
+    OneSignal.initialize(NotificationService.oneSignalAppId);
     OneSignal.Notifications.requestPermission(true);
   }
 

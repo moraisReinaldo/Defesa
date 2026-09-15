@@ -10,6 +10,8 @@ import java.util.List;
 
 @Repository
 public interface PontoInteresseRepository extends JpaRepository<PontoInteresse, String> {
+    List<PontoInteresse> findByDisponivelTrue();
+
     @Query("SELECT p FROM PontoInteresse p WHERE p.disponivel = true AND (LOWER(p.cidade) = LOWER(:cidade) OR p.cidade IS NULL OR p.cidade = '')")
     List<PontoInteresse> findByCidadeIgnoreCase(@Param("cidade") String cidade);
 

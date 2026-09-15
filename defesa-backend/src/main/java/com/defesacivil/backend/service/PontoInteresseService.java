@@ -39,7 +39,7 @@ public class PontoInteresseService {
     }
 
     public List<PontoInteresse> listarTodos() {
-        return repository.findAll().stream().filter(PontoInteresse::isDisponivel).toList();
+        return repository.findByDisponivelTrue();
     }
 
     public List<PontoInteresse> listarPorCidade(String cidade) {
@@ -148,10 +148,10 @@ public class PontoInteresseService {
     public void marcarIndisponiveisDaCidade(String cidade) {
         String codigo = normalizarCodigoCidade(cidade);
         if (codigo == null) return;
-        repository.findAllByCidadeFlexible(codigo, codigo, obterNomeCidade(codigo))
-            .forEach(ponto -> {
-                ponto.setDisponivel(false);
-                repository.save(ponto);
-            });
+        List<PontoInteresse> pontos = repository.findAllByCidadeFlexible(codigo, codigo, obterNomeCidade(codigo));
+        for (PontoInteresse ponto : pontos) {
+            ponto.setDisponivel(false);
+        }
+        repository.saveAll(pontos);
     }
 }

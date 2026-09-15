@@ -5,7 +5,10 @@ class AppPagamentos {
   static const String emailComercial = 'reinaldohm07@gmail.com';
 
   // Stripe Keys
-  static const String stripePublishableKey = 'pk_live_51UBjQsRptjvZgxMgoIWMJZkOQl4o4QCgDxBu1W8LMEEImtjSlz5j1sgc7wYUn90bIYNn4ooE9h0mIFsq7CIEBL2400bQhqxtVa';
+  static const String stripePublishableKey = String.fromEnvironment(
+    'STRIPE_PK',
+    defaultValue: 'pk_live_51UBjQsRptjvZgxMgoIWMJZkOQl4o4QCgDxBu1W8LMEEImtjSlz5j1sgc7wYUn90bIYNn4ooE9h0mIFsq7CIEBL2400bQhqxtVa',
+  );
 
   // Stripe Payment Links (Opção 1 A - Links Diretos de Checkout Oficiais)
   static const String stripeLinkPlanoGestao = 'https://buy.stripe.com/fZudRb0J15jHdRPgF9fbq01';

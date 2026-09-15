@@ -12,8 +12,11 @@ class NotificationService {
   static const _channelName = 'Defesa em Foco';
   static const _channelDesc = 'Notificações do app Defesa em Foco';
 
-  // ID do app no OneSignal (configurado em main.dart)
-  static const _oneSignalAppId = '6537856b-c264-42af-b2a9-583652a175d2';
+  // ID do app no OneSignal (centralizado)
+  static const oneSignalAppId = String.fromEnvironment(
+    'ONESIGNAL_APP_ID',
+    defaultValue: '6537856b-c264-42af-b2a9-583652a175d2',
+  );
 
   Future<void> init() async {
     // ── 1. Notificações LOCAIS ──────────────────────────────────────────────
@@ -78,7 +81,7 @@ class NotificationService {
       }
     });
 
-    if (kDebugMode) print('📡 [OneSignal] Handlers configurados (App ID: $_oneSignalAppId)');
+    if (kDebugMode) print('📡 [OneSignal] Handlers configurados (App ID: $oneSignalAppId)');
   }
 
   /// Retorna o token/playerID do OneSignal para vincular ao usuário no backend.

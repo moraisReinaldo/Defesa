@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import '../models/cidade.dart';
@@ -66,6 +68,11 @@ class AdService extends ChangeNotifier {
   /// No Android, pula direto para a inicialização do SDK.
   /// No iOS, exibe o prompt nativo de App Tracking Transparency.
   /// Se o usuário negar, o AdMob serve anúncios não personalizados automaticamente.
+  ///
+  /// IMPORTANTE: Este método DEVE ser chamado somente após o primeiro frame
+  /// ter sido renderizado (dentro de addPostFrameCallback ou initState de um widget).
+  /// Chamar de main() antes de runApp() faz o prompt falhar silenciosamente
+  /// no iPadOS 27+ com SceneDelegate, pois a janela ainda não está ativa.
   Future<void> _solicitarATT() async {
     if (!Platform.isIOS) return;
 
@@ -76,9 +83,11 @@ class AdService extends ChangeNotifier {
 
       // Só exibir o prompt se o status ainda for "não determinado"
       if (status == TrackingStatus.notDetermined) {
-        // Pequeno delay para garantir que o app já renderizou a tela inicial
-        // (Apple recomenda não mostrar o prompt imediatamente no launch)
-        await Future.delayed(const Duration(milliseconds: 500));
+        // Aguardar o app estar verdadeiramente ativo (UIApplicationState.active)
+        // Essencial no iPadOS 27+ com SceneDelegate, onde a janela pode não
+        // estar ativa imediatamente. Sem isso, o prompt é silenciosamente ignorado.
+        await _aguardarAppAtivo();
+
         final resultado = await AppTrackingTransparency.requestTrackingAuthorization();
         if (kDebugMode) print('🔒 ATT Resultado da solicitação: $resultado');
       }
@@ -88,9 +97,50 @@ class AdService extends ChangeNotifier {
     }
   }
 
-  /// Inicializa o SDK do Google Mobile Ads.
+  /// Aguarda o app atingir o estado "resumed" (ativo).
   ///
-  /// No iOS, solicita permissão ATT ANTES de inicializar o AdMob.
+  /// No iPadOS 27 com SceneDelegate, o app pode ainda estar em estado "inactive"
+  /// quando o primeiro frame é renderizado. O ATT exige que o app esteja em
+  /// estado UIApplicationState.active para exibir o prompt.
+  Future<void> _aguardarAppAtivo() async {
+    final binding = WidgetsBinding.instance;
+
+    // Se já está em resumed, um breve delay para estabilização é suficiente
+    if (binding.lifecycleState == AppLifecycleState.resumed) {
+      await Future.delayed(const Duration(seconds: 1));
+      return;
+    }
+
+    // Caso contrário, aguarda o app entrar em estado ativo via observer
+    if (kDebugMode) print('🔒 ATT: Aguardando app ficar ativo...');
+    final completer = Completer<void>();
+    final observer = _LifecycleObserver(onResumed: () {
+      if (!completer.isCompleted) completer.complete();
+    });
+    binding.addObserver(observer);
+
+    try {
+      // Timeout de segurança de 5 segundos para não travar o app
+      await completer.future.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          if (kDebugMode) print('⚠️ ATT: Timeout aguardando app ativo, prosseguindo...');
+        },
+      );
+    } finally {
+      binding.removeObserver(observer);
+    }
+
+    // Delay adicional de estabilização após ficar ativo
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  /// Inicializa o ATT (se iOS) e o SDK do Google Mobile Ads.
+  ///
+  /// DEVE ser chamado de dentro de um Widget (após o primeiro frame renderizar),
+  /// NÃO de main(). No iPadOS 27+ com SceneDelegate, chamar antes de runApp()
+  /// faz o prompt ATT falhar silenciosamente.
+  ///
   /// Isso garante que o SDK do Google receba o status correto do IDFA
   /// e sirva anúncios personalizados (se permitido) ou não personalizados.
   Future<void> initialize() async {
@@ -153,4 +203,20 @@ class AdService extends ChangeNotifier {
 
   /// Mantido para compatibilidade onde for chamado, mas sem travar a tela
   bool mostrarInterstitial() => false;
+}
+
+/// Observer interno para monitorar mudanças no ciclo de vida do app.
+/// Usado pelo AdService para aguardar o estado "resumed" antes de
+/// solicitar permissão ATT no iOS.
+class _LifecycleObserver extends WidgetsBindingObserver {
+  final VoidCallback onResumed;
+
+  _LifecycleObserver({required this.onResumed});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      onResumed();
+    }
+  }
 }

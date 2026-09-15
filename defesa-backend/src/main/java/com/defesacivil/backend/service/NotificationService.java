@@ -68,6 +68,9 @@ public class NotificationService {
             } catch (Exception e) {
                 log.error("[OneSignal] Erro ao enviar notificação: {}", e.getMessage());
             }
+        }).exceptionally(ex -> {
+            log.error("[OneSignal] Erro inesperado na execução assíncrona de push: {}", ex.getMessage(), ex);
+            return null;
         });
     }
 }

@@ -478,20 +478,20 @@ public class OcorrenciaService {
         // Criamos uma cópia para não correr risco de o Hibernate salvar a URL assinada no banco
         Ocorrencia copia = new Ocorrencia();
         copia.setId(oc.getId());
-        copia.setTipo(sanitizeInput(oc.getTipo()));
-        copia.setDescricao(sanitizeInput(oc.getDescricao()));
+        copia.setTipo(oc.getTipo());
+        copia.setDescricao(oc.getDescricao());
         copia.setLatitude(oc.getLatitude());
         copia.setLongitude(oc.getLongitude());
         copia.setCidade(oc.getCidade());
         copia.setDataHora(oc.getDataHora());
         copia.setStatus(oc.getStatus());
         copia.setUsuarioId(oc.getUsuarioId());
-        copia.setAgentes(sanitizeInput(oc.getAgentes()));
+        copia.setAgentes(oc.getAgentes());
         copia.setAgenteNoLocal(oc.isAgenteNoLocal());
         copia.setDataChegadaAgente(oc.getDataChegadaAgente());
         copia.setDataResolucao(oc.getDataResolucao());
         copia.setCriadoPorAgente(oc.isCriadoPorAgente());
-        copia.setDescricaoSituacao(sanitizeInput(oc.getDescricaoSituacao()));
+        copia.setDescricaoSituacao(oc.getDescricaoSituacao());
         copia.setCidadeEntidade(oc.getCidadeEntidade());
         copia.setAutor(oc.getAutor());
         copia.setAgentesAtribuidos(oc.getAgentesAtribuidos());

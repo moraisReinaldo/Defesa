@@ -6,6 +6,7 @@ class PontoInteresse {
   final double longitude;
   final String? cidade;
   final String? criadoPor;
+  final bool disponivel;
 
   PontoInteresse({
     this.id = '',
@@ -15,6 +16,7 @@ class PontoInteresse {
     required this.longitude,
     this.cidade,
     this.criadoPor,
+    this.disponivel = true,
   });
 
   Map<String, dynamic> toJson() {
@@ -26,6 +28,7 @@ class PontoInteresse {
       'longitude': longitude,
       'cidade': cidade,
       'criadoPor': criadoPor,
+      'disponivel': disponivel,
     };
   }
 
@@ -38,6 +41,7 @@ class PontoInteresse {
       longitude: (json['longitude'] ?? 0.0).toDouble(),
       cidade: json['cidade'],
       criadoPor: json['criadoPor'],
+      disponivel: json['disponivel'] ?? true,
     );
   }
 
@@ -49,6 +53,7 @@ class PontoInteresse {
     double? longitude,
     String? cidade,
     String? criadoPor,
+    bool? disponivel,
   }) {
     return PontoInteresse(
       id: id ?? this.id,
@@ -58,6 +63,7 @@ class PontoInteresse {
       longitude: longitude ?? this.longitude,
       cidade: cidade ?? this.cidade,
       criadoPor: criadoPor ?? this.criadoPor,
+      disponivel: disponivel ?? this.disponivel,
     );
   }
 }
