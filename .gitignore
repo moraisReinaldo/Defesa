@@ -127,6 +127,14 @@ temp/
 **/key.properties
 android/local.properties
 
+# Apple signing & API keys
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+AuthKey_*.p8
+
+
 # Backend sensitive configs (use env vars in production)
 **/application.properties
 **/application-local.properties
