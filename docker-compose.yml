@@ -35,6 +35,7 @@ services:
       DATABASE_USERNAME: defesa_user
       DATABASE_PASSWORD: defesa_password
       APP_JWT_SECRET: super_secret_jwt_token_for_defesa_civil_app_2026
+      MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
     ports:
       - "8080:8080"
     networks:
