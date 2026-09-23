@@ -4,6 +4,8 @@ credentials-file: /Users/reinaldohenriquemorais/.cloudflared/6c89b38b-1800-411e-
 ingress:
   - hostname: api.rhprogramer.com.br
     service: http://localhost:8080
+  - hostname: painel.rhprogramer.com.br
+    service: http://localhost:3000
   - hostname: fotos.rhprogramer.com.br
     service: http://localhost:9000
   - service: http_status:404
