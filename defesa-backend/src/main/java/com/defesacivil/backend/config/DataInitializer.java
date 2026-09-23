@@ -43,8 +43,12 @@ public class DataInitializer implements CommandLineRunner {
             boolean existe = cidadeRepository.findByCodigoIgnoreCase(c.getCodigo()).isPresent()
                     || cidadeRepository.findByNomeIgnoreCase(c.getNome()).isPresent();
             if (!existe) {
-                cidadeRepository.save(c);
-                log.info("Cidade '{}' ({}) cadastrada com sucesso.", c.getNome(), c.getCodigo());
+                try {
+                    cidadeRepository.save(c);
+                    log.info("Cidade '{}' ({}) cadastrada com sucesso.", c.getNome(), c.getCodigo());
+                } catch (Exception e) {
+                    log.info("Cidade '{}' ({}) já estava cadastrada ou sendo cadastrada.", c.getNome(), c.getCodigo());
+                }
             }
         }
     }
