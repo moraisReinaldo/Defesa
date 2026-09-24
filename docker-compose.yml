@@ -85,11 +85,11 @@ services:
   # MinIO (Armazenamento de Fotos/Arquivos)
   # ==========================================
   minio:
-    image: quay.io/minio/minio:latest
-    command: server /data --console-address ":9001"
+    image: bitnami/minio:latest
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_DEFAULT_BUCKETS: defesa-civil
     volumes:
       - minio_data:/data
     ports:
