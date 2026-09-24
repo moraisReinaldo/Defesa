@@ -36,7 +36,7 @@ services:
       DATABASE_PASSWORD: defesa_password
       APP_JWT_SECRET: super_secret_jwt_token_for_defesa_civil_app_2026
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
-      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ENDPOINT: http://host.docker.internal:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: defesa-civil
@@ -82,30 +82,6 @@ services:
         condition: on-failure
 
   # ==========================================
-  # MinIO (Armazenamento de Fotos/Arquivos)
-  # ==========================================
-  minio:
-    image: bitnami/minio:latest
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_DEFAULT_BUCKETS: defesa-civil
-    volumes:
-      - minio_data:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    networks:
-      - swarm-net
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: on-failure
-
-  # ==========================================
   # Docker Visualizer
   # ==========================================
   # Representação gráfica do cluster Swarm (livro "Descomplicando o Docker")
@@ -130,4 +106,3 @@ networks:
 
 volumes:
   db_data:
-  minio_data:
