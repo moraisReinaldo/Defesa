@@ -1,5 +1,5 @@
-tunnel: 6c89b38b-1800-411e-a11a-9695a4c08e55
-credentials-file: /Users/rhmorais/.cloudflared/6c89b38b-1800-411e-a11a-9695a4c08e55.json
+tunnel: e8a0856b-ac03-471b-9c3e-77ad158687b8
+credentials-file: /Users/rhmorais/.cloudflared/e8a0856b-ac03-471b-9c3e-77ad158687b8.json
 
 ingress:
   - hostname: api.rhprogramer.com.br
