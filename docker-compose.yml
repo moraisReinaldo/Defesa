@@ -41,7 +41,10 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: defesa-civil
     ports:
-      - "8080:8080"
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
     networks:
       - swarm-net
     depends_on:
@@ -69,7 +72,10 @@ services:
     environment:
       - PORT=3000
     ports:
-      - "3000:3000"
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
     networks:
       - swarm-net
     deploy:
@@ -88,7 +94,10 @@ services:
   visualizer:
     image: dockersamples/visualizer:stable
     ports:
-      - "8081:8080"
+      - target: 8080
+        published: 8081
+        protocol: tcp
+        mode: host
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
