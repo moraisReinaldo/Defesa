@@ -47,13 +47,16 @@ services:
     depends_on:
       - db
     deploy:
-      # Variação de réplicas: 3 instâncias para alta disponibilidade
-      replicas: 3
+      # Mac Mini 2014: 1 réplica (Spring Boot demora ~80s pra subir e consome ~500MB RAM)
+      replicas: 1
       update_config:
         parallelism: 1
         delay: 10s
+        monitor: 120s
+        failure_action: continue
       restart_policy:
         condition: on-failure
+        delay: 30s
 
   # ==========================================
   # Frontend (Vite + React + Express)
@@ -70,8 +73,8 @@ services:
     networks:
       - swarm-net
     deploy:
-      # Variação de réplicas: 2 instâncias do frontend
-      replicas: 2
+      # Mac Mini 2014: 1 réplica para economizar recursos
+      replicas: 1
       update_config:
         parallelism: 1
         delay: 10s
