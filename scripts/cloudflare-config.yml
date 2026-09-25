@@ -5,9 +5,9 @@ ingress:
   - hostname: api.rhprogramer.com.br
     service: http://localhost:8080
   - hostname: defesa.rhprogramer.com.br
-    service: http://localhost:3000
+    service: http://localhost:8085
   - hostname: painel.rhprogramer.com.br
-    service: http://localhost:3000
+    service: http://localhost:8085
   - hostname: fotos.rhprogramer.com.br
     service: http://localhost:9000
   - service: http_status:404
