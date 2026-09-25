@@ -14,12 +14,7 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - swarm-net
-    deploy:
-      # O banco de dados normalmente tem 1 réplica e fica no manager (ou node com volume persistente)
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
+    # Removido deploy (usando compose padrao em vez de swarm)
 
   # ==========================================
   # Backend (Spring Boot)
@@ -41,25 +36,12 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: defesa-civil
     ports:
-      - target: 8080
-        published: 8080
-        protocol: tcp
-        mode: host
+      - "8080:8080"
     networks:
       - swarm-net
     depends_on:
       - db
-    deploy:
-      # Mac Mini 2014: 1 réplica (Spring Boot demora ~80s pra subir e consome ~500MB RAM)
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-        monitor: 120s
-        failure_action: continue
-      restart_policy:
-        condition: on-failure
-        delay: 30s
+    restart: on-failure
 
   # ==========================================
   # Frontend (Flutter Web)
@@ -70,20 +52,10 @@ services:
       context: .
       dockerfile: Dockerfile.flutter
     ports:
-      - target: 80
-        published: 3000
-        protocol: tcp
-        mode: host
+      - "3000:80"
     networks:
       - swarm-net
-    deploy:
-      # Mac Mini 2014: 1 réplica para economizar recursos
-      replicas: 1
-      update_config:
-        parallelism: 1
-        delay: 10s
-      restart_policy:
-        condition: on-failure
+    restart: on-failure
 
   # ==========================================
   # Docker Visualizer
@@ -92,20 +64,11 @@ services:
   visualizer:
     image: dockersamples/visualizer:stable
     ports:
-      - target: 8080
-        published: 8081
-        protocol: tcp
-        mode: host
+      - "8081:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - swarm-net
-    deploy:
-      replicas: 1
-      placement:
-        # Visualizer PRECISA rodar no node manager para acessar as informações do cluster
-        constraints:
-          - node.role == manager
 
 networks:
   swarm-net:
