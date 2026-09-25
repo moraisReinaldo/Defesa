@@ -1,24 +1,14 @@
-# Stage 1: Build Flutter Web
-FROM ghcr.io/cirruslabs/flutter:stable AS build
+# Como o Mac Mini tem pouca memória na VM (Colima com 2GB),
+# vamos compilar o Flutter nativamente no Mac e usar o Docker
+# apenas para hospedar o Nginx.
 
-WORKDIR /app
-COPY . .
-
-# Faz o download das dependências do Flutter
-RUN flutter pub get
-
-# Compila o Flutter para web (usando o renderer padrão canvas kit)
-RUN flutter create . --platforms web
-RUN flutter build web --release
-
-# Stage 2: Serve Nginx
 FROM nginx:alpine
 
 # Remove o HTML padrão do nginx
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copia os arquivos gerados pelo Flutter
-COPY --from=build /app/build/web /usr/share/nginx/html
+# Copia os arquivos gerados nativamente pelo Flutter
+COPY build/web /usr/share/nginx/html
 
 # Expõe a porta 80 do nginx
 EXPOSE 80
