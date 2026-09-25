@@ -1,5 +1,6 @@
 # Ignore build outputs
-build/
+build/*
+!build/web/
 dist/
 target/
 
