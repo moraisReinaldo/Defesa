@@ -8,6 +8,7 @@ COPY . .
 RUN flutter pub get
 
 # Compila o Flutter para web (usando o renderer padrão canvas kit)
+RUN flutter create . --platforms web
 RUN flutter build web --release
 
 # Stage 2: Serve Nginx
