@@ -12,16 +12,13 @@ services:
       POSTGRES_PASSWORD: defesa_password
     volumes:
       - db_data:/var/lib/postgresql/data
-    networks:
-      - swarm-net
-    # Removido deploy (usando compose padrao em vez de swarm)
+    restart: on-failure
 
   # ==========================================
   # Backend (Spring Boot)
   # ==========================================
   backend:
     image: defesacivil-backend:latest
-    # IMPORTANTE: Em um Swarm real, a imagem deve estar em um registry acessível por todos os nós
     build:
       context: ./defesa-backend
       dockerfile: Dockerfile
@@ -37,8 +34,6 @@ services:
       MINIO_BUCKET: defesa-civil
     ports:
       - "8080:8080"
-    networks:
-      - swarm-net
     depends_on:
       - db
     restart: on-failure
@@ -53,26 +48,17 @@ services:
       dockerfile: Dockerfile.flutter
     ports:
       - "3000:80"
-    networks:
-      - swarm-net
     restart: on-failure
 
   # ==========================================
   # Docker Visualizer
   # ==========================================
-  # Representação gráfica do cluster Swarm (livro "Descomplicando o Docker")
   visualizer:
     image: dockersamples/visualizer:stable
     ports:
       - "8081:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-    networks:
-      - swarm-net
-
-networks:
-  swarm-net:
-    driver: overlay
 
 volumes:
   db_data:
