@@ -4,6 +4,8 @@ credentials-file: /Users/rhmorais/.cloudflared/e8a0856b-ac03-471b-9c3e-77ad15868
 ingress:
   - hostname: api.rhprogramer.com.br
     service: http://localhost:8080
+  - hostname: defesa.rhprogramer.com.br
+    service: http://localhost:3000
   - hostname: painel.rhprogramer.com.br
     service: http://localhost:3000
   - hostname: fotos.rhprogramer.com.br

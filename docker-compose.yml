@@ -62,17 +62,15 @@ services:
         delay: 30s
 
   # ==========================================
-  # Frontend (Vite + React + Express)
+  # Frontend (Flutter Web)
   # ==========================================
   frontend:
     image: defesacivil-frontend:latest
     build:
       context: .
-      dockerfile: Dockerfile
-    environment:
-      - PORT=3000
+      dockerfile: Dockerfile.flutter
     ports:
-      - target: 3000
+      - target: 80
         published: 3000
         protocol: tcp
         mode: host
