@@ -14,7 +14,6 @@
         "flutter",
         "flutter_local_notifications",
         "flutter_map",
-        "flutter_map_tile_caching",
         "flutter_secure_storage",
         "flutter_widget_from_html",
         "geocoding",
@@ -153,25 +152,6 @@
         "fwfh_url_launcher",
         "fwfh_webview",
         "html"
-      ]
-    },
-    {
-      "name": "flutter_map_tile_caching",
-      "version": "9.0.0-dev.7",
-      "dependencies": [
-        "async",
-        "collection",
-        "dart_earcut",
-        "flat_buffers",
-        "flutter",
-        "flutter_map",
-        "http",
-        "latlong2",
-        "meta",
-        "objectbox",
-        "objectbox_flutter_libs",
-        "path",
-        "path_provider"
       ]
     },
     {
@@ -886,48 +866,6 @@
       ]
     },
     {
-      "name": "path_provider",
-      "version": "2.1.6",
-      "dependencies": [
-        "flutter",
-        "path_provider_android",
-        "path_provider_foundation",
-        "path_provider_linux",
-        "path_provider_platform_interface",
-        "path_provider_windows"
-      ]
-    },
-    {
-      "name": "objectbox_flutter_libs",
-      "version": "2.5.1",
-      "dependencies": [
-        "flutter",
-        "objectbox",
-        "path_provider"
-      ]
-    },
-    {
-      "name": "objectbox",
-      "version": "2.5.1",
-      "dependencies": [
-        "collection",
-        "ffi",
-        "flat_buffers",
-        "meta",
-        "path"
-      ]
-    },
-    {
-      "name": "flat_buffers",
-      "version": "23.5.26",
-      "dependencies": []
-    },
-    {
-      "name": "dart_earcut",
-      "version": "1.2.0",
-      "dependencies": []
-    },
-    {
       "name": "equatable",
       "version": "2.1.0",
       "dependencies": [
@@ -951,6 +889,18 @@
       "dependencies": [
         "flutter",
         "webview_flutter_platform_interface"
+      ]
+    },
+    {
+      "name": "path_provider",
+      "version": "2.1.6",
+      "dependencies": [
+        "flutter",
+        "path_provider_android",
+        "path_provider_foundation",
+        "path_provider_linux",
+        "path_provider_platform_interface",
+        "path_provider_windows"
       ]
     },
     {
@@ -1647,11 +1597,6 @@
       ]
     },
     {
-      "name": "ffi",
-      "version": "2.2.0",
-      "dependencies": []
-    },
-    {
       "name": "flutter_web_plugins",
       "version": "0.0.0",
       "dependencies": [
@@ -1664,6 +1609,11 @@
       "dependencies": [
         "ffi"
       ]
+    },
+    {
+      "name": "ffi",
+      "version": "2.2.0",
+      "dependencies": []
     },
     {
       "name": "js",
