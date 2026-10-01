@@ -70,10 +70,21 @@ public class OcorrenciaController {
                 .body(csvData);
     }
 
-    /** Aprovar — ADMINISTRADOR e AGENTE (protegido no SecurityConfig) */
+    /** Obter sugestão de posicionamento calculada por IA ou Centroide — restrito à equipe */
+    @GetMapping("/{id}/sugestao-ia")
+    public ResponseEntity<com.defesacivil.backend.dto.SugestaoIaDto> obterSugestaoIa(@PathVariable String id) {
+        com.defesacivil.backend.dto.SugestaoIaDto sugestao = ocorrenciaService.obterSugestaoIa(id);
+        return sugestao != null ? ResponseEntity.ok(sugestao) : ResponseEntity.notFound().build();
+    }
+
+    /** Aprovar — ADMINISTRADOR e AGENTE (protegido no SecurityConfig), aceita coordenadas ajustadas */
     @PostMapping("/{id}/aprovar")
-    public ResponseEntity<Ocorrencia> aprovar(@PathVariable String id) {
-        Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id);
+    public ResponseEntity<Ocorrencia> aprovar(
+            @PathVariable String id,
+            @RequestBody(required = false) java.util.Map<String, Double> coordenadas) {
+        Double lat = coordenadas != null ? coordenadas.get("latitude") : null;
+        Double lng = coordenadas != null ? coordenadas.get("longitude") : null;
+        Ocorrencia aprovada = ocorrenciaService.aprovarOcorrencia(id, lat, lng);
         return aprovada != null ? ResponseEntity.ok(aprovada) : ResponseEntity.notFound().build();
     }
 

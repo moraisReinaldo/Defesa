@@ -200,9 +200,9 @@ class OcorrenciaProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> aprovarOcorrencia(String id) async {
+  Future<void> aprovarOcorrencia(String id, {double? latitude, double? longitude}) async {
     try {
-      final atualizada = await _apiService.aprovarOcorrencia(id);
+      final atualizada = await _apiService.aprovarOcorrencia(id, latitude: latitude, longitude: longitude);
       if (atualizada != null) {
         final index = _ocorrencias.indexWhere((o) => o.id == id);
         if (index != -1) {
@@ -214,6 +214,10 @@ class OcorrenciaProvider extends ChangeNotifier {
     } catch (e) {
       if (kDebugMode) print("Erro ao aprovar: $e");
     }
+  }
+
+  Future<Map<String, dynamic>?> obterSugestaoIa(String id) async {
+    return _apiService.obterSugestaoIa(id);
   }
 
   Future<void> registrarChegadaAgente(String id, {String? parecer}) async {

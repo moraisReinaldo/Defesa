@@ -34,9 +34,16 @@ import 'super_admin_screen.dart';
 import '../providers/cidade_provider.dart';
 import '../widgets/alerta_banner_widget.dart';
 import '../widgets/mapa_context_menu_widget.dart';
+import '../widgets/painel_sugestao_ia_widget.dart';
+import '../providers/rota_emergencia_provider.dart';
+import '../models/rota_emergencia.dart';
+import '../services/offline_map_service.dart';
+import 'gerenciar_rotas_screen.dart';
+
 
 class MapaScreen extends StatefulWidget {
-   const MapaScreen({super.key});
+  final bool isWebDashboard;
+   const MapaScreen({super.key, this.isWebDashboard = false});
 
   @override
   State<MapaScreen> createState() => _MapaScreenState();
@@ -103,8 +110,11 @@ class _MapaScreenState extends State<MapaScreen> {
           _posicaoAtual = posicao;
         });
         
-        // Se ainda não centralizamos o mapa, fazemos agora
-        if (!_mapaCentralizadoInicialmente) {
+        final rotaProv = context.read<RotaEmergenciaProvider>();
+        if (rotaProv.modoNavegacao) {
+          // Centraliza dinamicamente e suavemente a câmera durante o modo navegação
+          _mapController.move(LatLng(posicao.latitude, posicao.longitude), 16.5);
+        } else if (!_mapaCentralizadoInicialmente) {
           _mapaCentralizadoInicialmente = true;
           _mapController.move(LatLng(posicao.latitude, posicao.longitude), 15);
         }
@@ -152,6 +162,7 @@ class _MapaScreenState extends State<MapaScreen> {
     final usuarioProv = context.read<UsuarioProvider>();
     final ocorrenciaProv = context.read<OcorrenciaProvider>();
     final pontoProv = context.read<PontoInteresseProvider>();
+    final rotaProv = context.read<RotaEmergenciaProvider>();
     final cidadeFiltro = usuarioProv.cidadeAtiva;
 
     // Centraliza o mapa na cidade selecionada ou no centro da região
@@ -167,7 +178,10 @@ class _MapaScreenState extends State<MapaScreen> {
         isAdmin: usuarioProv.isAdmin,
       );
       final carregarPoi = pontoProv.carregarPontos(cidade: cidadeFiltro);
-      await Future.wait([carregarOc, carregarPoi]);
+      final carregarRotas = rotaProv.carregarRotas(cidade: cidadeFiltro);
+      await Future.wait([carregarOc, carregarPoi, carregarRotas]);
+    } else {
+      rotaProv.carregarRotas(cidade: cidadeFiltro);
     }
 
     // Atualiza GPS em segundo plano sem travar o carregamento inicial
@@ -458,11 +472,27 @@ class _MapaScreenState extends State<MapaScreen> {
                     if (usuarioProvider.isAdmin && ocorrencia.status == OcorrenciaStatus.pendenteAprovacao)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
+                        child: Column(
                           children: [
-                            Expanded(child: ElevatedButton.icon(onPressed: () async { await context.read<OcorrenciaProvider>().aprovarOcorrencia(ocorrencia.id); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.check_circle_rounded), label: const Text('APROVAR'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green))),
-                            const SizedBox(width: 8),
-                            Expanded(child: ElevatedButton.icon(onPressed: () async { await context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id); if (context.mounted) Navigator.pop(context); }, icon: const Icon(Icons.cancel_rounded), label: const Text('RECUSAR'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red))),
+                            PainelSugestaoIaWidget(
+                              ocorrencia: ocorrencia,
+                              onAprovada: () {
+                                if (context.mounted) Navigator.pop(context);
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  await context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id);
+                                  if (context.mounted) Navigator.pop(context);
+                                },
+                                icon: const Icon(Icons.cancel_rounded),
+                                label: const Text('RECUSAR E EXCLUIR'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -786,6 +816,13 @@ class _MapaScreenState extends State<MapaScreen> {
           )
         : null;
 
+    if (widget.isWebDashboard) {
+      return Scaffold(
+        body: bodyContent,
+        floatingActionButton: fabContent,
+      );
+    }
+
     return ResponsiveLayout(
       mobile: Scaffold(
         body: bodyContent,
@@ -975,6 +1012,12 @@ class _MapaScreenState extends State<MapaScreen> {
                 icon: Icons.campaign_rounded,
                 label: 'Emitir Alerta Geral',
                 onTap: () => AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome),
+              ),
+            if (cidadeProv.recursoRotasLiberado || usuarioProvider.isSuperAdmin)
+              _buildCustomSidebarAction(
+                icon: Icons.alt_route_rounded,
+                label: 'Rotas de Evacuação',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GerenciarRotasScreen())),
               ),
           ],
 
@@ -1197,6 +1240,9 @@ class _MapaScreenState extends State<MapaScreen> {
 
   Widget _construirTelaMapa(String nomeUsuario, List<Marker> markers, UsuarioProvider userProv) {
     final searchResults = _getFilteredOcorrencias();
+    final rotaProv = context.watch<RotaEmergenciaProvider>();
+    final rotasAtivas = rotaProv.rotasAtivas;
+
     return Stack(
       children: [
         FlutterMap(
@@ -1235,9 +1281,83 @@ class _MapaScreenState extends State<MapaScreen> {
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.defesacivil.app',
+              tileProvider: OfflineMapService().getTileProvider(),
             ),
+            if (rotasAtivas.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  for (final rota in rotasAtivas)
+                    if (rota.pontos.length >= 2) ...[
+                      Polyline(
+                        points: rota.pontos,
+                        strokeWidth: rotaProv.modoNavegacao && rotaProv.rotaNavegacaoAtiva?.id == rota.id ? 8.0 : 6.0,
+                        color: Colors.black26,
+                      ),
+                      Polyline(
+                        points: rota.pontos,
+                        strokeWidth: rotaProv.modoNavegacao && rotaProv.rotaNavegacaoAtiva?.id == rota.id ? 6.0 : 4.0,
+                        color: rotaProv.modoNavegacao && rotaProv.rotaNavegacaoAtiva?.id == rota.id ? const Color(0xFFFF9800) : const Color(0xFF00897B),
+                      ),
+                    ],
+                ],
+              ),
             MarkerLayer(markers: [
               ...markers,
+              for (final rota in rotasAtivas)
+                for (final poi in rota.pontosInteresse)
+                  if (poi['lat'] != null && poi['lng'] != null)
+                    Marker(
+                      point: LatLng((poi['lat'] as num).toDouble(), (poi['lng'] as num).toDouble()),
+                      width: 36,
+                      height: 36,
+                      child: Tooltip(
+                        message: poi['nome'] ?? 'Ponto de Apoio / Abrigo Seguro',
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade700,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+                            ],
+                          ),
+                          child: const Icon(Icons.night_shelter_rounded, color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+              for (final rota in rotasAtivas)
+                if (rota.pontos.isNotEmpty)
+                  Marker(
+                    point: rota.pontos.last,
+                    width: 42,
+                    height: 42,
+                    child: GestureDetector(
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Destino Seguro: ${rota.nome}'),
+                            backgroundColor: const Color(0xFF8B0000),
+                            action: SnackBarAction(
+                              label: 'NAVEGAR',
+                              textColor: Colors.amber,
+                              onPressed: () => rotaProv.iniciarNavegacao(rota),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B0000),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black38, blurRadius: 6, offset: Offset(0, 2)),
+                          ],
+                        ),
+                        child: const Icon(Icons.flag_rounded, color: Colors.white, size: 24),
+                      ),
+                    ),
+                  ),
               if (_marcadorEnderecoSelecionado != null)
                 Marker(
                   point: _marcadorEnderecoSelecionado!,
@@ -1262,7 +1382,23 @@ class _MapaScreenState extends State<MapaScreen> {
                   ),
                 ),
             ]),
-            if (_posicaoAtual != null) MarkerLayer(markers: [Marker(point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), child: const Icon(Icons.my_location, color: Colors.blue, size: 20))]),
+            if (_posicaoAtual != null)
+              MarkerLayer(markers: [
+                Marker(
+                  point: LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade600,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2.5),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                      ],
+                    ),
+                    child: const Icon(Icons.my_location, color: Colors.white, size: 16),
+                  ),
+                ),
+              ]),
           ],
         ),
         Positioned(
@@ -1304,12 +1440,168 @@ class _MapaScreenState extends State<MapaScreen> {
                   ),
                 ),
                 const AlertaBannerWidget(),
+                if (rotasAtivas.isNotEmpty && !rotaProv.modoNavegacao)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.amber.shade400, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.alt_route_rounded, color: Colors.amber, size: 24),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'ROTA DE EVACUAÇÃO ATIVA',
+                                  style: TextStyle(color: Colors.amber, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 0.5),
+                                ),
+                                Text(
+                                  rotasAtivas.first.nome,
+                                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.navigation_rounded, size: 16),
+                            label: const Text('SEGUIR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            onPressed: () => rotaProv.iniciarNavegacao(rotasAtivas.first),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
         ),
+        if (rotaProv.modoNavegacao && rotaProv.rotaNavegacaoAtiva != null)
+          _buildPainelNavegacaoHud(rotaProv.rotaNavegacaoAtiva!, rotaProv),
         if (_showSearchResults) _buildSearchResultsOverlay(searchResults),
       ],
+    );
+  }
+
+  Widget _buildPainelNavegacaoHud(RotaEmergencia rota, RotaEmergenciaProvider rotaProv) {
+    String distTexto = 'Calculando distância...';
+    if (_posicaoAtual != null && rota.pontos.isNotEmpty) {
+      final dest = rota.pontos.last;
+      final m = Geolocator.distanceBetween(_posicaoAtual!.latitude, _posicaoAtual!.longitude, dest.latitude, dest.longitude);
+      distTexto = m < 1000 ? '${m.round()} m até o abrigo seguro' : '${(m / 1000).toStringAsFixed(1)} km até o abrigo seguro';
+    }
+
+    return Positioned(
+      bottom: 24,
+      left: 16,
+      right: 16,
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 550),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+            border: Border.all(color: Colors.amber.shade500, width: 2),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Colors.amber,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.navigation_rounded, color: Colors.black, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade700,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('EMERGÊNCIA', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            rota.nome,
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      distTexto,
+                      style: const TextStyle(color: Colors.amberAccent, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Centralizar em mim',
+                style: IconButton.styleFrom(backgroundColor: Colors.white12),
+                icon: const Icon(Icons.my_location_rounded, color: Colors.white),
+                onPressed: () {
+                  if (_posicaoAtual != null) {
+                    _mapController.move(LatLng(_posicaoAtual!.latitude, _posicaoAtual!.longitude), 16.5);
+                  }
+                },
+              ),
+              const SizedBox(width: 4),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => rotaProv.pararNavegacao(),
+                child: const Text('Sair', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

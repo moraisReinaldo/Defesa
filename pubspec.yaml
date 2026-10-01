@@ -52,7 +52,8 @@ dependencies:
   app_tracking_transparency: ^2.0.6
   fl_chart: ^1.2.0
   intl: ^0.20.3
-
+  flutter_map_tile_caching: ^9.0.0-dev.7
+  flutter_widget_from_html: ^0.17.4
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -89,6 +90,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/html/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

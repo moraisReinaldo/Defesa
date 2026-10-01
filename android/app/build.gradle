@@ -47,14 +47,23 @@ android {
 
     buildTypes {
         release {
-            if (!keystorePropertiesFile.exists()) {
-                throw new GradleException("Release signing requires android/key.properties and a production keystore")
-            }
             signingConfig = signingConfigs.release
             // Habilitar ofuscação e shrink para produção
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+// Garante a validação do keystore APENAS quando um build de release for solicitado
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.hasTask(':app:assembleRelease') || taskGraph.hasTask(':app:bundleRelease')) {
+        if (!keystorePropertiesFile.exists()) {
+            throw new GradleException("Release signing requires android/key.properties and a production keystore")
         }
     }
 }

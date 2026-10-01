@@ -52,7 +52,9 @@ class ApiService {
   Future<List<Ocorrencia>> listarOcorrencias({String? cidade, int page = 0, int size = 50}) => 
       _ocorrencia.listarOcorrencias(cidade: cidade, page: page, size: size);
   Future<Ocorrencia?> criarOcorrencia(Ocorrencia ocorrencia) => _ocorrencia.criarOcorrencia(ocorrencia);
-  Future<Ocorrencia?> aprovarOcorrencia(String id) => _ocorrencia.aprovarOcorrencia(id);
+  Future<Ocorrencia?> aprovarOcorrencia(String id, {double? latitude, double? longitude}) => 
+      _ocorrencia.aprovarOcorrencia(id, latitude: latitude, longitude: longitude);
+  Future<Map<String, dynamic>?> obterSugestaoIa(String id) => _ocorrencia.obterSugestaoIa(id);
   Future<Ocorrencia?> registrarChegadaAgente(String id, {String? parecer}) => _ocorrencia.registrarChegadaAgente(id, parecer: parecer);
   Future<Ocorrencia?> resolverOcorrencia(String id, {String? parecer}) => _ocorrencia.resolverOcorrencia(id, parecer: parecer);
   Future<Ocorrencia?> reativarOcorrencia(String id) => _ocorrencia.reativarOcorrencia(id);

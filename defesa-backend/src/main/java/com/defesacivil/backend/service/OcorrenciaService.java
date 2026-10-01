@@ -1,5 +1,6 @@
 package com.defesacivil.backend.service;
 
+import com.defesacivil.backend.domain.Cidade;
 import com.defesacivil.backend.domain.Ocorrencia;
 import com.defesacivil.backend.domain.Usuario;
 import com.defesacivil.backend.domain.enums.OcorrenciaStatus;
@@ -35,17 +36,20 @@ public class OcorrenciaService {
     private final CidadeService cidadeService;
     private final NotificationService notificationService;
     private final MinioService minioService;
+    private final OcorrenciaIaService ocorrenciaIaService;
 
     public OcorrenciaService(OcorrenciaRepository ocorrenciaRepository,
                              UsuarioRepository usuarioRepository,
                              CidadeService cidadeService,
                              NotificationService notificationService,
-                             MinioService minioService) {
+                             MinioService minioService,
+                             OcorrenciaIaService ocorrenciaIaService) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.usuarioRepository = usuarioRepository;
         this.cidadeService = cidadeService;
         this.notificationService = notificationService;
         this.minioService = minioService;
+        this.ocorrenciaIaService = ocorrenciaIaService;
     }
 
     // ========== HELPERS DE SEGURANÇA ==========
@@ -125,6 +129,37 @@ public class OcorrenciaService {
         oc.setDescricao(sanitizeInput(request.getDescricao()));
         oc.setLatitude(request.getLatitude());
         oc.setLongitude(request.getLongitude());
+        oc.setLatitudeEnvio(request.getLatitudeEnvio());
+        oc.setLongitudeEnvio(request.getLongitudeEnvio());
+
+        // Verificação de origem suspeita: distância GPS de envio vs. coordenadas reportadas > 2km
+        if (request.getLatitudeEnvio() != null && request.getLongitudeEnvio() != null) {
+            double distMetros = calcularDistanciaMetros(
+                request.getLatitudeEnvio(), request.getLongitudeEnvio(),
+                request.getLatitude(), request.getLongitude()
+            );
+            if (distMetros > 2000.0) {
+                oc.setOrigemSuspeita(true);
+                log.warn("Ocorrência marcada como de ORIGEM SUSPEITA: distância entre GPS de envio e ponto reportado = {} m", (int) distMetros);
+            }
+        }
+
+        // Validação Comunitária (Estilo Waze): Calcular quantos relatos próximos existem
+        try {
+            Object[] clusterResult = ocorrenciaRepository.buscarCentroideProximo(
+                oc.getTipo(), oc.getLatitude(), oc.getLongitude(), 200, 2 // raio 200m, janela 2h
+            );
+            if (clusterResult != null && clusterResult.length == 3) {
+                int totalAnteriores = ((Number) clusterResult[0]).intValue();
+                oc.setTotalRelatosCluster(totalAnteriores + 1); // 1 = a própria ocorrência
+            } else {
+                oc.setTotalRelatosCluster(1);
+            }
+        } catch (Exception e) {
+            log.warn("Falha ao calcular cluster na criação da ocorrência: {}", e.getMessage());
+            oc.setTotalRelatosCluster(1);
+        }
+
         String cidade = normalizarCodigoCidade(request.getCidade());
         oc.setCidade(cidade);
         if (cidade != null) {
@@ -197,11 +232,11 @@ public class OcorrenciaService {
             oc.setCaminhoFoto(foto);
         }
 
-        // Regra de auto-aprovação: Admins, Agentes e Super_Admin são sempre aprovados automaticamente
-        boolean autoAprovado = oc.isCriadoPorAgente() || hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN");
+        // Regra de auto-aprovação: Admins, Agentes e Super_Admin são sempre aprovados automaticamente (salvo se origem suspeita)
+        boolean autoAprovado = (oc.isCriadoPorAgente() || hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN")) && !oc.isOrigemSuspeita();
 
         // Fallback: verificar pelo usuarioId no banco se a flag não veio do app
-        if (!autoAprovado && oc.getUsuarioId() != null) {
+        if (!autoAprovado && !oc.isOrigemSuspeita() && oc.getUsuarioId() != null) {
             Optional<Usuario> criador = usuarioRepository.findById(oc.getUsuarioId());
             if (criador.isPresent()) {
                 String role = criador.get().getRole();
@@ -213,7 +248,7 @@ public class OcorrenciaService {
             if (isPassado) {
                 // REGRA DE NEGÓCIO: Se lançada no passado (data customizada), já entra como resolvida
                 oc.setStatus(OcorrenciaStatus.RESOLVIDA.name());
-                oc.setDataResolucao(LocalDateTime.now().toString()); // Pode ser a data do ocorrido também, mas manteremos today para timestamp do fechamento
+                oc.setDataResolucao(LocalDateTime.now().toString());
                 log.info("Ocorrência lançada no passado e automaticamente definida como RESOLVIDA.");
             } else {
                 oc.setStatus(OcorrenciaStatus.APROVADA.name());
@@ -235,11 +270,59 @@ public class OcorrenciaService {
         return processarUrl(ocorrenciaRepository.save(oc));
     }
 
+    /** Obter sugestão de posicionamento calculada por IA ou Centroide */
+    @Transactional
+    public com.defesacivil.backend.dto.SugestaoIaDto obterSugestaoIa(String ocorrenciaId) {
+        Ocorrencia oc = ocorrenciaRepository.findById(ocorrenciaId)
+                .orElseThrow(() -> new IllegalArgumentException("Ocorrência não encontrada: " + ocorrenciaId));
+
+        checkJurisdiction(oc.getCidade());
+
+        // Se já processou anteriormente, retorna a sugestão salva em cache no banco
+        if (oc.isProcessadaIa() && oc.getLatitudeIa() != null && oc.getLongitudeIa() != null) {
+            return new com.defesacivil.backend.dto.SugestaoIaDto(
+                oc.getLatitudeIa(),
+                oc.getLongitudeIa(),
+                oc.getConfiancaIa() != null ? oc.getConfiancaIa() : 0.8,
+                oc.getJustificativaIa(),
+                oc.getTotalRelatosCluster() != null ? oc.getTotalRelatosCluster() : 1
+            );
+        }
+
+        Cidade cidade = oc.getCidadeEntidade();
+        if (cidade == null && oc.getCidade() != null) {
+            cidade = cidadeService.buscarPorCodigo(oc.getCidade()).orElse(null);
+        }
+
+        com.defesacivil.backend.dto.SugestaoIaDto sugestao = ocorrenciaIaService.calcularSugestao(oc, cidade);
+
+        // Salva sugestão na ocorrência para não gastar token Gemini novamente
+        oc.setLatitudeIa(sugestao.getLat());
+        oc.setLongitudeIa(sugestao.getLng());
+        oc.setConfiancaIa(sugestao.getConfianca());
+        oc.setJustificativaIa(sugestao.getJustificativa());
+        oc.setTotalRelatosCluster(sugestao.getTotalRelatosCluster());
+        oc.setProcessadaIa(true);
+        ocorrenciaRepository.save(oc);
+
+        return sugestao;
+    }
+
     /** Aprovar — SecurityConfig já garante que apenas ADMINISTRADOR chega aqui */
     public Ocorrencia aprovarOcorrencia(String id) {
+        return aprovarOcorrencia(id, null, null);
+    }
+
+    /** Aprovar com coordenadas ajustadas (ex: aceitando sugestão da IA) */
+    public Ocorrencia aprovarOcorrencia(String id, Double latitudeAprovada, Double longitudeAprovada) {
         Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
         if (oc == null) return null;
         checkJurisdiction(oc.getCidade());
+
+        if (latitudeAprovada != null && longitudeAprovada != null) {
+            oc.setLatitude(latitudeAprovada);
+            oc.setLongitude(longitudeAprovada);
+        }
 
         oc.setStatus(OcorrenciaStatus.APROVADA.name());
         Ocorrencia salva = ocorrenciaRepository.save(oc);
@@ -255,6 +338,17 @@ public class OcorrenciaService {
         }
 
         return processarUrl(salva);
+    }
+
+    private double calcularDistanciaMetros(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371000;
+        double latDistance = Math.toRadians(lat2 - lat1);
+        double lonDistance = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 
     /** Registrar chegada — SecurityConfig garante AGENTE ou ADMINISTRADOR */

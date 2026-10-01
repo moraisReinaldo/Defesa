@@ -42,6 +42,8 @@ enum PlanoCidade {
   bool get permitePoi => this == PlanoCidade.proMunicipal;
   bool get permiteDashboardWeb => this == PlanoCidade.proMunicipal;
   bool get permiteCobradeOficial => this != PlanoCidade.baseGratuito;
+  bool get permiteRotasEmergencia => this != PlanoCidade.baseGratuito;
+  bool get permiteIa => this == PlanoCidade.proMunicipal;
   bool get exibeAnuncios => this == PlanoCidade.baseGratuito;
 }
 
@@ -132,6 +134,8 @@ class Cidade {
   bool get recursoPoiLiberado => planoEfetivo.permitePoi;
   bool get recursoDashboardWebLiberado => planoEfetivo.permiteDashboardWeb;
   bool get recursoCobradeOficialLiberado => planoEfetivo.permiteCobradeOficial;
+  bool get recursoRotasLiberado => planoEfetivo.permiteRotasEmergencia;
+  bool get recursoIaLiberado => planoEfetivo.permiteIa;
   bool get deveExibirAnuncios => planoEfetivo.exibeAnuncios;
   int get limiteGestores => planoEfetivo.limiteGestores;
 

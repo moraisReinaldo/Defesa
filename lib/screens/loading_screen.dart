@@ -8,6 +8,11 @@ import '../providers/ocorrencia_provider.dart';
 import '../providers/ponto_interesse_provider.dart';
 import 'mapa_screen.dart';
 import '../services/ad_service.dart';
+import '../services/clima_service.dart';
+import '../services/offline_map_service.dart';
+import 'web_dashboard_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/notification_service.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -43,6 +48,9 @@ class _LoadingScreenState extends State<LoadingScreen> {
       // 1. Permissões no mobile
       await _solicitarPermissoesIniciais();
       
+      // Verifica política de privacidade
+      await _verificarPoliticaPrivacidade();
+      
       if (mounted) {
         final ocorrenciaProv = context.read<OcorrenciaProvider>();
         final pontoProv = context.read<PontoInteresseProvider>();
@@ -68,7 +76,12 @@ class _LoadingScreenState extends State<LoadingScreen> {
         // 4. Libera a tela do mapa com os pontos e ocorrências já prontos na memória
         userProv.finalizarInicializacao();
 
-        // 5. Se anônimo e sem GPS prévio, dispara geolocalização em segundo plano
+        // 5. Garantir download do mapa offline da primeira cidade aberta no app
+        final cidadeParaMapa = cidade ?? 'BPA';
+        final coords = ClimaService.obterCoordenadasCidade(cidadeParaMapa);
+        OfflineMapService().garantirMapaCidade(cidadeParaMapa, coords['lat']!, coords['lng']!);
+
+        // 6. Se anônimo e sem GPS prévio, dispara geolocalização em segundo plano
         if (userProv.usuarioLogado == null && userProv.cidadeAtiva == null) {
           userProv.determinarCidadePorGps();
         }
@@ -99,12 +112,32 @@ class _LoadingScreenState extends State<LoadingScreen> {
     }
   }
 
+  Future<void> _verificarPoliticaPrivacidade() async {
+    const currentPolicyVersion = 1; // Change this when policy changes
+    final prefs = await SharedPreferences.getInstance();
+    final acceptedVersion = prefs.getInt('policy_version') ?? 0;
+    
+    if (acceptedVersion < currentPolicyVersion) {
+      if (!kIsWeb && mounted) {
+        final notifService = context.read<NotificationService>();
+        await notifService.mostrarNotificacaoLocal(
+          titulo: 'Política Atualizada',
+          corpo: 'Por favor, revise os novos termos de privacidade no menu do app.',
+        );
+      }
+      await prefs.setInt('policy_version', currentPolicyVersion);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Monitora o estado de inicialização
     final estaPronto = context.select<UsuarioProvider, bool>((p) => p.estaInicializado);
 
     if (estaPronto) {
+      if (kIsWeb) {
+        return const WebDashboardScreen();
+      }
       return const MapaScreen();
     }
 

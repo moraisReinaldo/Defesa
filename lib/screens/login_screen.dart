@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/localizacao_service.dart';
 import '../services/geocoding_service.dart';
 import '../widgets/responsive_layout.dart';
+import 'politica_privacidade_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool modoRegistro;
@@ -69,24 +70,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _concordaLGPD = false;
 
-  void _mostrarTermos() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Política de Privacidade (LGPD)'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Ao utilizar este aplicativo, você concorda com a coleta de sua localização para registro de ocorrências, '
-            'uso de sua câmera para fotos de desastres e armazenamento de seus dados de contato para fins de segurança pública. '
-            '\n\nSeus dados são protegidos seguindo os padrões da LGPD e nunca serão vendidos a terceiros.'
-            '\n\nPara ler a política completa, acesse nosso site oficial da Defesa Civil.',
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fechar')),
-        ],
+  Future<void> _mostrarTermos() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PoliticaPrivacidadeScreen(isRegistration: _modoRegistro),
       ),
     );
+    if (result == true) {
+      setState(() {
+        _concordaLGPD = true;
+      });
+    }
   }
 
   Future<void> _enviar() async {

@@ -1,9 +1,10 @@
 package com.defesacivil.backend.domain.enums;
 
 public enum PlanoCidade {
-    BASE_GRATUITO(1, false, false, false, false, false, true),
-    GESTAO_MUNICIPAL(2, false, true, false, false, true, false),
-    PRO_MUNICIPAL(5, true, true, true, true, true, false);
+    //                              gestores  agentes  alertas  poi    dashWeb  cobrade  anuncios  ia      rotas
+    BASE_GRATUITO    (1,    false,   false,   false,   false,   false,  true,    false,  false),
+    GESTAO_MUNICIPAL (2,    false,   true,    false,   false,   true,   false,   false,  true),
+    PRO_MUNICIPAL    (5,    true,    true,    true,    true,    true,   false,   true,   true);
 
     private final int limiteGestores;
     private final boolean permiteAgentes;
@@ -12,10 +13,12 @@ public enum PlanoCidade {
     private final boolean permiteDashboardWeb;
     private final boolean permiteCobradeOficial;
     private final boolean exibeAnuncios;
+    private final boolean permiteIa;               // Gemini — somente PRO
+    private final boolean permiteRotasEmergencia;  // Rotas — GESTAO + PRO
 
     PlanoCidade(int limiteGestores, boolean permiteAgentes, boolean permiteAlertasPush,
                 boolean permitePoi, boolean permiteDashboardWeb, boolean permiteCobradeOficial,
-                boolean exibeAnuncios) {
+                boolean exibeAnuncios, boolean permiteIa, boolean permiteRotasEmergencia) {
         this.limiteGestores = limiteGestores;
         this.permiteAgentes = permiteAgentes;
         this.permiteAlertasPush = permiteAlertasPush;
@@ -23,6 +26,8 @@ public enum PlanoCidade {
         this.permiteDashboardWeb = permiteDashboardWeb;
         this.permiteCobradeOficial = permiteCobradeOficial;
         this.exibeAnuncios = exibeAnuncios;
+        this.permiteIa = permiteIa;
+        this.permiteRotasEmergencia = permiteRotasEmergencia;
     }
 
     public int getLimiteGestores() {
@@ -51,5 +56,13 @@ public enum PlanoCidade {
 
     public boolean isExibeAnuncios() {
         return exibeAnuncios;
+    }
+
+    public boolean isPermiteIa() {
+        return permiteIa;
+    }
+
+    public boolean isPermiteRotasEmergencia() {
+        return permiteRotasEmergencia;
     }
 }

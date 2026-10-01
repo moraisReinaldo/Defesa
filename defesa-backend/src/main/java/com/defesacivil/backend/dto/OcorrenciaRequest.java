@@ -28,6 +28,10 @@ public class OcorrenciaRequest {
     private String cobrade;
     private String cobradeDescricao;
 
+    // GPS do cidadão no momento do envio (para detecção de origem suspeita)
+    private Double latitudeEnvio;
+    private Double longitudeEnvio;
+
     public String getTipo() { return tipo; }
     public void setTipo(String tipo) { this.tipo = tipo; }
     public String getDescricao() { return descricao; }
@@ -56,4 +60,8 @@ public class OcorrenciaRequest {
     public void setCobrade(String cobrade) { this.cobrade = cobrade; }
     public String getCobradeDescricao() { return cobradeDescricao; }
     public void setCobradeDescricao(String cobradeDescricao) { this.cobradeDescricao = cobradeDescricao; }
+    public Double getLatitudeEnvio() { return latitudeEnvio; }
+    public void setLatitudeEnvio(Double latitudeEnvio) { this.latitudeEnvio = latitudeEnvio; }
+    public Double getLongitudeEnvio() { return longitudeEnvio; }
+    public void setLongitudeEnvio(Double longitudeEnvio) { this.longitudeEnvio = longitudeEnvio; }
 }

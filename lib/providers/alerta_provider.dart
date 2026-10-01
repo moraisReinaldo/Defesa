@@ -40,6 +40,7 @@ class AlertaProvider extends ChangeNotifier {
     required String titulo,
     required String mensagem,
     required String nivel,
+    String? rotaEmergenciaId,
   }) async {
     _carregando = true;
     notifyListeners();
@@ -50,6 +51,7 @@ class AlertaProvider extends ChangeNotifier {
         titulo: titulo,
         mensagem: mensagem,
         nivel: nivel,
+        rotaEmergenciaId: rotaEmergenciaId,
       );
 
       final salvo = await _alertaService.emitirAlerta(novo);

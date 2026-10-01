@@ -23,6 +23,8 @@ class CidadeProvider extends ChangeNotifier {
   bool get recursoDashboardWebLiberado => _cidadeAtiva?.recursoDashboardWebLiberado ?? false;
   bool get recursoAlertasLiberado => _cidadeAtiva?.recursoAlertasLiberado ?? false;
   bool get recursoCobradeOficialLiberado => _cidadeAtiva?.recursoCobradeOficialLiberado ?? false;
+  bool get recursoRotasLiberado => _cidadeAtiva?.recursoRotasLiberado ?? false;
+  bool get recursoIaLiberado => _cidadeAtiva?.recursoIaLiberado ?? false;
   bool get deveExibirAnuncios => _cidadeAtiva?.deveExibirAnuncios ?? true;
 
   Future<void> carregarPlanoCidade(String? codigoOuNome) async {

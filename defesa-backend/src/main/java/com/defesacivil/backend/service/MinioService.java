@@ -2,6 +2,7 @@ package com.defesacivil.backend.service;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.minio.GetObjectArgs;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -135,5 +136,29 @@ public class MinioService {
                 return key;
             }
         });
+    }
+
+    /**
+     * Baixa os bytes brutos de um objeto do MinIO.
+     * Usado pelo OcorrenciaIaService para enviar a foto ao Gemini (multimodal).
+     *
+     * @param objectKey A chave do objeto no bucket (ex: ocorrencias/uuid.jpg)
+     * @return bytes do arquivo, ou null em caso de erro
+     */
+    public byte[] baixarArquivo(String objectKey) {
+        if (objectKey == null || objectKey.isBlank() || objectKey.startsWith("http")) {
+            return null;
+        }
+        try (var stream = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectKey)
+                        .build()
+        )) {
+            return stream.readAllBytes();
+        } catch (Exception e) {
+            log.error("Erro ao baixar arquivo do MinIO '{}': {}", objectKey, e.getMessage());
+            return null;
+        }
     }
 }

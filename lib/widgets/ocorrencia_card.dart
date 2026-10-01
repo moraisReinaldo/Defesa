@@ -163,6 +163,31 @@ class OcorrenciaCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      if (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryTeal.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.5)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified_user_rounded, size: 12, color: AppColors.primaryTeal),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Comunidade (+${ocorrencia.totalRelatosCluster! - 1})',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryTeal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       if (ocorrencia.caminhoFoto != null &&
                           ocorrencia.caminhoFoto!.isNotEmpty)
                         Container(

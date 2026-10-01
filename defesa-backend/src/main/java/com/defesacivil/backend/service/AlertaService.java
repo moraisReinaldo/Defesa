@@ -20,13 +20,16 @@ public class AlertaService {
     private final CidadeService cidadeService;
     private final UsuarioRepository usuarioRepository;
     private final NotificationService notificationService;
+    private final com.defesacivil.backend.repository.RotaEmergenciaRepository rotaEmergenciaRepository;
 
     public AlertaService(AlertaRepository alertaRepository, CidadeService cidadeService,
-                         UsuarioRepository usuarioRepository, NotificationService notificationService) {
+                         UsuarioRepository usuarioRepository, NotificationService notificationService,
+                         com.defesacivil.backend.repository.RotaEmergenciaRepository rotaEmergenciaRepository) {
         this.alertaRepository = alertaRepository;
         this.cidadeService = cidadeService;
         this.usuarioRepository = usuarioRepository;
         this.notificationService = notificationService;
+        this.rotaEmergenciaRepository = rotaEmergenciaRepository;
     }
 
     private String normalizarCodigoCidade(String cidade) {
@@ -98,13 +101,36 @@ public class AlertaService {
     public Alerta emitirAlerta(AlertaRequest request) {
         String cidade = normalizarCodigoCidade(request.getCidade());
         checkJurisdiction(cidade);
+
+        if (request.getRotaEmergenciaId() != null && !request.getRotaEmergenciaId().isBlank()) {
+            if (!hasRole("SUPER_ADMIN")) {
+                cidadeService.buscarPorCodigo(cidade).ifPresent(c -> {
+                    if (!c.isRecursoRotasEmergenciaLiberado()) {
+                        throw new IllegalStateException("O recurso de vinculação de rotas requer o plano Gestão Municipal ou PRO Municipal.");
+                    }
+                });
+            }
+        }
+
         Alerta alerta = new Alerta(
             cidade,
             request.getTitulo(),
             request.getMensagem(),
             request.getNivel()
         );
+        alerta.setRotaEmergenciaId(request.getRotaEmergenciaId());
+
         Alerta salvo = alertaRepository.save(alerta);
+
+        // Se houver rota vinculada (ex: alerta EXTREMO), ativa a rota
+        if (salvo.getRotaEmergenciaId() != null && !salvo.getRotaEmergenciaId().isBlank()) {
+            rotaEmergenciaRepository.findById(salvo.getRotaEmergenciaId()).ifPresent(rota -> {
+                rota.setAtiva(true);
+                rota.setAlertaVinculadoId(salvo.getId());
+                rotaEmergenciaRepository.save(rota);
+            });
+        }
+
         cidade = salvo.getCidade();
         List<String> destinatarios = usuarioRepository.findByCidadeIgnoreCaseAndStatus(cidade, Status.ATIVO.name())
             .stream()
@@ -123,6 +149,14 @@ public class AlertaService {
             checkJurisdiction(alerta.getCidade());
             alerta.setAtivo(false);
             alertaRepository.save(alerta);
+
+            // Desativa a rota vinculada ao alerta se houver
+            if (alerta.getRotaEmergenciaId() != null && !alerta.getRotaEmergenciaId().isBlank()) {
+                rotaEmergenciaRepository.findById(alerta.getRotaEmergenciaId()).ifPresent(rota -> {
+                    rota.setAtiva(false);
+                    rotaEmergenciaRepository.save(rota);
+                });
+            }
         });
     }
 }

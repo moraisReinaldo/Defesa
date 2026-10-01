@@ -36,6 +36,19 @@ class Ocorrencia {
   /// true = salvo apenas localmente, não sincronizado com o servidor
   final bool isLocal;
 
+  // Origem suspeita e auditoria de envio
+  final double? latitudeEnvio;
+  final double? longitudeEnvio;
+  final bool origemSuspeita;
+
+  // Sugestões de IA (Gemini) e Validação Comunitária
+  final double? latitudeIa;
+  final double? longitudeIa;
+  final double? confiancaIa;
+  final String? justificativaIa;
+  final bool processadaIa;
+  final int? totalRelatosCluster;
+
   Ocorrencia({
     String? id,
     required this.tipo,
@@ -58,6 +71,15 @@ class Ocorrencia {
     this.autor,
     this.agentesAtribuidos,
     this.isLocal = false,
+    this.latitudeEnvio,
+    this.longitudeEnvio,
+    this.origemSuspeita = false,
+    this.latitudeIa,
+    this.longitudeIa,
+    this.confiancaIa,
+    this.justificativaIa,
+    this.processadaIa = false,
+    this.totalRelatosCluster,
   })  : id = id ?? const Uuid().v4(),
         dataHora = dataHora ?? DateTime.now();
 
@@ -96,6 +118,15 @@ class Ocorrencia {
       'descricaoSituacao': descricaoSituacao,
       'cobrade': cobrade,
       'cobradeDescricao': cobradeDescricao,
+      'latitudeEnvio': latitudeEnvio,
+      'longitudeEnvio': longitudeEnvio,
+      'origemSuspeita': origemSuspeita,
+      'latitudeIa': latitudeIa,
+      'longitudeIa': longitudeIa,
+      'confiancaIa': confiancaIa,
+      'justificativaIa': justificativaIa,
+      'processadaIa': processadaIa,
+      'totalRelatosCluster': totalRelatosCluster,
       if (autor != null) 'autor': autor!.toJson(),
       if (agentesAtribuidos != null)
         'agentesAtribuidos': agentesAtribuidos!.map((a) => a.toJson()).toList(),
@@ -130,6 +161,15 @@ class Ocorrencia {
       descricaoSituacao: json['descricaoSituacao'],
       cobrade: json['cobrade'] ?? OcorrenciaTipos.getCobradeCodigo(tipoStr),
       cobradeDescricao: json['cobradeDescricao'] ?? OcorrenciaTipos.getCobradeDescricao(tipoStr),
+      latitudeEnvio: (json['latitudeEnvio'] as num?)?.toDouble(),
+      longitudeEnvio: (json['longitudeEnvio'] as num?)?.toDouble(),
+      origemSuspeita: json['origemSuspeita'] ?? false,
+      latitudeIa: (json['latitudeIa'] as num?)?.toDouble(),
+      longitudeIa: (json['longitudeIa'] as num?)?.toDouble(),
+      confiancaIa: (json['confiancaIa'] as num?)?.toDouble(),
+      justificativaIa: json['justificativaIa'],
+      processadaIa: json['processadaIa'] ?? false,
+      totalRelatosCluster: json['totalRelatosCluster'] as int?,
       autor: json['autor'] != null ? Usuario.fromJson(json['autor']) : null,
       agentesAtribuidos: json['agentesAtribuidos'] != null
           ? (json['agentesAtribuidos'] as List)
@@ -177,6 +217,15 @@ class Ocorrencia {
     Usuario? autor,
     List<Usuario>? agentesAtribuidos,
     bool? isLocal,
+    double? latitudeEnvio,
+    double? longitudeEnvio,
+    bool? origemSuspeita,
+    double? latitudeIa,
+    double? longitudeIa,
+    double? confiancaIa,
+    String? justificativaIa,
+    bool? processadaIa,
+    int? totalRelatosCluster,
   }) {
     return Ocorrencia(
       id: id ?? this.id,
@@ -204,6 +253,15 @@ class Ocorrencia {
       autor: autor ?? this.autor,
       agentesAtribuidos: agentesAtribuidos ?? this.agentesAtribuidos,
       isLocal: isLocal ?? this.isLocal,
+      latitudeEnvio: latitudeEnvio ?? this.latitudeEnvio,
+      longitudeEnvio: longitudeEnvio ?? this.longitudeEnvio,
+      origemSuspeita: origemSuspeita ?? this.origemSuspeita,
+      latitudeIa: latitudeIa ?? this.latitudeIa,
+      longitudeIa: longitudeIa ?? this.longitudeIa,
+      confiancaIa: confiancaIa ?? this.confiancaIa,
+      justificativaIa: justificativaIa ?? this.justificativaIa,
+      processadaIa: processadaIa ?? this.processadaIa,
+      totalRelatosCluster: totalRelatosCluster ?? this.totalRelatosCluster,
     );
   }
 }

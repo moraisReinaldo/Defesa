@@ -144,6 +144,25 @@ class HiveService {
   bool get isSemAnunciosVitalicio =>
       _box.get(_chaveSemAnunciosVitalicio, defaultValue: false) as bool;
 
+  // =========================================================================
+  // ROTAS DE EMERGÊNCIA (CACHE OFFLINE EM TEMPO DE CRISE)
+  // =========================================================================
+  static const String _chaveRotasOffline = 'rotas_emergencia_cache';
+
+  Future<void> salvarRotasOffline(String cidade, List<Map<String, dynamic>> rotasJson) async {
+    final chave = '${_chaveRotasOffline}_${cidade.toLowerCase().replaceAll(" ", "_")}';
+    await _box.put(chave, rotasJson);
+  }
+
+  List<Map<String, dynamic>>? obterRotasOffline(String cidade) {
+    final chave = '${_chaveRotasOffline}_${cidade.toLowerCase().replaceAll(" ", "_")}';
+    final dados = _box.get(chave);
+    if (dados is List) {
+      return dados.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return null;
+  }
+
   /// Fecha a box do Hive (deve ser chamado ao fechar o app).
   Future<void> fechar() async {
     await _box.close();

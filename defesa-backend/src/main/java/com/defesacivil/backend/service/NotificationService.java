@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
+import com.defesacivil.backend.repository.UsuarioRepository;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -24,9 +25,11 @@ public class NotificationService {
     private String onesignalRestKey;
 
     private final RestTemplate restTemplate;
+    private final UsuarioRepository usuarioRepository;
 
-    public NotificationService() {
+    public NotificationService(UsuarioRepository usuarioRepository) {
         this.restTemplate = new RestTemplate();
+        this.usuarioRepository = usuarioRepository;
     }
 
     public void sendPushNotification(String userId, String title, String body) {
@@ -72,5 +75,20 @@ public class NotificationService {
             log.error("[OneSignal] Erro inesperado na execução assíncrona de push: {}", ex.getMessage(), ex);
             return null;
         });
+    }
+
+    /**
+     * Envia push para todos os admins/agentes de uma cidade.
+     * Usado para alertas internos como falhas de IA.
+     */
+    public void notificarAdminsPorCidade(String cidade, String titulo, String corpo) {
+        try {
+            List<String> adminIds = usuarioRepository.findAdminIdsByCidade(cidade);
+            if (!adminIds.isEmpty()) {
+                sendPushNotificationToUsers(adminIds, titulo, corpo);
+            }
+        } catch (Exception e) {
+            log.warn("[NotificationService] Erro ao notificar admins da cidade {}: {}", cidade, e.getMessage());
+        }
     }
 }

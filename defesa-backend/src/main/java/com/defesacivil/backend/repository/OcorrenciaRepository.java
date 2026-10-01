@@ -55,4 +55,32 @@ public interface OcorrenciaRepository extends JpaRepository<Ocorrencia, String> 
             Pageable pageable);
 
     Page<Ocorrencia> findByCidadeIgnoreCaseOrderByDataHoraDesc(String cidade, Pageable pageable);
+
+    /**
+     * Busca centroide geográfico de relatos similares próximos via PostGIS.
+     * Retorna Object[]{total, lat_media, lng_media} ou null se não houver registros.
+     * Raio em metros, janela em horas.
+     */
+    @Query(value = """
+        SELECT
+            COUNT(*)::integer AS total,
+            AVG(latitude)     AS lat_centro,
+            AVG(longitude)    AS lng_centro
+        FROM ocorrencias
+        WHERE tipo = :tipo
+          AND status NOT IN ('RECUSADA', 'RESOLVIDA')
+          AND data_hora >= NOW() - (:janela * INTERVAL '1 hour')
+          AND ST_DWithin(
+              geom::geography,
+              ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+              :raio
+          )
+        """, nativeQuery = true)
+    Object[] buscarCentroideProximo(
+            @Param("tipo")   String tipo,
+            @Param("lat")    double lat,
+            @Param("lng")    double lng,
+            @Param("raio")   int raioMetros,
+            @Param("janela") int janelasHoras
+    );
 }

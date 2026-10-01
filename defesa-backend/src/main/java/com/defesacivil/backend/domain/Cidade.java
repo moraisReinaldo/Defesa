@@ -139,6 +139,16 @@ public class Cidade {
         return getPlanoEfetivo().isPermiteCobradeOficial();
     }
 
+    @JsonProperty("recursoIaLiberado")
+    public boolean isRecursoIaLiberado() {
+        return getPlanoEfetivo().isPermiteIa();
+    }
+
+    @JsonProperty("recursoRotasEmergenciaLiberado")
+    public boolean isRecursoRotasEmergenciaLiberado() {
+        return getPlanoEfetivo().isPermiteRotasEmergencia();
+    }
+
     @JsonProperty("deveExibirAnuncios")
     public boolean deveExibirAnuncios() {
         return getPlanoEfetivo().isExibeAnuncios();

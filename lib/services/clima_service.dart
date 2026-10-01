@@ -112,17 +112,30 @@ class ClimaService {
     final lng = coords['lng']!;
 
     try {
-      final url =
-          'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lng&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation&daily=precipitation_sum&timezone=America%2FSao_Paulo&past_days=3';
+      // Chama o backend, que lida com a lógica de INMET/CEMADEN e fallback
+      final url = 'https://defesa.rhprogramer.com.br/api/clima?lat=$lat&lng=$lng';
 
+      // Usar a mesma instância de Dio configurada ou ApiService se preferir
+      // Por simplicidade (e para garantir o interceptor se necessário), mantemos o Dio local:
       final response = await _dio.get(url);
 
       if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
-        return DadosClimaticos.fromJson(response.data as Map<String, dynamic>);
+        final data = response.data as Map<String, dynamic>;
+        
+        // O backend retorna um ClimaDto que é ligeiramente diferente do json original do Open-Meteo.
+        return DadosClimaticos(
+          temperatura: (data['temperatura'] as num?)?.toDouble() ?? 25.0,
+          umidade: (data['umidade'] as num?)?.toDouble() ?? 50.0,
+          velocidadeVento: (data['velocidadeVento'] as num?)?.toDouble() ?? 10.0,
+          precipitacaoAtual: (data['precipitacaoAtual'] as num?)?.toDouble() ?? 0.0,
+          chuvaAcumulada24h: (data['chuvaAcumulada24h'] as num?)?.toDouble() ?? 0.0,
+          chuvaAcumulada48h: (data['chuvaAcumulada48h'] as num?)?.toDouble() ?? 0.0,
+          chuvaAcumulada72h: (data['chuvaAcumulada72h'] as num?)?.toDouble() ?? 0.0,
+        );
       }
       return null;
     } catch (e) {
-      if (kDebugMode) debugPrint('🚨 Erro ao buscar clima Open-Meteo: $e');
+      if (kDebugMode) debugPrint('🚨 Erro ao buscar clima do Backend (INMET/CEMADEN): $e');
       return null;
     }
   }

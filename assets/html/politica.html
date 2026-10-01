@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Política de Privacidade e Termos de Uso do aplicativo Defesa Civil em Foco, em conformidade com a LGPD (Lei nº 13.709/2018)." />
+  <title>Termos de Uso e Política de Privacidade — Defesa Civil em Foco</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Lato:ital,wght@0,300;0,400;0,700;1,300&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg:          #f4f6f9;
+      --surface:     #ffffff;
+      --surface2:    #eef1f7;
+      --border:      #dde3ed;
+      --accent:      #1a3faa;
+      --accent-lt:   #3b5fd6;
+      --accent-pale: #e8edfb;
+      --alert:       #d97706;
+      --alert-pale:  #fef3c7;
+      --green:       #15803d;
+      --green-pale:  #dcfce7;
+      --text:        #1e2535;
+      --muted:       #64748b;
+      --heading:     #0d1a3a;
+      --radius:      10px;
+      --shadow:      0 2px 16px rgba(15,30,80,.08);
+      --shadow-lg:   0 8px 40px rgba(15,30,80,.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Lato', sans-serif;
+      font-weight: 300;
+      line-height: 1.8;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--accent);
+      position: relative;
+      overflow: hidden;
+      padding: 56px 24px 64px;
+      text-align: center;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 70% 120% at 110% -10%, rgba(59,95,214,.55) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 80% at -10% 110%, rgba(217,119,6,.18) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 999px;
+      padding: 6px 18px;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.85);
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+      animation: fadeDown .6s ease both;
+    }
+
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.15;
+      position: relative;
+      z-index: 1;
+      animation: fadeDown .6s .1s ease both;
+    }
+    header h1 span {
+      display: block;
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      font-weight: 700;
+      color: rgba(255,255,255,.65);
+      margin-top: 6px;
+      font-family: 'Lato', sans-serif;
+      letter-spacing: .02em;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 32px;
+      position: relative;
+      z-index: 1;
+      animation: fadeDown .6s .2s ease both;
+    }
+    .meta-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: var(--radius);
+      padding: 8px 16px;
+      font-size: .82rem;
+      color: rgba(255,255,255,.8);
+    }
+    .meta-pill strong { color: #fff; font-weight: 700; }
+
+    /* ── ABAS INTERATIVAS (TABS) ── */
+    .tab-navigation-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-top: -28px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 100;
+      padding: 0 24px;
+      animation: fadeDown .6s .3s ease both;
+    }
+    .tab-navigation {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 6px;
+      display: inline-flex;
+      gap: 6px;
+      box-shadow: var(--shadow-lg);
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-family: 'Lato', sans-serif;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 10px 24px;
+      border-radius: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tab-btn svg {
+      transition: transform 0.25s ease;
+    }
+    .tab-btn:hover {
+      color: var(--accent);
+    }
+    .tab-btn:hover svg {
+      transform: translateY(-1px);
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(26, 63, 170, 0.25);
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 36px 24px 80px;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      .toc    { display: none; }
+    }
+
+    /* ── TOC ── */
+    .toc {
+      position: sticky;
+      top: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      animation: fadeIn .5s ease both;
+    }
+    .toc-container {
+      display: none;
+    }
+    .toc-container.active {
+      display: block;
+      animation: fadeInTOC 0.4s ease forwards;
+    }
+    @keyframes fadeInTOC {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .toc-title {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .toc ol { list-style: none; counter-reset: toc -1; }
+    .toc ol li { counter-increment: toc; margin-bottom: 4px; }
+    .toc ol li a {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: .83rem;
+      padding: 5px 8px;
+      border-radius: 6px;
+      transition: background .15s, color .15s;
+    }
+    .toc ol li a::before {
+      content: counter(toc, decimal-leading-zero);
+      font-size: .68rem;
+      font-weight: 700;
+      color: var(--accent);
+      flex-shrink: 0;
+      min-width: 22px;
+    }
+    .toc ol li a:hover { background: var(--accent-pale); color: var(--accent); }
+    .toc-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .toc-lgpd {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green-pale);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: .78rem;
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    /* ── SECTIONS & CONTENT ── */
+    .content { animation: fadeIn .5s .1s ease both; }
+
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fadeInContent 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes fadeInContent {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 40px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      transition: box-shadow .2s;
+      scroll-margin-top: 20px;
+    }
+    .section:hover { box-shadow: var(--shadow-lg); }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+    }
+    .section-num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--heading);
+      line-height: 1.3;
+    }
+
+    /* intro */
+    .section-intro { background: var(--accent); border-color: var(--accent); color: rgba(255,255,255,.85); }
+    .section-intro .section-header { border-color: rgba(255,255,255,.2); }
+    .section-intro h2 { color: #fff; }
+    .section-intro p  { color: rgba(255,255,255,.85); }
+    .intro-highlight {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: rgba(255,255,255,.1);
+      border-left: 4px solid rgba(255,255,255,.5);
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin-top: 20px;
+      font-size: .9rem;
+      color: rgba(255,255,255,.9);
+    }
+
+    p { margin-bottom: 16px; }
+    p:last-child { margin-bottom: 0; }
+    strong { font-weight: 700; color: var(--heading); }
+
+    /* data grid */
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .data-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .data-card-icon {
+      width: 36px; height: 36px;
+      background: var(--accent-pale);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--accent);
+    }
+    .data-card-title { font-size: .82rem; font-weight: 700; color: var(--heading); text-transform: uppercase; letter-spacing: .06em; }
+    .data-card-desc  { font-size: .83rem; color: var(--muted); line-height: 1.5; }
+
+    /* basis list */
+    .basis-list { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .basis-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+    .basis-tag {
+      font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      background: var(--accent); color: #fff;
+      border-radius: 6px; padding: 4px 10px;
+      white-space: nowrap; flex-shrink: 0; margin-top: 2px;
+    }
+    .basis-tag.public   { background: var(--alert); }
+    .basis-tag.contract { background: var(--green); }
+    .basis-tag.purple   { background: #6366f1; }
+    .basis-text { font-size: .88rem; color: var(--text); }
+    .basis-text strong { color: var(--heading); }
+
+    /* rights grid */
+    .rights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .right-card {
+      border: 1.5px solid var(--accent-pale);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      display: flex; flex-direction: column; gap: 6px;
+      transition: border-color .15s, background .15s;
+    }
+    .right-card:hover { border-color: var(--accent); background: var(--accent-pale); }
+    .right-card-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--accent); }
+    .right-card-desc  { font-size: .83rem; color: var(--muted); line-height: 1.5; }
+
+    /* security list */
+    .security-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+    .security-list li {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--green-pale);
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: .88rem; color: var(--green);
+    }
+    .security-list li strong { color: var(--green); font-weight: 700; }
+    .check-icon {
+      width: 20px; height: 20px;
+      background: var(--green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* alert box */
+    .alert-box {
+      display: flex; gap: 14px;
+      background: var(--alert-pale);
+      border: 1px solid #fcd34d;
+      border-left: 4px solid var(--alert);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-top: 20px;
+      font-size: .88rem; color: #92400e;
+    }
+
+    /* share table */
+    .share-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: .87rem; }
+    .share-table th {
+      background: var(--accent); color: #fff;
+      padding: 10px 16px; text-align: left;
+      font-weight: 700; font-size: .78rem;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+    .share-table th:first-child { border-radius: 8px 0 0 0; }
+    .share-table th:last-child  { border-radius: 0 8px 0 0; }
+    .share-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    .share-table tr:last-child td { border-bottom: none; }
+    .share-table tr:nth-child(even) td { background: var(--surface2); }
+
+    /* contact card */
+    .contact-card {
+      background: var(--accent);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      display: flex; flex-wrap: wrap;
+      align-items: center; justify-content: space-between;
+      gap: 20px; margin-top: 8px;
+    }
+    .contact-card-text h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #fff; margin-bottom: 6px; }
+    .contact-card-text p  { font-size: .85rem; color: rgba(255,255,255,.75); margin: 0; }
+    .contact-email {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 999px; padding: 10px 22px;
+      color: #fff; font-size: .9rem; font-weight: 700;
+      text-decoration: none; transition: background .15s;
+    }
+    .contact-email:hover { background: rgba(255,255,255,.25); }
+
+    /* footer */
+    footer {
+      background: var(--heading);
+      color: rgba(255,255,255,.5);
+      text-align: center;
+      padding: 28px 24px;
+      font-size: .82rem;
+    }
+    footer strong { color: rgba(255,255,255,.8); }
+    footer .footer-links { display: flex; justify-content: center; gap: 20px; margin-top: 10px; flex-wrap: wrap; }
+    footer .footer-links a { color: rgba(255,255,255,.4); text-decoration: none; transition: color .15s; font-size: .78rem; }
+    footer .footer-links a:hover { color: rgba(255,255,255,.8); }
+
+    /* progress + back-to-top */
+    #progress {
+      position: fixed; top: 0; left: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-lt));
+      width: 0%; z-index: 999; transition: width .1s linear;
+    }
+    #back-top {
+      position: fixed; bottom: 28px; right: 28px;
+      width: 44px; height: 44px;
+      background: var(--accent); border: none; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(26,63,170,.35);
+      opacity: 0; transform: translateY(12px);
+      transition: opacity .25s, transform .25s; z-index: 100;
+    }
+    #back-top.visible { opacity: 1; transform: translateY(0); }
+    #back-top:hover   { background: var(--accent-lt); }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .section  { padding: 24px 20px; }
+      .layout   { padding: 28px 16px 60px; }
+      .data-grid, .rights-grid { grid-template-columns: 1fr 1fr; }
+      .share-table { font-size: .8rem; }
+      .contact-card { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<button id="back-top" aria-label="Voltar ao topo">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="18 15 12 9 6 15"/>
+  </svg>
+</button>
+
+<!-- HEADER -->
+<header>
+  <div class="header-badge">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    Em conformidade com a LGPD — Lei nº 13.709/2018
+  </div>
+  <h1>
+    Políticas e Termos Gerais
+    <span>Defesa Civil em Foco</span>
+  </h1>
+  <div class="header-meta">
+    <div class="meta-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Última atualização: <strong>15 de setembro de 2026</strong>
+    </div>
+    <div class="meta-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Versão <strong>4.0</strong>
+    </div>
+    <div class="meta-pill">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      Android, iOS &amp; Web
+    </div>
+  </div>
+</header>
+
+<!-- INTERACTIVE TAB SWITCHER -->
+<div class="tab-navigation-wrapper">
+  <div class="tab-navigation">
+    <button class="tab-btn active" data-tab="privacidade" id="btn-privacidade">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Política de Privacidade
+    </button>
+    <button class="tab-btn" data-tab="termos" id="btn-termos">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Termos de Uso
+    </button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- TOC (DYNAMIC) -->
+  <nav class="toc" aria-label="Índice">
+    
+    <!-- TOC PRIVACIDADE -->
+    <div id="toc-privacidade" class="toc-container active">
+      <div class="toc-title">Índice · Privacidade</div>
+      <ol>
+        <li><a href="#intro">Apresentação</a></li>
+        <li><a href="#coleta">Dados Coletados</a></li>
+        <li><a href="#base-legal">Base Legal (LGPD)</a></li>
+        <li><a href="#uso">Uso dos Dados</a></li>
+        <li><a href="#compartilhamento">Compartilhamento</a></li>
+        <li><a href="#direitos">Seus Direitos</a></li>
+        <li><a href="#seguranca">Segurança</a></li>
+        <li><a href="#retencao">Retenção de Dados</a></li>
+        <li><a href="#pagamentos">Pagamentos e Transações</a></li>
+        <li><a href="#cookies">Cookies e Rastreadores</a></li>
+        <li><a href="#menores">Menores de Idade</a></li>
+        <li><a href="#alteracoes">Alterações na Política</a></li>
+        <li><a href="#contato">Contato e DPO</a></li>
+      </ol>
+    </div>
+
+    <!-- TOC TERMOS -->
+    <div id="toc-termos" class="toc-container">
+      <div class="toc-title">Índice · Termos de Uso</div>
+      <ol>
+        <li><a href="#termos-intro">Apresentação</a></li>
+        <li><a href="#termos-aceitacao">Aceitação dos Termos</a></li>
+        <li><a href="#termos-cadastro">Cadastro e Segurança</a></li>
+        <li><a href="#termos-propriedade">Propriedade do Conteúdo</a></li>
+        <li><a href="#termos-responsabilidade">Direitos e Fotos</a></li>
+        <li><a href="#termos-conduta">Conduta e Proibições</a></li>
+        <li><a href="#termos-limitacao">Limitação Técnica</a></li>
+        <li><a href="#termos-planos">Planos Municipais</a></li>
+        <li><a href="#termos-exclusao">Exclusão de Conta</a></li>
+        <li><a href="#termos-alteracoes">Modificações nos Termos</a></li>
+        <li><a href="#termos-foro">Legislação e Foro</a></li>
+      </ol>
+    </div>
+
+    <hr class="toc-divider" />
+    <div class="toc-lgpd">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Conforme LGPD nº 13.709/2018
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="content">
+
+    <!-- TAB 1: POLÍTICA DE PRIVACIDADE -->
+    <div id="tab-content-privacidade" class="tab-content active">
+      
+      <!-- 0. INTRO -->
+      <section class="section section-intro" id="intro">
+        <div class="section-header">
+          <div class="section-num" style="background:rgba(255,255,255,.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h2>Apresentação</h2>
+        </div>
+        <p>
+          O <strong>Defesa Civil em Foco</strong> é um aplicativo criado para facilitar o registro, o acompanhamento e a resposta a ocorrências de desastres e riscos naturais, conectando cidadãos e agentes da Defesa Civil em tempo real.
+        </p>
+        <p>
+          Estamos comprometidos com a proteção dos seus dados pessoais e com a total transparência sobre como as suas informações são tratadas. Esta Política de Privacidade foi elaborada em conformidade com a <strong>Lei Geral de Proteção de Dados Pessoais (LGPD) — Lei Federal nº 13.709/2018</strong>.
+        </p>
+        <div class="intro-highlight">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Ao utilizar o aplicativo, você declara ter lido e compreendido esta política. Em caso de dúvidas, entre em contato com nosso Encarregado de Dados (DPO) antes de prosseguir.</span>
+        </div>
+      </section>
+
+      <!-- 1. DADOS COLETADOS -->
+      <section class="section" id="coleta">
+        <div class="section-header">
+          <div class="section-num">1</div>
+          <h2>Dados que Coletamos</h2>
+        </div>
+        <p>Para fornecer as funcionalidades do aplicativo e aprimorar continuamente nossos serviços públicos de proteção civil, coletamos os seguintes dados pessoais:</p>
+
+        <div class="data-grid">
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div class="data-card-title">Dados Cadastrais</div>
+            <div class="data-card-desc">Nome completo, e-mail, número de telefone e senha (armazenada com hash BCrypt irreversível).</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="data-card-title">Localização GPS</div>
+            <div class="data-card-desc">Localização geográfica precisa, coletada somente enquanto o app está em uso para registro de ocorrências.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div class="data-card-title">Fotos e Mídia</div>
+            <div class="data-card-desc">Imagens capturadas pelo usuário ou de sua galeria para documentar ocorrências, armazenadas em servidor MinIO auto-hospedado.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div class="data-card-title">Token de Notificação</div>
+            <div class="data-card-desc">Token FCM / OneSignal para envio de alertas urgentes de emergência, atualizações de status e alertas municipais por cidade.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="data-card-title">Dados do Dispositivo</div>
+            <div class="data-card-desc">Modelo do aparelho, versão do sistema operacional e identificadores técnicos para diagnóstico de falhas.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="data-card-title">Dados das Ocorrências</div>
+            <div class="data-card-desc">Descrição, categoria de risco, código COBRADE oficial, data, hora, fotos anexadas, status de aprovação e parecer técnico de cada reporte.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            </div>
+            <div class="data-card-title">Dados do Google Analytics</div>
+            <div class="data-card-desc">Eventos de clique, telas visitadas, tempo de permanência, fluxo de navegação e metadados técnicos de telemetria.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+            </div>
+            <div class="data-card-title">Identificadores de Anúncio</div>
+            <div class="data-card-desc">Identificadores de publicidade do celular (GAID no Android, IDFA no iOS) usados por redes parceiras para exibir anúncios integrados.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="data-card-title">Cidade e Município</div>
+            <div class="data-card-desc">Município vinculado ao perfil do usuário, utilizado para segmentar alertas, ocorrências e funcionalidades por região geográfica.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div class="data-card-title">Código de Reset de Senha</div>
+            <div class="data-card-desc">Código temporário enviado por e-mail para redefinição segura de senha, com expiração automática e limite de tentativas.</div>
+          </div>
+          <div class="data-card">
+            <div class="data-card-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            </div>
+            <div class="data-card-title">Dados de Pagamento</div>
+            <div class="data-card-desc">Transações de planos municipais processadas integralmente pelo Stripe. Dados de cartão <strong>não</strong> são armazenados em nossos servidores.</div>
+          </div>
+        </div>
+
+        <div class="alert-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span><strong>Controle de Permissões:</strong> A coleta de GPS e o acesso à galeria/câmera dependem exclusivamente de sua concessão explícita. O usuário detém a propriedade das fotos enviadas (conforme detalhado nos Termos de Uso) e pode revogar as permissões a qualquer momento em seu aparelho.</span>
+        </div>
+      </section>
+
+      <!-- 2. BASE LEGAL -->
+      <section class="section" id="base-legal">
+        <div class="section-header">
+          <div class="section-num">2</div>
+          <h2>Base Legal para o Tratamento (LGPD)</h2>
+        </div>
+        <p>Todo tratamento de dados pessoais realizado em nosso sistema está amparado em bases legais expressas no Art. 7º da Lei Federal nº 13.709/2018:</p>
+
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Consentimento</span>
+            <div class="basis-text">
+              <strong>Art. 7º, I da LGPD.</strong> Obtido ao realizar o cadastro inicial, conceder acesso à localização (GPS) e à câmera/galeria de fotos. O consentimento é voluntário e revogável a qualquer momento por solicitação do usuário ou exclusão do perfil.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Execução de Serviço</span>
+            <div class="basis-text">
+              <strong>Art. 7º, V da LGPD.</strong> Aplicável aos dados essenciais para o funcionamento básico da conta, como e-mail para autenticação de segurança e geolocalização para validação da localização geográfica das ocorrências de risco.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag public">Interesse Público</span>
+            <div class="basis-text">
+              <strong>Art. 7º, III e Art. 23 da LGPD.</strong> Tendo em vista a cooperação da plataforma com a Defesa Civil, relatos e fotos de áreas sob perigo iminente possuem impacto direto na segurança pública, no combate a sinistros e no salvamento de vidas humanas.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Legítimo Interesse</span>
+            <div class="basis-text">
+              <strong>Art. 7º, IX da LGPD.</strong> Utilizado na coleta de dados analíticos agregados e pseudonimizados (Google Analytics) para aprimoramento de erros no software, otimização de telas e aferição de estabilidade do aplicativo móvel e do portal web.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. USO -->
+      <section class="section" id="uso">
+        <div class="section-header">
+          <div class="section-num">3</div>
+          <h2>Como Usamos Seus Dados</h2>
+        </div>
+        <p>Seus dados pessoais são tratados estritamente para as seguintes finalidades legítimas:</p>
+
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Registro</span>
+            <div class="basis-text">Criar, autenticar e validar o perfil do cidadão, permitindo o registro correto e rastreável de relatos de emergência civil.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Comunicação</span>
+            <div class="basis-text">Disparar alertas em tempo real através do FCM (notificações push) sobre novos incidentes na região ou atualizações do andamento das ocorrências enviadas.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag public">Resposta Operacional</span>
+            <div class="basis-text">Permitir que agentes municipais ou estaduais da Defesa Civil visualizem o mapa de calor de incidentes, localizem as fotos anexas e despachem auxílio a campo.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Melhoria do Serviço</span>
+            <div class="basis-text">Analisar padrões de uso consolidados e falhas operacionais usando o Google Analytics para refinar fluxos internos, assegurar o melhor tempo de resposta e consertar travamentos do app.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag">Exibição de Anúncios</span>
+            <div class="basis-text">Exibir publicidade integrada dentro do aplicativo móvel para custear o desenvolvimento contínuo, cobrir despesas de infraestrutura e manter a gratuidade dos serviços públicos para a população.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. COMPARTILHAMENTO -->
+      <section class="section" id="compartilhamento">
+        <div class="section-header">
+          <div class="section-num">4</div>
+          <h2>Compartilhamento de Dados</h2>
+        </div>
+        <p>Garantimos contratualmente que <strong>não comercializamos seus dados em troca de dinheiro</strong> com anunciantes. O compartilhamento ocorre apenas para fins operacionais e estatísticos necessários:</p>
+
+        <table class="share-table">
+          <thead>
+            <tr>
+              <th>Destinatário</th>
+              <th>Finalidade</th>
+              <th>Base Legal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Agentes e Administradores Municipais</strong></td>
+              <td>Atendimento operacional direto, aprovação de ocorrências, despacho de agentes em campo e emissão de alertas municipais.</td>
+              <td>Interesse Público (Art. 7º, III)</td>
+            </tr>
+            <tr>
+              <td><strong>Infraestrutura Própria (PostgreSQL / MinIO)</strong></td>
+              <td>Armazenamento seguro de dados cadastrais em banco relacional PostgreSQL e de fotos em servidor de objetos MinIO, ambos auto-hospedados em infraestrutura própria com Docker.</td>
+              <td>Execução de Serviço (Art. 7º, V)</td>
+            </tr>
+            <tr>
+              <td><strong>OneSignal Inc.</strong></td>
+              <td>Entrega de notificações push de alertas de emergência, atualizações de ocorrências e alertas municipais por cidade.</td>
+              <td>Execução de Serviço (Art. 7º, V)</td>
+            </tr>
+            <tr>
+              <td><strong>Stripe Inc.</strong></td>
+              <td>Processamento seguro de pagamentos de planos municipais (Gestão Municipal e Pro Municipal). Certificação PCI-DSS Level 1. Dados de cartão nunca transitam por nossos servidores.</td>
+              <td>Execução de Serviço (Art. 7º, V)</td>
+            </tr>
+            <tr>
+              <td><strong>Provedor de E-mail (SMTP)</strong></td>
+              <td>Envio de códigos de redefinição de senha e comunicações operacionais de segurança do perfil do usuário.</td>
+              <td>Execução de Serviço (Art. 7º, V)</td>
+            </tr>
+            <tr>
+              <td><strong>Google LLC (Google Analytics)</strong></td>
+              <td>Processamento agregado de estatísticas de cliques e telemetria comportamental (pseudonimizado).</td>
+              <td>Legítimo Interesse (Art. 7º, IX)</td>
+            </tr>
+            <tr>
+              <td><strong>Redes de Publicidade (ex: Google AdMob / Unity Ads)</strong></td>
+              <td>Exibição de anúncios contextualizados, limite de visualizações repetidas e métricas de campanhas publicitárias.</td>
+              <td>Consentimento (Art. 7º, I) / Legítimo Interesse (Art. 7º, IX)</td>
+            </tr>
+            <tr>
+              <td><strong>Autoridades Judiciais</strong></td>
+              <td>Cumprimento estrito de dever legal ou ordem judicial em investigação penal/civil.</td>
+              <td>Obrigação Legal (Art. 7º, II)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p style="margin-top:14px; font-size:.85rem; color:var(--muted);">
+          Todos os operadores terceiros são vinculados a obrigações contratuais rígidas de confidencialidade e segurança da informação, alinhados com a LGPD brasileira.
+        </p>
+      </section>
+
+      <!-- 5. DIREITOS -->
+      <section class="section" id="direitos">
+        <div class="section-header">
+          <div class="section-num">5</div>
+          <h2>Seus Direitos — Art. 18 da LGPD</h2>
+        </div>
+        <p>A LGPD assegura que o titular possui controle absoluto sobre seus dados pessoais, podendo requerer a qualquer momento ao DPO da plataforma:</p>
+
+        <div class="rights-grid">
+          <div class="right-card">
+            <div class="right-card-title">Confirmação</div>
+            <div class="right-card-desc">Confirmar a existência de qualquer tratamento de seus dados pessoais em nosso servidor.</div>
+          </div>
+          <div class="right-card">
+            <div class="right-card-title">Acesso</div>
+            <div class="right-card-desc">Obter um relatório legível de todos os dados do seu perfil cadastrados no banco de dados.</div>
+          </div>
+          <div class="right-card">
+            <div class="right-card-title">Correção</div>
+            <div class="right-card-desc">Alterar informações desatualizadas, incorretas, incompletas ou com erros de grafia.</div>
+          </div>
+          <div class="right-card">
+            <div class="right-card-title">Eliminação</div>
+            <div class="right-card-desc">Solicitar a exclusão completa e definitiva do seu cadastro e dados sob consentimento.</div>
+          </div>
+          <div class="right-card">
+            <div class="right-card-title">Portabilidade</div>
+            <div class="right-card-desc">Exportar seus dados cadastrais em formato aberto estruturado para migração a outras ferramentas.</div>
+          </div>
+          <div class="right-card">
+            <div class="right-card-title">Revogação</div>
+            <div class="right-card-desc">Retirar seu consentimento para localização, notificações ou acesso de mídia a qualquer instante.</div>
+          </div>
+          <div class="right-card">
+            <div class="right-card-title">Informação</div>
+            <div class="right-card-desc">Identificar quais órgãos ou empresas integradas possuem acesso compartilhado aos dados coletados.</div>
+          </div>
+          <div class="right-card">
+            <div class="right-card-title">Oposição</div>
+            <div class="right-card-desc">Contestar tratamentos fundamentados em legítimo interesse que infrinjam direitos individuais.</div>
+          </div>
+        </div>
+
+        <p style="margin-top:18px; font-size:.87rem; color:var(--muted);">
+          Pedidos relacionados a direitos do titular serão respondidos sem ônus em até <strong>15 dias úteis</strong>. Para requisições, envie uma mensagem para o e-mail: <strong style="color:var(--accent);">reinaldoinfra07@gmail.com</strong>.
+        </p>
+      </section>
+
+      <!-- 6. SEGURANÇA -->
+      <section class="section" id="seguranca">
+        <div class="section-header">
+          <div class="section-num">6</div>
+          <h2>Segurança dos Dados</h2>
+        </div>
+        <p>Garantimos a integridade de sua privacidade por meio de medidas organizacionais robustas alinhadas aos melhores padrões mundiais de segurança digital:</p>
+
+        <ul class="security-list">
+          <li>
+            <div class="check-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span><strong>Criptografia Forte:</strong> Armazenamento de credenciais via hashing irreversível do algoritmo BCrypt com Spring Security.</span>
+          </li>
+          <li>
+            <div class="check-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span><strong>Segurança no Tráfego:</strong> Todo tráfego entre cliente (app) e servidor blindado por HTTPS sob protocolos TLS 1.2 e TLS 1.3, com Nginx como reverse-proxy.</span>
+          </li>
+          <li>
+            <div class="check-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span><strong>Autenticação JWT Stateless:</strong> Tokens JWT assinados com chave secreta para autenticação sem estado, eliminando riscos de sessão do lado do servidor.</span>
+          </li>
+          <li>
+            <div class="check-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span><strong>Controle de Acesso RBAC:</strong> Sistema de papéis hierárquicos (Cidadão, Agente, Administrador, Super Admin) com Spring Security garantindo que cada rota é protegida conforme o nível de permissão.</span>
+          </li>
+          <li>
+            <div class="check-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span><strong>Rate Limiting:</strong> Filtro de limitação de requisições por IP integrado ao backend para proteção contra ataques de força bruta e abuso de API.</span>
+          </li>
+          <li>
+            <div class="check-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span><strong>Defesa contra Engenharia Reversa:</strong> Código do aplicativo compilado com ProGuard/R8 para ofuscação contra invasões.</span>
+          </li>
+          <li>
+            <div class="check-icon"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <span><strong>Infraestrutura Dockerizada:</strong> Backend Spring Boot executando em containers Docker com Nginx como load balancer, CORS restrito e health checks automáticos.</span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- 7. RETENÇÃO -->
+      <section class="section" id="retencao">
+        <div class="section-header">
+          <div class="section-num">7</div>
+          <h2>Retenção e Exclusão de Dados</h2>
+        </div>
+        <p>Seus dados são retidos no sistema exclusivamente durante o período em que forem necessários para cumprir seus objetivos legais primários:</p>
+
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Cadastro Ativo</span>
+            <div class="basis-text">Perfil do usuário e histórico de chamados ativos são guardados por tempo indeterminado enquanto a conta do cidadão permanecer registrada.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Exclusão pelo App</span>
+            <div class="basis-text">O próprio usuário pode solicitar a exclusão definitiva de sua conta diretamente pelo aplicativo. Ao confirmar, os dados pessoais (nome, e-mail, telefone, senha) são apagados permanentemente em até <strong>30 dias</strong> de nossas bases ativas.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag public">Retenção de Ocorrências</span>
+            <div class="basis-text">Pelo princípio do interesse público e utilidade estatística de desastres, os relatos georreferenciados em nosso mapa histórico de risco poderão ser mantidos de forma <strong>totalmente anonimizada</strong> (desvinculando permanentemente o nome ou telefone do autor original).</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Dados de Pagamento</span>
+            <div class="basis-text">Transações de planos municipais são processadas e retidas pelo <strong>Stripe</strong> conforme as políticas próprias do processador. Nenhum dado de cartão de crédito é armazenado em nossos servidores em momento algum.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag">Códigos Temporários</span>
+            <div class="basis-text">Códigos de redefinição de senha expiram automaticamente após o prazo configurado e são removidos da base de dados após utilização ou expiração.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. DADOS DE PAGAMENTO E TRANSAÇÕES -->
+      <section class="section" id="pagamentos">
+        <div class="section-header">
+          <div class="section-num">8</div>
+          <h2>Dados de Pagamento e Transações</h2>
+        </div>
+        <p>O <strong>Defesa Civil em Foco</strong> oferece planos municipais pagos (Gestão Municipal e Pro Municipal) para cidades que desejam recursos avançados. Todos os pagamentos são processados exclusivamente pelo <strong>Stripe Inc.</strong>, uma plataforma certificada <strong>PCI-DSS Level 1</strong>.</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Segurança PCI-DSS</span>
+            <div class="basis-text">Dados de cartão de crédito, débito ou qualquer método de pagamento <strong>nunca transitam, são processados ou armazenados</strong> em nossos servidores. Todo o fluxo financeiro ocorre integralmente nos servidores seguros do Stripe.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Dados Retidos</span>
+            <div class="basis-text">Armazenamos apenas o identificador do cliente Stripe (<code>stripeCustomerId</code>) e o identificador da assinatura (<code>stripeSubscriptionId</code>) para vincular o plano à cidade correspondente. Esses IDs não contêm dados financeiros sensíveis.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Cancelamento</span>
+            <div class="basis-text">O cancelamento de assinaturas pode ser realizado a qualquer momento. Ao cancelar, a cidade retorna automaticamente ao plano Base Gratuito ao final do período já pago.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. COOKIES E RASTREADORES -->
+      <section class="section" id="cookies">
+        <div class="section-header">
+          <div class="section-num">9</div>
+          <h2>Cookies, Rastreadores e Rede de Anúncios</h2>
+        </div>
+        <p>
+          O aplicativo móvel <strong>não emprega cookies tradicionais</strong>, mas integra os SDKs do <strong>Google Analytics</strong>, <strong>OneSignal</strong> (notificações push) e de <strong>parceiros de publicidade (como Google AdMob)</strong> para fins de telemetria, medição de conversão e veiculação de anúncios. Na versão web, cookies temporários de armazenamento local (localStorage) são ativados estritamente para manter a sessão autenticada do usuário via JWT.
+        </p>
+        <p>
+          <strong>Uso de Anúncios e "Venda/Compartilhamento" de Dados:</strong> O aplicativo exibe anúncios para viabilizar sua infraestrutura de forma gratuita para a sociedade (plano Base Gratuito). Usuários de cidades com planos pagos (Gestão Municipal ou Pro Municipal) e usuários com a compra "Sem Anúncios Vitalício" não visualizam publicidade. Para os demais, os SDKs de anúncios coletam dados técnicos de seu aparelho (como modelo, sistema operacional, IP e identificadores de publicidade móvel — GAID no Android e IDFA no iOS). Sob escopo amplo da LGPD (e regimes afins como GDPR/CCPA), o envio automático desses IDs técnicos para redes de anúncios parceiras pode configurar compartilhamento/venda de dados comportamentais. Esses parceiros utilizam os dados unicamente para apresentar anúncios mais úteis e evitar a exibição reiterada do mesmo anúncio.
+        </p>
+        <p>
+          <strong>Como desativar a Publicidade Personalizada (Opt-Out):</strong> Você pode desativar o rastreamento e redefinir/bloquear os identificadores de publicidade diretamente no painel de privacidade de seu aparelho móvel:
+          <br />· <strong>No Android:</strong> Vá em Configurações > Privacidade > Anúncios > selecione "Excluir ID de Publicidade".
+          <br />· <strong>No iOS:</strong> Vá em Ajustes > Privacidade e Segurança > Rastreamento > desative o rastreamento para apps.
+        </p>
+      </section>
+
+      <!-- 10. MENORES DE IDADE -->
+      <section class="section" id="menores">
+        <div class="section-header">
+          <div class="section-num">10</div>
+          <h2>Menores de Idade</h2>
+        </div>
+        <p>O <strong>Defesa Civil em Foco</strong> não se destina a captar intencionalmente dados de crianças menores de 13 anos. Em total observância ao Art. 14 da LGPD, solicitamos que o cadastro e uso do aplicativo sejam feitos sob tutela e orientação direta de pais ou responsáveis legais.</p>
+        <p>Caso o DPO da plataforma seja notificado de qualquer registro acidental sem a referida anuência legal, procederemos com a deleção imediata e definitiva de qualquer dado armazenado em nossa base.</p>
+      </section>
+
+      <!-- 11. ALTERAÇÕES NA POLÍTICA -->
+      <section class="section" id="alteracoes">
+        <div class="section-header">
+          <div class="section-num">11</div>
+          <h2>Alterações na Política de Privacidade</h2>
+        </div>
+        <p>Esta política pode sofrer reajustes operacionais ou correções legislativas ao longo do tempo. Quando houver qualquer modificação estrutural relevante em nossos fluxos de dados:</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Notificação Prévia</span>
+            <div class="basis-text">O usuário será amplamente avisado por e-mail registrado ou aviso direto em formato push no aplicativo, com no mínimo <strong>15 dias de antecedência</strong> à data de entrada em vigor.</div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Controle de Versão</span>
+            <div class="basis-text">O cabeçalho superior desta página exibirá a data da modificação mais recente e a numeração da versão ativa. Históricos de políticas antigas podem ser requisitados ao DPO.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12. CONTATO E DPO -->
+      <section class="section" id="contato">
+        <div class="section-header">
+          <div class="section-num">12</div>
+          <h2>Contato e Encarregado de Dados (DPO)</h2>
+        </div>
+        <p>Se você deseja exercer qualquer um dos seus direitos listados na seção 5, formular reclamações ou solucionar dúvidas operacionais sobre proteção de dados, fale com nosso DPO oficial:</p>
+
+        <div class="contact-card">
+          <div class="contact-card-text">
+            <h3>Encarregado de Dados (DPO)</h3>
+            <p>Equipe Defesa Civil em Foco &nbsp;·&nbsp; Brasil</p>
+            <p style="margin-top:4px;font-size:.8rem;color:rgba(255,255,255,.6);">Resoluções em até 15 dias úteis</p>
+          </div>
+          <a class="contact-email" href="mailto:reinaldoinfra07@gmail.com">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            reinaldoinfra07@gmail.com
+          </a>
+        </div>
+
+        <p style="margin-top:18px; font-size:.85rem; color:var(--muted);">
+          Adicionalmente, você possui direito legal de submeter requerimentos formais perante a <strong>Autoridade Nacional de Proteção de Dados (ANPD)</strong> através dos canais federais eletrônicos: <a href="https://www.gov.br/anpd" target="_blank" rel="noopener noreferrer" style="color:var(--accent);font-weight:700;">gov.br/anpd</a>.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- TAB 2: TERMOS DE USO -->
+    <div id="tab-content-termos" class="tab-content">
+      
+      <!-- 0. TERMOS INTRO -->
+      <section class="section section-intro" id="termos-intro">
+        <div class="section-header">
+          <div class="section-num" style="background:rgba(255,255,255,.2);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <h2>Termos de Uso</h2>
+        </div>
+        <p>
+          Seja bem-vindo ao aplicativo <strong>Defesa Civil em Foco</strong>. Os presentes Termos de Uso regulam o acesso, o cadastro e a utilização dos serviços e recursos oferecidos em nosso aplicativo para dispositivos móveis e em nossa plataforma de internet associada.
+        </p>
+        <p>
+          Este documento constitui um contrato vinculante entre você (usuário) e os administradores da plataforma. Ao criar sua conta, você reconhece que leu, compreendeu e concordou integralmente com todas as disposições aqui firmadas.
+        </p>
+        <div class="intro-highlight">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>Atenção: A utilização deste aplicativo pressupõe boa-fé. O envio deliberado de informações falsas ou fraudes operacionais acarretará o banimento imediato de sua conta, além de potenciais sanções criminais previstas em lei.</span>
+        </div>
+      </section>
+
+      <!-- 1. ACEITAÇÃO DOS TERMOS -->
+      <section class="section" id="termos-aceitacao">
+        <div class="section-header">
+          <div class="section-num">1</div>
+          <h2>Aceitação dos Termos</h2>
+        </div>
+        <p>A aceitação destes Termos ocorre no exato instante em que você conclui o seu cadastro inicial na plataforma, marcando a caixa de consentimento obrigatória. Se você não concorda com qualquer uma das regras ou diretrizes descritas, você deve imediatamente cessar o acesso e desinstalar o aplicativo de seu aparelho.</p>
+        <p>Estes termos poderão ser revisados periodicamente. A continuidade da utilização do aplicativo após a divulgação de atualizações será considerada como aceitação inequívoca dos novos termos em vigor.</p>
+      </section>
+
+      <!-- 2. CADASTRO E SEGURANÇA -->
+      <section class="section" id="termos-cadastro">
+        <div class="section-header">
+          <div class="section-num">2</div>
+          <h2>Cadastro, Papéis e Segurança das Credenciais</h2>
+        </div>
+        <p>Para interagir com o mapa de riscos e reportar ocorrências, o usuário deve preencher o cadastro declarando informações verídicas e atualizadas, vinculando seu perfil a uma <strong>cidade cadastrada</strong> na plataforma. É estritamente proibido criar contas falsas, utilizar dados de terceiros ou se passar por agentes públicos.</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Sigilo da Senha</span>
+            <div class="basis-text">
+              A guarda e o sigilo de sua senha de acesso são de sua inteira responsabilidade. Caso desconfie que terceiros descobriram suas credenciais, utilize o fluxo de <strong>redefinição de senha por e-mail</strong> (código temporário com expiração e limite de tentativas) ou altere-a diretamente no aplicativo.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Responsabilidade Cadastral</span>
+            <div class="basis-text">
+              Qualquer ato ilegal, falso relato de desastre ou envio de spam originado de sua conta logada será legalmente imputado a você, titular do perfil cadastrado, devido ao rastreamento técnico do cadastro e logs de IP.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Papéis de Usuário</span>
+            <div class="basis-text">
+              O sistema opera com hierarquia de papéis: <strong>Cidadão</strong> (usuário padrão), <strong>Agente</strong> (profissional da Defesa Civil em campo), <strong>Administrador</strong> (gestor municipal) e <strong>Super Admin</strong> (administração global da plataforma). O acesso a funcionalidades avançadas (aprovação de ocorrências, emissão de alertas, pontos de interesse, dashboard) depende do papel atribuído e do plano contratado pela cidade.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. PROPRIEDADE INTELECTUAL -->
+      <section class="section" id="termos-propriedade">
+        <div class="section-header">
+          <div class="section-num">3</div>
+          <h2>Propriedade Intelectual do Usuário (Seus Relatos e Fotos)</h2>
+        </div>
+        <p>Respeitamos integralmente os criadores de conteúdo e garantimos os direitos sobre o material enviado:</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Sua Propriedade</span>
+            <div class="basis-text">
+              <strong>O usuário detém a propriedade intelectual exclusiva</strong> sobre todas as ocorrências cadastradas, descrições em formato de texto, relatos de incidentes e, primordialmente, sobre <strong>todas as fotos e arquivos multimídia</strong> que enviar à plataforma.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Licença de Uso Operacional</span>
+            <div class="basis-text">
+              Ao postar ou anexar fotos em relatos de ocorrências de risco, você outorga ao aplicativo <strong>Defesa Civil em Foco</strong> e aos órgãos de segurança pública e defesa civil vinculados uma licença gratuita, perpétua, mundial, não exclusiva, transferível e sublicenciável para hospedar, processar, reproduzir, redimensionar, exibir publicamente em mapas de risco e compartilhar tais dados com as autoridades competentes para a <strong>estrita finalidade de mapeamento de desastres, resgates, mitigação de riscos civis e proteção da vida humana</strong>.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. RESPONSABILIDADE PELAS FOTOS -->
+      <section class="section" id="termos-responsabilidade">
+        <div class="section-header">
+          <div class="section-num">4</div>
+          <h2>Responsabilidade Exclusiva Pelas Fotos e Direitos Autorais</h2>
+        </div>
+        <p>Para assegurar a lisura jurídica e proteger nossa plataforma, o usuário concorda e assume as seguintes condições:</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag public">Garantias do Usuário</span>
+            <div class="basis-text">
+              Ao enviar qualquer foto ou imagem, você garante expressamente ser o autor original da mesma ou possuir todas as licenças, cessões, direitos de imagem e autorizações necessárias dos detentores do direito autoral e das pessoas retratadas na foto.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Isenção de Responsabilidade</span>
+            <div class="basis-text">
+              A plataforma Defesa Civil em Foco, seus mantenedores, parceiros governamentais e desenvolvedores <strong>isentam-se de forma total, irrestrita e absoluta de qualquer responsabilidade civil ou penal</strong> decorrente do upload de fotos não autorizadas, imagens sob direitos autorais protegidos, violações de propriedade intelectual de terceiros ou exposição indevida do direito de imagem alheio.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag">Responsabilidade Civil do Usuário</span>
+            <div class="basis-text">
+              O usuário assume o compromisso de responder judicialmente de forma exclusiva por qualquer pleito, notificação extrajudicial, denúncia de infração ou ação judicial indenizatória impetrada por terceiros decorrente das imagens ou textos por ele cadastrados, arcando com todas as custas legais inerentes.
+            </div>
+          </div>
+        </div>
+        <div class="alert-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span><strong>Política de Remoção (Take-down):</strong> A administração reserva-se o direito de excluir imediatamente e sumariamente, sem prévio aviso, qualquer relato, foto ou mídia que infrinja propriedade autoral alheia, exponha de forma invasiva rostos de terceiros ou fira as políticas éticas do aplicativo.</span>
+        </div>
+      </section>
+
+      <!-- 5. CONDUTA E USOS PROIBIDOS -->
+      <section class="section" id="termos-conduta">
+        <div class="section-header">
+          <div class="section-num">5</div>
+          <h2>Conduta do Usuário e Usos Proibidos</h2>
+        </div>
+        <p>A plataforma deve ser mantida como um ambiente de cooperação cidadã seguro. É expressamente vedado ao usuário:</p>
+        <ul class="security-list">
+          <li style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
+            <div class="check-icon" style="background:#991b1b;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+            <span><strong>Falsidade e Trote:</strong> Reportar desastres inexistentes, simular situações de risco ou dar falsos alarmes (configura o delito do Art. 340 do Código Penal Brasileiro).</span>
+          </li>
+          <li style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
+            <div class="check-icon" style="background:#991b1b;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+            <span><strong>Mídias Inadequadas:</strong> Fazer upload de fotografias contendo nudez, cenas de violência explícita gratuita, pornografia, discursos de ódio ou ofensas pessoais direcionadas.</span>
+          </li>
+          <li style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
+            <div class="check-icon" style="background:#991b1b;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+            <span><strong>Fraude Tecnológica:</strong> Injetar scripts nocivos, vírus, malwares ou realizar ataques cibernéticos contra o servidor e banco de dados do aplicativo.</span>
+          </li>
+          <li style="background:#fee2e2; border-color:#fca5a5; color:#991b1b;">
+            <div class="check-icon" style="background:#991b1b;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+            <span><strong>Abuso de Alertas:</strong> Emitir alertas municipais falsos ou exagerados com o intuito de causar pânico na população, ou utilizar o sistema de alertas para fins pessoais não relacionados à segurança pública.</span>
+          </li>
+        </ul>
+        <div class="alert-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span><strong>Moderação:</strong> Ocorrências reportadas por cidadãos passam por um fluxo de aprovação e podem ser validadas, rejeitadas ou encaminhadas por Agentes e Administradores municipais antes de se tornarem visíveis publicamente no mapa de riscos.</span>
+        </div>
+      </section>
+
+      <!-- 6. LIMITAÇÃO DE RESPONSABILIDADE -->
+      <section class="section" id="termos-limitacao">
+        <div class="section-header">
+          <div class="section-num">6</div>
+          <h2>Limitação de Responsabilidade Técnica e Operacional</h2>
+        </div>
+        <p>O <strong>Defesa Civil em Foco</strong> atua como um canal digital facilitador e de integração cidadã. Diante disso, o usuário concorda que:</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag public">Canais Tradicionais</span>
+            <div class="basis-text">
+              O aplicativo <strong>não substitui os canais oficiais de socorro</strong> em tempo real (como o telefone 199 da Defesa Civil ou 193 dos Bombeiros). Em caso de perigo iminente extremo, ligue imediatamente para as centrais telefônicas estatais de emergência.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Instabilidades Técnicas</span>
+            <div class="basis-text">
+              Não respondemos por problemas na recepção ou transmissão dos dados decorrentes de redes móveis instáveis, falta de cobertura de sinal, falhas internas em seu GPS ou indisponibilidade técnica transitória em nossos provedores terceiros.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Planos Municipais</span>
+            <div class="basis-text">
+              As funcionalidades avançadas do sistema (agentes em campo, alertas push, pontos de interesse, dashboard web, classificação COBRADE) estão condicionadas ao plano contratado pela cidade do usuário. A plataforma não garante a disponibilidade de recursos que dependam de planos não contratados.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag">Processador de Pagamentos</span>
+            <div class="basis-text">
+              Pagamentos de planos são processados pelo <strong>Stripe</strong>. A plataforma não se responsabiliza por falhas, interrupções ou disputas no processamento financeiro gerido pelo Stripe, devendo eventuais contestações serem direcionadas ao processador.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. PLANOS MUNICIPAIS E ASSINATURAS -->
+      <section class="section" id="termos-planos">
+        <div class="section-header">
+          <div class="section-num">7</div>
+          <h2>Planos Municipais e Assinaturas</h2>
+        </div>
+        <p>O <strong>Defesa Civil em Foco</strong> opera com três níveis de plano para cidades cadastradas, cada um com funcionalidades distintas:</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Base Gratuito</span>
+            <div class="basis-text">
+              Plano padrão e permanente. Permite até <strong>1 gestor</strong>, registro e visualização de ocorrências no mapa, e utilização da classificação COBRADE oficial. Inclui exibição de anúncios no aplicativo.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Gestão Municipal</span>
+            <div class="basis-text">
+              Plano intermediário para municípios. Permite até <strong>2 gestores</strong>, alertas push por cidade, classificação COBRADE oficial, e <strong>sem exibição de anúncios</strong> no app para os usuários da cidade.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Pro Municipal</span>
+            <div class="basis-text">
+              Plano completo para municípios. Permite até <strong>5 gestores</strong>, agentes em campo, alertas push, pontos de interesse, dashboard web, COBRADE oficial e <strong>sem anúncios</strong>.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag public">Período de Trial</span>
+            <div class="basis-text">
+              Cidades podem receber um período experimental (trial) com acesso ao plano Pro Municipal. Ao término do trial, a cidade retorna automaticamente ao plano Base Gratuito caso não contrate um plano pago.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. EXCLUSÃO DE CONTA -->
+      <section class="section" id="termos-exclusao">
+        <div class="section-header">
+          <div class="section-num">8</div>
+          <h2>Exclusão de Conta e Dados</h2>
+        </div>
+        <p>O usuário possui o direito irrestrito de excluir permanentemente sua conta a qualquer momento, diretamente pelo aplicativo:</p>
+        <div class="basis-list">
+          <div class="basis-item">
+            <span class="basis-tag">Exclusão Voluntária</span>
+            <div class="basis-text">
+              A exclusão da conta pode ser solicitada diretamente no menu do perfil do aplicativo. Ao confirmar, todos os dados pessoais (nome, e-mail, telefone, senha) serão apagados permanentemente em até <strong>30 dias</strong>.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag contract">Anonimização de Relatos</span>
+            <div class="basis-text">
+              Ocorrências e relatos enviados pelo usuário poderão ser mantidos de forma <strong>anonimizada</strong> no mapa histórico de riscos, conforme o interesse público em preservar dados estatísticos de desastres.
+            </div>
+          </div>
+          <div class="basis-item">
+            <span class="basis-tag purple">Irreversibilidade</span>
+            <div class="basis-text">
+              A exclusão de conta é uma ação <strong>permanente e irreversível</strong>. Para utilizar o aplicativo novamente, será necessário criar um novo cadastro desde o início.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. ALTERAÇÕES NOS TERMOS -->
+      <section class="section" id="termos-alteracoes">
+        <div class="section-header">
+          <div class="section-num">9</div>
+          <h2>Alterações nos Termos de Uso</h2>
+        </div>
+        <p>A administração poderá, a seu exclusivo critério, revisar, aditar ou modificar estes termos de forma unilateral. Sempre que houver atualizações relevantes que redefinam seus direitos ou deveres operacionais, o usuário receberá notificação pelo aplicativo com no mínimo <strong>15 dias de antecedência</strong>.</p>
+        <p>O prosseguimento com o uso do perfil ativo após a vigência das modificações confirmará a concordância irrestrita com os termos editados.</p>
+      </section>
+
+      <!-- 10. LEGISLAÇÃO E FORO -->
+      <section class="section" id="termos-foro">
+        <div class="section-header">
+          <div class="section-num">10</div>
+          <h2>Legislação Aplicável e Foro de Eleição</h2>
+        </div>
+        <p>Estes Termos de Uso e o relacionamento jurídico entre as partes são regidos, interpretados e executados sob as leis vigentes na República Federativa do Brasil.</p>
+        <p>Para dirimir quaisquer controvérsias, divergências judiciais ou questionamentos emergentes do uso desta plataforma ou interpretação deste contrato, fica eleito de forma definitiva o <strong>foro da comarca de domicílio do usuário cidadão</strong> (por facilitação à defesa do consumidor) ou o foro central do mantenedor em sua comarca matriz.</p>
+      </section>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <strong>Defesa Civil em Foco</strong> &nbsp;·&nbsp; v4.0 &nbsp;·&nbsp; Última atualização: 15 de setembro de 2026
+  </div>
+  <div class="footer-links">
+    <a href="javascript:void(0)" onclick="switchTab('privacidade')">Política de Privacidade</a>
+    <a href="javascript:void(0)" onclick="switchTab('termos')">Termos de Uso</a>
+    <a href="mailto:reinaldoinfra07@gmail.com">Contato DPO</a>
+    <a href="https://www.gov.br/anpd" target="_blank" rel="noopener noreferrer">ANPD</a>
+  </div>
+</footer>
+
+<script>
+  // Elements
+  const bar = document.getElementById('progress');
+  const btn = document.getElementById('back-top');
+  const tabButtons = document.querySelectorAll('.tab-btn');
+  const tabContents = document.querySelectorAll('.tab-content');
+  const tocContainers = document.querySelectorAll('.toc-container');
+  const tocLinks = document.querySelectorAll('.toc a');
+  const allSecs  = document.querySelectorAll('section[id]');
+
+  // Dynamic Progress Bar
+  function updateProgressBar() {
+    const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = scrollableHeight > 0 ? (window.scrollY / scrollableHeight) * 100 : 0;
+    bar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', updateProgressBar);
+  window.addEventListener('resize', updateProgressBar);
+
+  // Back to Top Button
+  window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 400));
+  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+  // Tab Switcher Lógica
+  function switchTab(tabId, updateHash = true) {
+    if (!['privacidade', 'termos'].includes(tabId)) {
+      tabId = 'privacidade';
+    }
+
+    // Toggle Button Active Classes
+    tabButtons.forEach(b => {
+      b.classList.toggle('active', b.dataset.tab === tabId);
+    });
+
+    // Toggle Content Panels
+    tabContents.forEach(content => {
+      if (content.id === `tab-content-${tabId}`) {
+        content.classList.add('active');
+        // Reset and trigger reveal transitions immediately for visible tab
+        const sections = content.querySelectorAll('.section');
+        sections.forEach((s, idx) => {
+          s.style.opacity = '1';
+          s.style.transform = 'translateY(0)';
+        });
+      } else {
+        content.classList.remove('active');
+      }
+    });
+
+    // Toggle Sidebar Table of Contents
+    tocContainers.forEach(toc => {
+      toc.classList.toggle('active', toc.id === `toc-${tabId}`);
+    });
+
+    // Hash Update
+    if (updateHash) {
+      history.pushState(null, null, `#${tabId}`);
+    }
+
+    // Back to top on switch
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    setTimeout(updateProgressBar, 50);
+  }
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      switchTab(button.dataset.tab);
+    });
+  });
+
+  // Handle URL Deep-Linking (Hash router)
+  function handleHashRouter() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'termos') {
+      switchTab('termos', false);
+    } else if (hash === 'privacidade') {
+      switchTab('privacidade', false);
+    } else if (hash !== '') {
+      // Check if it corresponds to an ID inside Privacy or Terms content
+      const targetElement = document.getElementById(hash);
+      if (targetElement) {
+        const parentContent = targetElement.closest('.tab-content');
+        if (parentContent) {
+          const tabId = parentContent.id.replace('tab-content-', '');
+          switchTab(tabId, false);
+          setTimeout(() => {
+            targetElement.scrollIntoView({ behavior: 'smooth' });
+          }, 150);
+        }
+      }
+    } else {
+      switchTab('privacidade', false);
+    }
+  }
+
+  window.addEventListener('hashchange', handleHashRouter);
+  window.addEventListener('load', handleHashRouter);
+
+  // Staggered Reveal Animations
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity   = '1';
+        e.target.style.transform = 'translateY(0)';
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.05 });
+
+  // Initialize scroll animations
+  const allSections = document.querySelectorAll('.section');
+  allSections.forEach((s, i) => {
+    s.style.opacity   = '0';
+    s.style.transform = 'translateY(18px)';
+    s.style.transition = `opacity .45s ${i * 0.03}s ease, transform .45s ${i * 0.03}s ease, box-shadow .2s`;
+    obs.observe(s);
+  });
+
+  // Active Sidebar Highlighting
+  const tocObs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      const parentTab = e.target.closest('.tab-content');
+      // Highlight only if intersecting AND belongs to currently active tab
+      if (e.isIntersecting && parentTab && parentTab.classList.contains('active')) {
+        tocLinks.forEach(l => l.style.color = '');
+        const activeLink = document.querySelector(`.toc a[href="#${e.target.id}"]`);
+        if (activeLink) {
+          activeLink.style.color = 'var(--accent)';
+        }
+      }
+    });
+  }, { rootMargin: '-20% 0px -55% 0px' });
+
+  allSecs.forEach(s => tocObs.observe(s));
+</script>
+
+</body>
+</html>

@@ -32,6 +32,20 @@ public class Ocorrencia {
     private String cobrade; // Código oficial COBRADE (ex: 1.2.3.0.0)
     private String cobradeDescricao; // Descrição oficial do desastre segundo o MDR/S2ID
 
+    // ---- Origem suspeita (GPS do envio vs. ponto reportado) ----
+    private Double latitudeEnvio;  // GPS real do cidadão quando enviou
+    private Double longitudeEnvio;
+    private boolean origemSuspeita; // true se distância > 2km
+
+    // ---- IA (Gemini) ----
+    private Double latitudeIa;      // Sugestão calculada pela IA
+    private Double longitudeIa;
+    private Double confiancaIa;     // Score 0.0 – 1.0
+    @Column(columnDefinition = "TEXT")
+    private String justificativaIa; // Texto explicativo da IA
+    private boolean processadaIa;   // true = resultado já armazenado, não chama Gemini de novo
+    private Integer totalRelatosCluster; // Quantos relatos próximos foram agrupados
+
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cidade_id")
@@ -221,4 +235,26 @@ public class Ocorrencia {
     public void setCobradeDescricao(String cobradeDescricao) {
         this.cobradeDescricao = cobradeDescricao;
     }
+
+    // ---- Origem suspeita ----
+    public Double getLatitudeEnvio() { return latitudeEnvio; }
+    public void setLatitudeEnvio(Double latitudeEnvio) { this.latitudeEnvio = latitudeEnvio; }
+    public Double getLongitudeEnvio() { return longitudeEnvio; }
+    public void setLongitudeEnvio(Double longitudeEnvio) { this.longitudeEnvio = longitudeEnvio; }
+    public boolean isOrigemSuspeita() { return origemSuspeita; }
+    public void setOrigemSuspeita(boolean origemSuspeita) { this.origemSuspeita = origemSuspeita; }
+
+    // ---- IA (Gemini) ----
+    public Double getLatitudeIa() { return latitudeIa; }
+    public void setLatitudeIa(Double latitudeIa) { this.latitudeIa = latitudeIa; }
+    public Double getLongitudeIa() { return longitudeIa; }
+    public void setLongitudeIa(Double longitudeIa) { this.longitudeIa = longitudeIa; }
+    public Double getConfiancaIa() { return confiancaIa; }
+    public void setConfiancaIa(Double confiancaIa) { this.confiancaIa = confiancaIa; }
+    public String getJustificativaIa() { return justificativaIa; }
+    public void setJustificativaIa(String justificativaIa) { this.justificativaIa = justificativaIa; }
+    public boolean isProcessadaIa() { return processadaIa; }
+    public void setProcessadaIa(boolean processadaIa) { this.processadaIa = processadaIa; }
+    public Integer getTotalRelatosCluster() { return totalRelatosCluster; }
+    public void setTotalRelatosCluster(Integer totalRelatosCluster) { this.totalRelatosCluster = totalRelatosCluster; }
 }

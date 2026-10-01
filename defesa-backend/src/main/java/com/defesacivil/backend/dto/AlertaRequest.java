@@ -14,7 +14,9 @@ public class AlertaRequest {
     private String mensagem;
 
     @NotBlank(message = "O nível é obrigatório")
-    private String nivel; // INFORMATIVO, ATENCAO, CRITICO
+    private String nivel; // INFORMATIVO, ATENCAO, CRITICO, EXTREMO
+
+    private String rotaEmergenciaId; // ID da rota de emergência vinculada (obrigatório se nivel == EXTREMO)
 
     // Getters and Setters
     public String getCidade() { return cidade; }
@@ -25,4 +27,6 @@ public class AlertaRequest {
     public void setMensagem(String mensagem) { this.mensagem = mensagem; }
     public String getNivel() { return nivel; }
     public void setNivel(String nivel) { this.nivel = nivel; }
+    public String getRotaEmergenciaId() { return rotaEmergenciaId; }
+    public void setRotaEmergenciaId(String rotaEmergenciaId) { this.rotaEmergenciaId = rotaEmergenciaId; }
 }

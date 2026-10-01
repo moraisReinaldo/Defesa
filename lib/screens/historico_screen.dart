@@ -17,6 +17,7 @@ import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_pagamentos.dart';
 import 'dashboard_relatorios_screen.dart';
+import '../widgets/painel_sugestao_ia_widget.dart';
 
 class HistoricoScreen extends StatefulWidget {
    const HistoricoScreen({super.key});
@@ -160,6 +161,14 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                       if (context.watch<UsuarioProvider>().estaLogado)
                         _construirBotaoFiltro(
                             'minhas', 'Minhas', Icons.person_rounded),
+                      if (context.watch<UsuarioProvider>().isAdmin) ...[
+                        const SizedBox(width: 8),
+                        _construirBotaoFiltro(
+                            'pendentes', 'Pendentes', Icons.hourglass_top_rounded),
+                        const SizedBox(width: 8),
+                        _construirBotaoFiltro(
+                            'duvidosos', 'Duvidosos ⚠️', Icons.warning_amber_rounded),
+                      ],
                     ],
                   ),
                 ),
@@ -536,6 +545,16 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       case 'resolvidas':
         ocorrencias = provider.ocorrenciasResolvidas;
         break;
+      case 'pendentes':
+        ocorrencias = provider.ocorrencias
+            .where((o) => o.status == OcorrenciaStatus.pendenteAprovacao)
+            .toList();
+        break;
+      case 'duvidosos':
+        ocorrencias = provider.ocorrencias
+            .where((o) => o.origemSuspeita)
+            .toList();
+        break;
       case 'minhas':
         if (usuarioProvider.estaLogado) {
           final userId = usuarioProvider.usuarioLogado!.id;
@@ -824,33 +843,29 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                     // === BOTÕES DE AÇÃO (GOVERNANÇA) ===
                     const SizedBox(height: 12),
                     
-                    // 1. Aprovação (Somente Admin e se Pendente)
+                    // 1. Aprovação (Somente Admin e se Pendente) com Suporte a IA
                     if (context.watch<UsuarioProvider>().isAdmin && 
                         ocorrencia.status == OcorrenciaStatus.pendenteAprovacao)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
+                        child: Column(
                           children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  await context.read<OcorrenciaProvider>().aprovarOcorrencia(ocorrencia.id);
-                                  if (context.mounted) Navigator.pop(context);
-                                },
-                                icon: const Icon(Icons.check_circle_rounded),
-                                label: const Text('APROVAR'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                              ),
+                            PainelSugestaoIaWidget(
+                              ocorrencia: ocorrencia,
+                              onAprovada: () {
+                                if (context.mounted) Navigator.pop(context);
+                              },
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
                               child: ElevatedButton.icon(
                                 onPressed: () {
                                   context.read<OcorrenciaProvider>().deletarOcorrencia(ocorrencia.id);
                                   Navigator.pop(context);
                                 },
                                 icon: const Icon(Icons.cancel_rounded),
-                                label: const Text('RECUSAR'),
+                                label: const Text('RECUSAR E EXCLUIR'),
                                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                               ),
                             ),

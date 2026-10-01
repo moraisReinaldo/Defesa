@@ -7,7 +7,8 @@ class AlertaEmergencia {
   final String cidade;
   final String titulo;
   final String mensagem;
-  final String nivel; // INFORMATIVO, ATENCAO, CRITICO
+  final String nivel; // INFORMATIVO, ATENCAO, CRITICO, EXTREMO
+  final String? rotaEmergenciaId;
   final DateTime dataCriacao;
   final bool ativo;
 
@@ -17,6 +18,7 @@ class AlertaEmergencia {
     required this.titulo,
     required this.mensagem,
     required this.nivel,
+    this.rotaEmergenciaId,
     DateTime? dataCriacao,
     this.ativo = true,
   })  : id = id ?? const Uuid().v4(),
@@ -29,6 +31,7 @@ class AlertaEmergencia {
       'titulo': titulo,
       'mensagem': mensagem,
       'nivel': nivel,
+      if (rotaEmergenciaId != null) 'rotaEmergenciaId': rotaEmergenciaId,
       'dataCriacao': dataCriacao.toIso8601String(),
       'ativo': ativo,
     };
@@ -41,6 +44,7 @@ class AlertaEmergencia {
       titulo: json['titulo'] ?? 'Alerta de Emergência',
       mensagem: json['mensagem'] ?? '',
       nivel: json['nivel'] ?? 'ATENCAO',
+      rotaEmergenciaId: json['rotaEmergenciaId'],
       dataCriacao: json['dataCriacao'] != null
           ? DateTime.tryParse(json['dataCriacao'].toString()) ?? DateTime.now()
           : DateTime.now(),

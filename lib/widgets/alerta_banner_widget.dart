@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/alerta_provider.dart';
 import '../providers/usuario_provider.dart';
+import '../providers/rota_emergencia_provider.dart';
+import '../models/rota_emergencia.dart';
 import '../services/alerta_service.dart';
 import '../constants/app_colors.dart';
 
@@ -13,103 +15,161 @@ class AlertaBannerWidget extends StatefulWidget {
     final tituloC = TextEditingController();
     final msgC = TextEditingController();
     String nivelSel = 'ATENCAO';
+    String? rotaSelecionadaId;
+
+    // Garante que as rotas da cidade estejam carregadas para a seleção
+    context.read<RotaEmergenciaProvider>().carregarRotas(cidade: cidade);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              const Icon(Icons.campaign_rounded, color: Colors.red, size: 28),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Emitir Alerta Geral • $cidade',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        builder: (ctx, setDialogState) {
+          final rotaProv = ctx.watch<RotaEmergenciaProvider>();
+          final rotasDisponiveis = rotaProv.rotas;
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
               children: [
-                const Text('Nível de Gravidade:', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: nivelSel,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'INFORMATIVO', child: Text('🔵 Informativo (Aviso Geral)')),
-                    DropdownMenuItem(value: 'ATENCAO', child: Text('🟡 Atenção (Risco Moderado)')),
-                    DropdownMenuItem(value: 'CRITICO', child: Text('🔴 Alerta Vermelho / Evacuação')),
-                  ],
-                  onChanged: (v) => setDialogState(() => nivelSel = v!),
-                ),
-                const SizedBox(height: 16),
-                const Text('Título do Alerta:', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: tituloC,
-                  decoration: InputDecoration(
-                    hintText: 'Ex: Risco de Alagamento nas Próximas Horas',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text('Mensagem / Orientações:', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: msgC,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'Evite trafegar por áreas baixas e contate a Defesa Civil se necessário.',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                const Icon(Icons.campaign_rounded, color: Colors.red, size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Emitir Alerta Geral • $cidade',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
               ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              icon: const Icon(Icons.send_rounded),
-              label: const Text('EMITIR ALERTA GERAL'),
-              onPressed: () async {
-                if (tituloC.text.trim().isEmpty || msgC.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Preencha o título e a mensagem.')),
-                  );
-                  return;
-                }
-                Navigator.pop(ctx);
-                final ok = await context.read<AlertaProvider>().emitirAlerta(
-                      cidade: cidade,
-                      titulo: tituloC.text.trim(),
-                      mensagem: msgC.text.trim(),
-                      nivel: nivelSel,
-                    );
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(ok ? 'Alerta geral emitido para toda a população da cidade!' : 'Erro ao emitir alerta.'),
-                      backgroundColor: ok ? Colors.green : Colors.red,
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Nível de Gravidade:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: nivelSel,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     ),
-                  );
-                }
-              },
+                    items: const [
+                      DropdownMenuItem(value: 'INFORMATIVO', child: Text('🔵 Informativo (Aviso Geral)')),
+                      DropdownMenuItem(value: 'ATENCAO', child: Text('🟡 Atenção (Risco Moderado)')),
+                      DropdownMenuItem(value: 'CRITICO', child: Text('🔴 Crítico (Alerta Vermelho)')),
+                      DropdownMenuItem(value: 'EXTREMO', child: Text('🚨 Extremo (Evacuação com Rota)')),
+                    ],
+                    onChanged: (v) => setDialogState(() {
+                      nivelSel = v!;
+                      if (nivelSel != 'EXTREMO') {
+                        rotaSelecionadaId = null;
+                      }
+                    }),
+                  ),
+                  if (nivelSel == 'EXTREMO') ...[
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Icon(Icons.alt_route_rounded, color: Colors.deepOrange, size: 18),
+                        SizedBox(width: 6),
+                        Text('Rota de Evacuação Vinculada:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    if (rotasDisponiveis.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.shade300),
+                        ),
+                        child: const Text(
+                          'Nenhuma rota cadastrada para esta cidade. Cadastre uma rota em "Gerenciar Rotas" antes.',
+                          style: TextStyle(fontSize: 12, color: Colors.brown),
+                        ),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        value: rotaSelecionadaId,
+                        hint: const Text('Selecione uma rota pré-cadastrada'),
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        ),
+                        items: rotasDisponiveis.map((r) {
+                          return DropdownMenuItem<String>(
+                            value: r.id,
+                            child: Text(r.nome, overflow: TextOverflow.ellipsis),
+                          );
+                        }).toList(),
+                        onChanged: (v) => setDialogState(() => rotaSelecionadaId = v),
+                      ),
+                  ],
+                  const SizedBox(height: 16),
+                  const Text('Título do Alerta:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: tituloC,
+                    decoration: InputDecoration(
+                      hintText: 'Ex: Risco Iminente de Inundação - Evacuação',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Mensagem / Orientações:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: msgC,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Evacue imediatamente em direção aos abrigos cadastrados seguindo a rota indicada.',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancelar'),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(backgroundColor: nivelSel == 'EXTREMO' ? const Color(0xFF8B0000) : Colors.red),
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('EMITIR ALERTA GERAL'),
+                onPressed: () async {
+                  if (tituloC.text.trim().isEmpty || msgC.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Preencha o título e a mensagem.')),
+                    );
+                    return;
+                  }
+                  Navigator.pop(ctx);
+                  final ok = await context.read<AlertaProvider>().emitirAlerta(
+                        cidade: cidade,
+                        titulo: tituloC.text.trim(),
+                        mensagem: msgC.text.trim(),
+                        nivel: nivelSel,
+                        rotaEmergenciaId: rotaSelecionadaId,
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(ok ? 'Alerta geral emitido para toda a população da cidade!' : 'Erro ao emitir alerta.'),
+                        backgroundColor: ok ? Colors.green : Colors.red,
+                      ),
+                    );
+                    // Atualiza as rotas para refletir status ativo
+                    context.read<RotaEmergenciaProvider>().carregarRotas(cidade: cidade);
+                  }
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -157,6 +217,8 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
 
   Color _getNivelColor(String nivel) {
     switch (nivel.toUpperCase()) {
+      case 'EXTREMO':
+        return const Color(0xFF8B0000);
       case 'CRITICO':
         return Colors.red.shade700;
       case 'ATENCAO':
@@ -169,6 +231,8 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
 
   IconData _getNivelIcon(String nivel) {
     switch (nivel.toUpperCase()) {
+      case 'EXTREMO':
+        return Icons.emergency_rounded;
       case 'CRITICO':
         return Icons.warning_amber_rounded;
       case 'ATENCAO':
@@ -182,6 +246,13 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
   void _exibirDetalhesAlerta(BuildContext context, AlertaEmergencia alerta) {
     final color = _getNivelColor(alerta.nivel);
     final isAdmin = context.read<UsuarioProvider>().isAdmin;
+    final rotaProv = context.read<RotaEmergenciaProvider>();
+    RotaEmergencia? rotaVinculada;
+    if (alerta.rotaEmergenciaId != null) {
+      rotaVinculada = rotaProv.rotas.where((r) => r.id == alerta.rotaEmergenciaId).firstOrNull;
+    } else if (alerta.nivel == 'EXTREMO' && rotaProv.rotasAtivas.isNotEmpty) {
+      rotaVinculada = rotaProv.rotasAtivas.first;
+    }
 
     showDialog(
       context: context,
@@ -232,6 +303,40 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
                 ],
               ),
             ),
+            if (rotaVinculada != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.amber.shade400),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.alt_route_rounded, color: Colors.deepOrange, size: 20),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'Rota de Fuga: ${rotaVinculada.nome}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      rotaVinculada.descricao ?? 'Siga o trajeto demarcado no mapa até o abrigo mais seguro.',
+                      style: const TextStyle(fontSize: 12, color: Colors.black87),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -255,10 +360,24 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
                 }
               },
             ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendi'),
-          ),
+          if (rotaVinculada != null)
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF8B0000),
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.navigation_rounded),
+              label: const Text('SEGUIR ROTA NO MAPA'),
+              onPressed: () {
+                rotaProv.iniciarNavegacao(rotaVinculada!);
+                Navigator.pop(ctx);
+              },
+            )
+          else
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Entendi'),
+            ),
         ],
       ),
     );

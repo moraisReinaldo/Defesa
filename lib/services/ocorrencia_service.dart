@@ -70,10 +70,27 @@ class OcorrenciaService {
     }
   }
 
-  Future<Ocorrencia?> aprovarOcorrencia(String id) async {
+  Future<Ocorrencia?> aprovarOcorrencia(String id, {double? latitude, double? longitude}) async {
     try {
-      final res = await _client.dio.post('/ocorrencias/$id/aprovar', data: {});
+      final Map<String, dynamic> data = {};
+      if (latitude != null && longitude != null) {
+        data['latitude'] = latitude;
+        data['longitude'] = longitude;
+      }
+      final res = await _client.dio.post('/ocorrencias/$id/aprovar', data: data);
       return Ocorrencia.fromJson(res.data);
+    } on DioException catch (e) {
+      throw _client.handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>?> obterSugestaoIa(String id) async {
+    try {
+      final res = await _client.dio.get('/ocorrencias/$id/sugestao-ia');
+      if (res.data is Map<String, dynamic>) {
+        return res.data as Map<String, dynamic>;
+      }
+      return null;
     } on DioException catch (e) {
       throw _client.handleDioError(e);
     }

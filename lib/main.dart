@@ -10,11 +10,13 @@ import 'providers/ponto_interesse_provider.dart';
 import 'providers/clima_provider.dart';
 import 'providers/alerta_provider.dart';
 import 'providers/cidade_provider.dart';
+import 'providers/rota_emergencia_provider.dart';
 import 'services/api_service.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
 import 'services/hive_service.dart';
 import 'services/ad_service.dart';
+import 'services/offline_map_service.dart';
 import 'screens/loading_screen.dart';
 
 void main() async {
@@ -41,6 +43,9 @@ void main() async {
   // Inicializar Hive para preferências do usuário [CR2 - Recursos Nativos]
   final hiveService = HiveService();
   await hiveService.init();
+
+  // Inicializar cache de mapas offline (FMTC)
+  await OfflineMapService().init();
 
   final apiService = ApiService(storageService);
 
@@ -111,6 +116,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => CidadeProvider(apiService),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RotaEmergenciaProvider(apiService, hiveService),
         ),
         Provider.value(value: notificationService),
         Provider.value(value: hiveService),

@@ -29,5 +29,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, String> {
 
     List<Usuario> findByCidadeIgnoreCaseAndStatus(String cidade, String status);
 
+    /** IDs de admins/agentes ativos de uma cidade — usado para push de alerta de IA. */
+    @Query("SELECT u.id FROM Usuario u WHERE LOWER(u.cidade) = LOWER(:cidade) " +
+           "AND u.role IN ('ADMINISTRADOR', 'AGENTE') AND u.status = 'ATIVO'")
+    List<String> findAdminIdsByCidade(@Param("cidade") String cidade);
+
     List<Usuario> findByCidadeIgnoreCaseAndRoleOrderByDataCriacaoAsc(String cidade, String role);
 }

@@ -66,9 +66,19 @@ public class SecurityConfig {
                 // Exportação de relatórios oficiais — restrito a AGENTE, ADMINISTRADOR e SUPER_ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias/export/**").hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN")
 
+                // Sugestão de posicionamento por IA — restrito a ADMINISTRADOR, AGENTE e SUPER_ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/ocorrencias/*/sugestao-ia").hasAnyRole("ADMINISTRADOR", "AGENTE", "SUPER_ADMIN")
+
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/ocorrencias/*").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // ===== ROTAS DE EMERGÊNCIA (Cidadão visualiza rotas ativas; Admin gerencia) =====
+                .requestMatchers(HttpMethod.GET, "/api/rotas-emergencia", "/api/rotas-emergencia/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/rotas-emergencia", "/api/rotas-emergencia/**").hasAnyRole("ADMINISTRADOR", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/rotas-emergencia/**").hasAnyRole("ADMINISTRADOR", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/rotas-emergencia/**").hasAnyRole("ADMINISTRADOR", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/rotas-emergencia/**").hasAnyRole("ADMINISTRADOR", "SUPER_ADMIN")
 
                 // ===== REGISTRO DE OCORRÊNCIA (Público) =====
                 .requestMatchers(HttpMethod.POST, "/api/ocorrencias").permitAll()

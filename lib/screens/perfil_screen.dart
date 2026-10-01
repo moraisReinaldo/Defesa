@@ -10,8 +10,10 @@ import 'gerenciar_poi_screen.dart';
 import 'loading_screen.dart';
 import '../widgets/responsive_layout.dart';
 import 'dashboard_relatorios_screen.dart';
+import 'gerenciar_rotas_screen.dart';
 import '../models/usuario.dart';
 import '../providers/cidade_provider.dart';
+import 'politica_privacidade_screen.dart';
 
 class PerfilScreen extends StatefulWidget {
    const PerfilScreen({super.key});
@@ -475,6 +477,30 @@ class _PerfilScreenState extends State<PerfilScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
+                    builder: (_) => const GerenciarRotasScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.alt_route_rounded, size: 18),
+              label: const Text('Rotas de Emergência'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFFF5722),
+                side: const BorderSide(color: Color(0xFFFF5722)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
                     builder: (_) => const DashboardRelatoriosScreen(),
                   ),
                 );
@@ -631,6 +657,25 @@ class _PerfilScreenState extends State<PerfilScreen> {
             label: const Text('Sair da Conta'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.textLight,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const PoliticaPrivacidadeScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.policy_rounded, size: 18),
+            label: const Text('Política de Privacidade e Termos'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryTeal,
             ),
           ),
         ),

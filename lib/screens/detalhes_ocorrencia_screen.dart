@@ -460,6 +460,72 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
         }
       }
 
+      double? latEnvio;
+      double? lngEnvio;
+      bool origemSuspeita = false;
+
+      try {
+        final posReal = await _localizacaoService.obterPosicaoAtual();
+        if (posReal != null) {
+          latEnvio = posReal.latitude;
+          lngEnvio = posReal.longitude;
+          final distMetros = Geolocator.distanceBetween(
+            _posicaoAtual!.latitude,
+            _posicaoAtual!.longitude,
+            latEnvio,
+            lngEnvio,
+          );
+          if (distMetros > 2000.0) {
+            origemSuspeita = true;
+          }
+        }
+      } catch (e) {
+        debugPrint('Erro ao obter posição real de envio: $e');
+      }
+
+      if (origemSuspeita && !isAgenteOuAdmin) {
+        if (!mounted) return;
+        final bool? prosseguir = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: AppColors.accentAmber, size: 28),
+                SizedBox(width: 10),
+                Expanded(child: Text('Localização Remota', style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+            ),
+            content: const Text(
+              'Identificamos que seu dispositivo está a mais de 2 km do ponto marcado para o incidente.\n\n'
+              'Para garantir a segurança das informações na rede comunitária, este relato passará por revisão manual detalhada pelos agentes antes de ser confirmado no mapa público.\n\n'
+              'Deseja enviar mesmo assim?',
+              style: TextStyle(fontSize: 14, height: 1.4),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Revisar Ponto'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryTeal,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Sim, Enviar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+
+        if (prosseguir != true) {
+          if (mounted) setState(() => _carregando = false);
+          return;
+        }
+      }
+
       final ocorrencia = Ocorrencia(
         tipo: widget.tipoOcorrencia,
         descricao: descricaoFinal,
@@ -472,6 +538,9 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
         agentes: isAgenteOuAdmin ? usuarioLogado?.nome : null,
         criadoPorAgente: isAgenteOuAdmin,
         dataHora: _dataCustomizada,
+        latitudeEnvio: latEnvio,
+        longitudeEnvio: lngEnvio,
+        origemSuspeita: origemSuspeita,
       );
 
       await context.read<OcorrenciaProvider>().adicionarOcorrencia(ocorrencia);

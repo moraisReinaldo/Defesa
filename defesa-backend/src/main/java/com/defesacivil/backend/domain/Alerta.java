@@ -17,7 +17,8 @@ public class Alerta {
     private String cidade;
     private String titulo;
     private String mensagem;
-    private String nivel; // INFORMATIVO, ATENCAO, CRITICO
+    private String nivel; // INFORMATIVO, ATENCAO, CRITICO, EXTREMO
+    private String rotaEmergenciaId; // ID da rota de emergência vinculada (nível EXTREMO)
     private LocalDateTime dataCriacao;
     private boolean ativo;
 
@@ -49,6 +50,9 @@ public class Alerta {
 
     public String getNivel() { return nivel; }
     public void setNivel(String nivel) { this.nivel = nivel; }
+
+    public String getRotaEmergenciaId() { return rotaEmergenciaId; }
+    public void setRotaEmergenciaId(String rotaEmergenciaId) { this.rotaEmergenciaId = rotaEmergenciaId; }
 
     public LocalDateTime getDataCriacao() { return dataCriacao; }
     public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }

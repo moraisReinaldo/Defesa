@@ -147,3 +147,6 @@ macos/Pods/
 macos/.symlinks/
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Documentações internas (não expor)
+DOCUMENTACAO_SISTEMA_DEFESA.md
