@@ -1,35 +1,20 @@
+﻿# ==============================================================
+# docker-compose.yml - Defesa em Foco / Stack Principal
 # ==============================================================
-# docker-compose.yml â€” Defesa em Foco Â· Stack Principal
-# ==============================================================
-# Infraestrutura como CÃ³digo (IaC).
-# CompatÃ­vel com docker-compose up E docker stack deploy (Swarm).
+# Compativel com docker-compose up E docker stack deploy (Swarm).
 #
-# ServiÃ§os:
-#   db          â†’ PostgreSQL 15           (1 rÃ©plica, manager)
-#   minio       â†’ MinIO (object storage)  (1 rÃ©plica, manager)
-#   backend     â†’ Spring Boot API         (3 rÃ©plicas, workers)
-#   frontend    â†’ Flutter Web + Nginx     (2 rÃ©plicas, workers)
-#   nginx-lb    â†’ Nginx Load Balancer     (1 rÃ©plica, manager)
-#   visualizer  â†’ Docker Visualizer       (1 rÃ©plica, manager)
+# Uso local (Mac mini / producao):
+#   docker-compose up -d --build
 #
-# Build das imagens (antes do deploy):
-#   docker build -t defesacivil-backend:latest ./defesa-backend
-#   docker build -t defesacivil-frontend:latest .
-#
-# Uso local (Mac mini / dev):
-#   docker-compose up -d
-#
-# Deploy no Swarm (seminÃ¡rio):
+# Deploy no Swarm (seminario):
 #   docker stack deploy -c docker-compose.yml defesacivil
 #
-# Escalar rÃ©plicas em tempo real:
-#   docker service scale defesacivil_backend=5
-#   docker service scale defesacivil_frontend=4
+# Visualizer (apenas seminario):
+#   docker-compose --profile swarm up -d
 # ==============================================================
 
 networks:
   defesa-net:
-    # bridge: funciona em docker-compose up e docker stack deploy
     driver: bridge
     attachable: true
 
@@ -40,7 +25,7 @@ volumes:
 services:
 
   # ============================================================
-  # 1. BANCO DE DADOS â€” PostgreSQL 15
+  # 1. BANCO DE DADOS - PostgreSQL 15
   # ============================================================
   db:
     image: postgres:15-alpine
@@ -76,21 +61,20 @@ services:
           memory: 128M
 
   # ============================================================
-  # 2. OBJECT STORAGE — MinIO
+  # 2. OBJECT STORAGE - MinIO
   # ============================================================
-  # O MinIO roda nativamente no Mac mini (fotos.rhprogramer.com.br).
-  # O backend acessa via host.docker.internal:9000 (veja MINIO_ENDPOINT).
-  # Para o seminário (Swarm local), suba antes do deploy:
-  #   docker run -d --name minio -p 9000:9000 -p 9001:9001 \
-  #     -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
+  # MinIO roda nativamente no Mac mini (fotos.rhprogramer.com.br).
+  # O backend acessa via host.docker.internal:9000.
+  # Para o seminario (Swarm local), suba antes do deploy:
+  #   docker run -d --name minio -p 9000:9000 -p 9001:9001
+  #     -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin
   #     bitnami/minio:latest
 
-
   # ============================================================
-  # 3. BACKEND â€” Spring Boot API REST
+  # 3. BACKEND - Spring Boot API REST
   # ============================================================
-  # Sem ports: o nginx-lb expÃµe a porta 8080 publicamente.
-  # MÃºltiplas rÃ©plicas sem conflito de porta de host.
+  # Sem ports: o nginx-lb expoe a porta 8080 publicamente.
+  # Multiplas replicas sem conflito de porta de host.
   backend:
     image: defesacivil-backend:latest
     build:
@@ -145,10 +129,10 @@ services:
           memory: 256M
 
   # ============================================================
-  # 4. FRONTEND â€” Flutter Web (servido pelo Nginx)
+  # 4. FRONTEND - Flutter Web (servido pelo Nginx)
   # ============================================================
-  # Sem ports: o nginx-lb expÃµe a porta 80 publicamente.
-  # MÃºltiplas rÃ©plicas sem conflito de porta de host.
+  # Sem ports: o nginx-lb expoe a porta 80 publicamente.
+  # Multiplas replicas sem conflito de porta de host.
   frontend:
     image: defesacivil-frontend:latest
     build:
@@ -183,15 +167,15 @@ services:
           memory: 32M
 
   # ============================================================
-  # 5. LOAD BALANCER â€” Nginx (Ãºnica porta pÃºblica do sistema)
+  # 5. LOAD BALANCER - Nginx (unica porta publica do sistema)
   # ============================================================
-  # porta 80   â†’ roteia para os containers frontend
-  # porta 8080 â†’ roteia para os containers backend
+  # porta 80   -> frontend (Flutter Web)
+  # porta 8080 -> backend API (Spring Boot)
   nginx-lb:
     image: nginx:1.25-alpine
     ports:
-      - "80:80"      # Frontend pÃºblico
-      - "8080:8080"  # Backend API pÃºblica
+      - "80:80"
+      - "8080:8080"
     volumes:
       - ./nginx/nginx-lb.conf:/etc/nginx/nginx.conf:ro
     networks:
@@ -218,12 +202,18 @@ services:
           cpus: '0.25'
 
   # ============================================================
-  # 6. DOCKER VISUALIZER â€” Painel grÃ¡fico do cluster Swarm
+  # 6. DOCKER VISUALIZER - Painel grafico do cluster Swarm
   # ============================================================
-  # ReferÃªncia: "Descomplicando o Docker" â€” Jeferson Fernando
+  # Referencia: "Descomplicando o Docker" - Jeferson Fernando
   # Acesse: http://localhost:8081
+  #
+  # APENAS para o seminario (profile "swarm"). Nao sobe no
+  # docker-compose up padrao (producao Mac mini).
+  #
+  # Para subir: docker-compose --profile swarm up -d
   visualizer:
     image: dockersamples/visualizer:stable
+    profiles: ["swarm"]
     ports:
       - "8081:8080"
     volumes:
@@ -242,4 +232,3 @@ services:
         limits:
           memory: 128M
           cpus: '0.25'
-
