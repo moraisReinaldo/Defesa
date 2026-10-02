@@ -1,33 +1,36 @@
-version: '3.8'
-
+﻿# ==============================================================
+# docker-compose.yml â€” Defesa em Foco Â· Stack Principal
 # ==============================================================
-# docker-compose.yml — Defesa em Foco · Stack Principal (Swarm)
-# ==============================================================
-# Infraestrutura como Código (IaC) para deploy no Docker Swarm.
+# Infraestrutura como CÃ³digo (IaC).
+# CompatÃ­vel com docker-compose up E docker stack deploy (Swarm).
 #
-# Serviços:
-#   db          → PostgreSQL 15           (1 réplica, manager)
-#   minio       → MinIO (object storage)  (1 réplica, manager)
-#   backend     → Spring Boot API         (3 réplicas, workers)
-#   frontend    → Flutter Web + Nginx     (2 réplicas, workers)
-#   nginx-lb    → Nginx Load Balancer     (1 réplica, manager)
-#   visualizer  → Docker Visualizer       (1 réplica, manager)
+# ServiÃ§os:
+#   db          â†’ PostgreSQL 15           (1 rÃ©plica, manager)
+#   minio       â†’ MinIO (object storage)  (1 rÃ©plica, manager)
+#   backend     â†’ Spring Boot API         (3 rÃ©plicas, workers)
+#   frontend    â†’ Flutter Web + Nginx     (2 rÃ©plicas, workers)
+#   nginx-lb    â†’ Nginx Load Balancer     (1 rÃ©plica, manager)
+#   visualizer  â†’ Docker Visualizer       (1 rÃ©plica, manager)
 #
 # Build das imagens (antes do deploy):
 #   docker build -t defesacivil-backend:latest ./defesa-backend
 #   docker build -t defesacivil-frontend:latest .
 #
-# Deploy no Swarm:
+# Uso local (Mac mini / dev):
+#   docker-compose up -d
+#
+# Deploy no Swarm (seminÃ¡rio):
 #   docker stack deploy -c docker-compose.yml defesacivil
 #
-# Escalar réplicas em tempo real:
+# Escalar rÃ©plicas em tempo real:
 #   docker service scale defesacivil_backend=5
 #   docker service scale defesacivil_frontend=4
 # ==============================================================
 
 networks:
   defesa-net:
-    driver: overlay
+    # bridge: funciona em docker-compose up e docker stack deploy
+    driver: bridge
     attachable: true
 
 volumes:
@@ -39,7 +42,7 @@ volumes:
 services:
 
   # ============================================================
-  # 1. BANCO DE DADOS — PostgreSQL 15
+  # 1. BANCO DE DADOS â€” PostgreSQL 15
   # ============================================================
   db:
     image: postgres:15-alpine
@@ -51,6 +54,7 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - defesa-net
+    restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U defesa_user -d defesacivil"]
       interval: 10s
@@ -74,7 +78,7 @@ services:
           memory: 128M
 
   # ============================================================
-  # 2. OBJECT STORAGE — MinIO
+  # 2. OBJECT STORAGE â€” MinIO
   # ============================================================
   minio:
     image: minio/minio:latest
@@ -89,6 +93,7 @@ services:
       - "9001:9001"   # Console Web (http://localhost:9001)
     networks:
       - defesa-net
+    restart: on-failure
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -110,8 +115,10 @@ services:
           memory: 128M
 
   # ============================================================
-  # 3. BACKEND — Spring Boot API REST
+  # 3. BACKEND â€” Spring Boot API REST
   # ============================================================
+  # Sem ports: o nginx-lb expÃµe a porta 8080 publicamente.
+  # MÃºltiplas rÃ©plicas sem conflito de porta de host.
   backend:
     image: defesacivil-backend:latest
     environment:
@@ -128,6 +135,10 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     networks:
       - defesa-net
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -159,12 +170,15 @@ services:
           memory: 256M
 
   # ============================================================
-  # 4. FRONTEND — Flutter Web (servido pelo Nginx)
+  # 4. FRONTEND â€” Flutter Web (servido pelo Nginx)
   # ============================================================
+  # Sem ports: o nginx-lb expÃµe a porta 80 publicamente.
+  # MÃºltiplas rÃ©plicas sem conflito de porta de host.
   frontend:
     image: defesacivil-frontend:latest
     networks:
       - defesa-net
+    restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
       interval: 30s
@@ -191,15 +205,23 @@ services:
           memory: 32M
 
   # ============================================================
-  # 5. LOAD BALANCER — Nginx (roteamento público)
+  # 5. LOAD BALANCER â€” Nginx (Ãºnica porta pÃºblica do sistema)
   # ============================================================
+  # porta 80   â†’ roteia para os containers frontend
+  # porta 8080 â†’ roteia para os containers backend
   nginx-lb:
     image: nginx:1.25-alpine
     ports:
-      - "80:80"      # Frontend público
-      - "8080:8080"  # Backend API pública
+      - "80:80"      # Frontend pÃºblico
+      - "8080:8080"  # Backend API pÃºblica
+    volumes:
+      - ./nginx/nginx-lb.conf:/etc/nginx/nginx.conf:ro
     networks:
       - defesa-net
+    restart: on-failure
+    depends_on:
+      - frontend
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:80/nginx-health || exit 1"]
       interval: 15s
@@ -218,9 +240,9 @@ services:
           cpus: '0.25'
 
   # ============================================================
-  # 6. DOCKER VISUALIZER — Painel gráfico do cluster Swarm
+  # 6. DOCKER VISUALIZER â€” Painel grÃ¡fico do cluster Swarm
   # ============================================================
-  # Referência: "Descomplicando o Docker" — Jeferson Fernando
+  # ReferÃªncia: "Descomplicando o Docker" â€” Jeferson Fernando
   # Acesse: http://localhost:8081
   visualizer:
     image: dockersamples/visualizer:stable
@@ -230,6 +252,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - defesa-net
+    restart: on-failure
     deploy:
       replicas: 1
       restart_policy:
@@ -241,3 +264,4 @@ services:
         limits:
           memory: 128M
           cpus: '0.25'
+
