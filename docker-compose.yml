@@ -1,4 +1,4 @@
-﻿# ==============================================================
+# ==============================================================
 # docker-compose.yml â€” Defesa em Foco Â· Stack Principal
 # ==============================================================
 # Infraestrutura como CÃ³digo (IaC).
@@ -81,7 +81,7 @@ services:
   # 2. OBJECT STORAGE â€” MinIO
   # ============================================================
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
