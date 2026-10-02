@@ -5,9 +5,9 @@ ingress:
   - hostname: api.rhprogramer.com.br
     service: http://127.0.0.1:8080
   - hostname: defesa.rhprogramer.com.br
-    service: http://127.0.0.1:80
+    service: http://127.0.0.1:8000
   - hostname: painel.rhprogramer.com.br
-    service: http://127.0.0.1:80
+    service: http://127.0.0.1:8000
   - hostname: fotos.rhprogramer.com.br
     service: http://127.0.0.1:9000
   - service: http_status:404
