@@ -1,9 +1,46 @@
 version: '3.8'
 
+# ==============================================================
+# docker-compose.yml — Defesa em Foco · Stack Principal (Swarm)
+# ==============================================================
+# Infraestrutura como Código (IaC) para deploy no Docker Swarm.
+#
+# Serviços:
+#   db          → PostgreSQL 15           (1 réplica, manager)
+#   minio       → MinIO (object storage)  (1 réplica, manager)
+#   backend     → Spring Boot API         (3 réplicas, workers)
+#   frontend    → Flutter Web + Nginx     (2 réplicas, workers)
+#   nginx-lb    → Nginx Load Balancer     (1 réplica, manager)
+#   visualizer  → Docker Visualizer       (1 réplica, manager)
+#
+# Build das imagens (antes do deploy):
+#   docker build -t defesacivil-backend:latest ./defesa-backend
+#   docker build -t defesacivil-frontend:latest .
+#
+# Deploy no Swarm:
+#   docker stack deploy -c docker-compose.yml defesacivil
+#
+# Escalar réplicas em tempo real:
+#   docker service scale defesacivil_backend=5
+#   docker service scale defesacivil_frontend=4
+# ==============================================================
+
+networks:
+  defesa-net:
+    driver: overlay
+    attachable: true
+
+volumes:
+  db_data:
+    driver: local
+  minio_data:
+    driver: local
+
 services:
-  # ==========================================
-  # Banco de Dados
-  # ==========================================
+
+  # ============================================================
+  # 1. BANCO DE DADOS — PostgreSQL 15
+  # ============================================================
   db:
     image: postgres:15-alpine
     environment:
@@ -12,73 +49,195 @@ services:
       POSTGRES_PASSWORD: defesa_password
     volumes:
       - db_data:/var/lib/postgresql/data
-    restart: on-failure
+    networks:
+      - defesa-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defesa_user -d defesacivil"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     deploy:
       replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
       placement:
         constraints:
           - node.role == manager
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
 
-  # ==========================================
-  # Backend (Spring Boot)
-  # ==========================================
+  # ============================================================
+  # 2. OBJECT STORAGE — MinIO
+  # ============================================================
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Console Web (http://localhost:9001)
+    networks:
+      - defesa-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+
+  # ============================================================
+  # 3. BACKEND — Spring Boot API REST
+  # ============================================================
   backend:
     image: defesacivil-backend:latest
-    build:
-      context: ./defesa-backend
-      dockerfile: Dockerfile
     environment:
       DATABASE_URL: jdbc:postgresql://db:5432/defesacivil
       DATABASE_USERNAME: defesa_user
       DATABASE_PASSWORD: defesa_password
-      APP_JWT_SECRET: super_secret_jwt_token_for_defesa_civil_app_2026
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-super_secret_jwt_token_for_defesa_civil_app_2026}
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
-      MINIO_ENDPOINT: http://host.docker.internal:9000
+      MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_BUCKET: defesa-civil
-    ports:
-      - "8080:8080"
-    depends_on:
-      - db
-    restart: on-failure
+      MINIO_BUCKET: ${MINIO_BUCKET:-defesa-civil}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    networks:
+      - defesa-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
     deploy:
       replicas: 3
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
       update_config:
         parallelism: 1
+        delay: 15s
+        failure_action: rollback
+        order: start-first
+      rollback_config:
+        parallelism: 1
         delay: 10s
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          memory: 768M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
 
-  # ==========================================
-  # Frontend (Flutter Web)
-  # ==========================================
+  # ============================================================
+  # 4. FRONTEND — Flutter Web (servido pelo Nginx)
+  # ============================================================
   frontend:
     image: defesacivil-frontend:latest
-    build:
-      context: .
-      dockerfile: Dockerfile.flutter
-    ports:
-      - "3000:80"
-    restart: on-failure
+    networks:
+      - defesa-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     deploy:
       replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
       update_config:
         parallelism: 1
         delay: 10s
+        failure_action: rollback
+        order: start-first
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+        reservations:
+          memory: 32M
 
-  # ==========================================
-  # Docker Visualizer
-  # ==========================================
+  # ============================================================
+  # 5. LOAD BALANCER — Nginx (roteamento público)
+  # ============================================================
+  nginx-lb:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"      # Frontend público
+      - "8080:8080"  # Backend API pública
+    networks:
+      - defesa-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/nginx-health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.25'
+
+  # ============================================================
+  # 6. DOCKER VISUALIZER — Painel gráfico do cluster Swarm
+  # ============================================================
+  # Referência: "Descomplicando o Docker" — Jeferson Fernando
+  # Acesse: http://localhost:8081
   visualizer:
     image: dockersamples/visualizer:stable
     ports:
       - "8081:8080"
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - defesa-net
     deploy:
       replicas: 1
+      restart_policy:
+        condition: on-failure
       placement:
         constraints:
           - node.role == manager
-
-volumes:
-  db_data:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
