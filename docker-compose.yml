@@ -1,4 +1,4 @@
-﻿# ==============================================================
+# ==============================================================
 # docker-compose.yml - Defesa em Foco / Stack Principal
 # ==============================================================
 # Compativel com docker-compose up E docker stack deploy (Swarm).
@@ -80,18 +80,14 @@ services:
     build:
       context: ./defesa-backend
       dockerfile: Dockerfile
+    env_file:
+      - ./defesa-backend/.env   # carrega todas as credenciais reais
     environment:
+      # Sobrescreve apenas o que muda dentro do Docker:
+      # - "localhost" vira "db" (nome do serviço no compose)
+      # - "defesacivil_db" vira "defesacivil" (nome do banco no container)
       DATABASE_URL: jdbc:postgresql://db:5432/defesacivil
-      DATABASE_USERNAME: defesa_user
-      DATABASE_PASSWORD: defesa_password
-      APP_JWT_SECRET: ${APP_JWT_SECRET:-super_secret_jwt_token_for_defesa_civil_app_2026}
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://host.docker.internal:9000}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_BUCKET: ${MINIO_BUCKET:-defesa-civil}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     networks:
       - defesa-net
     restart: on-failure
