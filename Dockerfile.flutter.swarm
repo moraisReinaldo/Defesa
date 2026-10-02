@@ -1,0 +1,58 @@
+# ==============================================================
+# Dockerfile.flutter.swarm — Frontend Flutter Web (Seminário)
+# ==============================================================
+# Versão multi-stage para o seminário (Windows/Linux sem Flutter):
+#   Stage 1: compila Flutter dentro do container
+#   Stage 2: Nginx Alpine serve os arquivos
+#
+# Requer ~4GB de espaço em disco. Use em máquinas com >10GB livres.
+#
+# Build:
+#   docker build -f Dockerfile.flutter.swarm -t defesacivil-frontend:latest .
+# ==============================================================
+
+# ── Stage 1: Compilação Flutter ──────────────────────────────
+FROM ghcr.io/cirruslabs/flutter:3.22.3 AS build-web
+
+WORKDIR /app
+
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get
+
+COPY lib/ ./lib/
+COPY web/ ./web/
+COPY assets/ ./assets/
+
+RUN flutter build web --release --base-href /
+
+# ── Stage 2: Runtime Nginx ───────────────────────────────────
+FROM nginx:1.25-alpine
+
+LABEL org.opencontainers.image.title="Defesa Civil Frontend (Swarm)" \
+      org.opencontainers.image.vendor="Defesa Civil" \
+      org.opencontainers.image.source="https://github.com/moraisReinaldo/Defesa"
+
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=build-web /app/build/web /usr/share/nginx/html
+
+RUN printf 'server {\n\
+    listen 80;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+    server_tokens off;\n\
+    gzip on;\n\
+    gzip_types text/plain application/javascript text/css application/json;\n\
+    location / { try_files $uri $uri/ /index.html; }\n\
+    location ~* \\.(js|css|png|jpg|ico|svg|wasm|woff2)$ {\n\
+        expires 1y;\n\
+        add_header Cache-Control "public, immutable";\n\
+    }\n\
+    location /nginx-health { return 200 "OK"; add_header Content-Type text/plain; }\n\
+}\n' > /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD wget -qO- http://localhost:80/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
