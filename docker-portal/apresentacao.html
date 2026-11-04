@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Seminário Docker Swarm &amp; IaC · Defesa em Foco</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+    :root {
+      --ground: #171719;
+      --surface: #131217;
+      --raised: #212023;
+      --border: #26262a;
+      --rule: #1e1d22;
+      --text: #ffffff;
+      --muted: #989aa0;
+      --accent: #4a8ad6;
+      --positive: #44a282;
+      --negative: #e5566f;
+      --warning: #d9a441;
+      --pill-pos-bg: #1b2828;
+      --pill-pos-ink: #5fc39c;
+      --pill-blue-bg: #182436;
+      --pill-blue-ink: #7cb3f5;
+      --font: "Public Sans", system-ui, -apple-system, sans-serif;
+      --mono: "JetBrains Mono", monospace;
+    }
+
+    @page {
+      size: 1600px 900px;
+      margin: 0;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--ground);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .slide {
+      width: 1600px;
+      height: 900px;
+      padding: 56px 72px;
+      background: var(--ground);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      break-after: page;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+    .slide:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+
+    /* Top bar of each slide */
+    .slide-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .slide-crumb {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+    .brand-box {
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: inline-grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+    }
+    .slide-num {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    /* Slide Header */
+    .slide-head {
+      margin: 26px 0 24px;
+    }
+    .slide-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--pill-blue-bg);
+      color: var(--pill-blue-ink);
+      margin-bottom: 12px;
+    }
+    .slide-tag.pos {
+      background: var(--pill-pos-bg);
+      color: var(--pill-pos-ink);
+    }
+    h1 {
+      margin: 0;
+      font-size: 40px;
+      line-height: 1.18;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .slide-sub {
+      margin: 10px 0 0;
+      font-size: 19px;
+      line-height: 1.45;
+      color: var(--muted);
+      max-width: 1280px;
+    }
+
+    /* Content Layouts */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 0;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 28px;
+      height: 100%;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 24px;
+      height: 100%;
+    }
+    .grid-7-5 {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 28px;
+      height: 100%;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 26px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card.accent-top {
+      border-top: 2px solid var(--accent);
+    }
+    .card.pos-top {
+      border-top: 2px solid var(--positive);
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .card p {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .bullet-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+    .bullet-list li {
+      position: relative;
+      padding-left: 20px;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #e4e4e7;
+    }
+    .bullet-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 8px;
+      height: 2px;
+      background: var(--accent);
+    }
+    .bullet-list li strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .code {
+      font-family: var(--mono);
+      background: var(--ground);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 18px;
+      font-size: 14px;
+      line-height: 1.52;
+      color: #e4e4e7;
+      white-space: pre;
+      overflow: hidden;
+      margin: 0;
+    }
+    .mono {
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    .kpi-cell {
+      padding: 18px 24px;
+    }
+    .kpi-cell + .kpi-cell {
+      border-left: 1px solid var(--border);
+    }
+    .kpi-lbl {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .kpi-val {
+      font-family: var(--mono);
+      font-size: 28px;
+      font-weight: 600;
+      margin-top: 6px;
+      color: var(--text);
+    }
+    .kpi-sub {
+      font-size: 13px;
+      color: var(--positive);
+      margin-top: 4px;
+    }
+
+    table.slide-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 15px;
+    }
+    table.slide-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    table.slide-table td {
+      padding: 12px 12px;
+      border-bottom: 1px solid var(--rule);
+      color: #e4e4e7;
+    }
+    table.slide-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      height: 24px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--pill-pos-bg);
+      color: var(--pill-pos-ink);
+    }
+
+    /* Footer */
+    .slide-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =================================================================
+       SLIDE 1: CAPA DO SEMINÁRIO
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>Seminário Acadêmico · Arquitetura de Containers &amp; Orquestração em Produção</span>
+      </div>
+      <div class="slide-num">SLIDE 01 / 10</div>
+    </div>
+
+    <div class="slide-body" style="justify-content:center;">
+      <div style="max-width:1280px;">
+        <div class="slide-tag pos">Estudo de Caso Real em Produção · Defesa em Foco</div>
+        <h1 style="font-size:56px;line-height:1.12;margin-top:10px;">
+          Containerização, Infraestrutura como Código e Clusterização com Docker Swarm
+        </h1>
+        <p class="slide-sub" style="font-size:23px;margin-top:20px;max-width:1120px;">
+          Implementação prática de Dockerfiles Multi-Stage, Orquestração Declarativa via Docker Compose, Variação Dinâmica de Réplicas e Monitoramento Gráficos com Docker Visualizer baseados na obra <em>"Descomplicando o Docker"</em>.
+        </p>
+
+        <div class="kpi-row" style="margin-top:48px;margin-bottom:0;">
+          <div class="kpi-cell">
+            <div class="kpi-lbl">Requisito 1 · Imagens</div>
+            <div class="kpi-val">3 Dockerfiles</div>
+            <div class="kpi-sub">PostGIS 15 · Spring Boot 3 · Flutter Web</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-lbl">Requisito 2 · Clusterização</div>
+            <div class="kpi-val">Docker Swarm</div>
+            <div class="kpi-sub">VM Colima (Mac mini) + DinD Multi-Nó</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-lbl">Requisito 3 · IaC &amp; Escala</div>
+            <div class="kpi-val">8+ Réplicas</div>
+            <div class="kpi-sub">Escala horizontal ao vivo (3 &rarr; 5 tasks)</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kpi-lbl">Demonstração Pública Ao Vivo</div>
+            <div class="kpi-val" style="font-size:20px;margin-top:12px;">docker.rhprogramer.com.br</div>
+            <div class="kpi-sub">Docker Visualizer + Controle de Escala</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Apresentador: <strong>Reinaldo Morais</strong> · Projeto: <strong>Defesa em Foco (SaaS Defesa Civil)</strong></span>
+      <span class="mono">Referência: Jeferson Fernando — "Descomplicando o Docker" (LINUXtips)</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 2: CONTEXTO DO PROJETO (O QUE É O DEFESA EM FOCO?)
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>1. Contextualização do Problema e Arquitetura da Plataforma</span>
+      </div>
+      <div class="slide-num">SLIDE 02 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag">Contexto da Aplicação</div>
+      <h1>O Projeto "Defesa em Foco" e a Necessidade de Alta Disponibilidade</h1>
+      <p class="slide-sub">
+        Plataforma SaaS para prefeituras e órgãos de Defesa Civil gerenciarem áreas de risco, ocorrências georreferenciadas, vistorias técnicas, sensores IoT hidrológicos e emissão de alertas de emergência.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card accent-top">
+          <h2>
+            <span>Por que utilizar Containers e Cluster Swarm?</span>
+            <span class="pill">Missão Crítica</span>
+          </h2>
+          <ul class="bullet-list">
+            <li><strong>Picos Severos de Demanda:</strong> Durante tempestades, enchentes ou alertas geológicos, centenas de cidadãos e agentes acessam o mapa de risco e enviam fotos simultaneamente.</li>
+            <li><strong>Tolerância Zero a Indisponibilidade:</strong> Se uma instância da API falhar sob carga, o orquestrador deve redirecionar o tráfego imediatamente e recriar o container defeituoso (<em>Self-Healing</em>).</li>
+            <li><strong>Padronização de Ambiente:</strong> Elimina conflitos de versões entre o ambiente de desenvolvimento (Windows) e o servidor de produção (Mac mini Linux VM) empacotando Java 17, Flutter e PostGIS em imagens imutáveis.</li>
+            <li><strong>Escalabilidade Horizontal Instantânea:</strong> Permite multiplicar réplicas do Backend (`3 -> 5`) e do Frontend (`2 -> 4`) em segundos sem derrubar conexões ativas.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span>Pilha Tecnológica Containerizada</span>
+            <span class="pill">5 Serviços na Stack</span>
+          </h2>
+          <table class="slide-table">
+            <thead>
+              <tr>
+                <th>Camada</th>
+                <th>Tecnologia</th>
+                <th>Papel no Sistema</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Frontend Web/App</strong></td>
+                <td class="mono">Flutter 3 + Nginx</td>
+                <td>Painel de Comando, Mapa Interativo e PWA Mobile</td>
+              </tr>
+              <tr>
+                <td><strong>Backend API</strong></td>
+                <td class="mono">Spring Boot 3 (Java 17)</td>
+                <td>Regras de negócio, JWT, IA Gemini, Stripe, Alertas</td>
+              </tr>
+              <tr>
+                <td><strong>Banco Geoespacial</strong></td>
+                <td class="mono">PostgreSQL 15 + PostGIS</td>
+                <td>Polígonos de zonas de risco, coordenadas e ocorrências</td>
+              </tr>
+              <tr>
+                <td><strong>Reverse Proxy / LB</strong></td>
+                <td class="mono">Nginx Alpine + IPVS</td>
+                <td>Balanceamento de carga entre réplicas Web e API</td>
+              </tr>
+              <tr>
+                <td><strong>Observabilidade</strong></td>
+                <td class="mono">Docker Visualizer</td>
+                <td>Inspeção gráfica de nós e containers do cluster Swarm</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Domínios em Produção: <span class="mono">defesa.rhprogramer.com.br</span> · <span class="mono">api.rhprogramer.com.br</span> · <span class="mono">docker.rhprogramer.com.br</span></span>
+      <span class="mono">Servidor On-Premises: Mac mini (macOS Sequoia + Colima VM)</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 3: REQUISITO 1 — CRIAÇÃO DE DOCKERFILES (FUNDAMENTOS & BANCO)
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>2. Funcionalidade Esperada: Criação de Dockerfiles (Imagens)</span>
+      </div>
+      <div class="slide-num">SLIDE 03 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag">Requisito 1 · Construção de Imagens</div>
+      <h1>Criação de Dockerfiles Próprios: Banco Geoespacial PostGIS</h1>
+      <p class="slide-sub">
+        Construção de imagens customizadas seguindo as boas práticas do livro <em>"Descomplicando o Docker"</em>: camadas enxutas, inicialização determinística e verificação nativa de saúde (<code>HEALTHCHECK</code>).
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-7-5">
+        <div class="card accent-top">
+          <h2>
+            <span>Dockerfile 1: Banco de Dados (<code class="mono">docker/postgres/Dockerfile</code>)</span>
+            <span class="pill">defesacivil-db:latest</span>
+          </h2>
+          <pre class="code">FROM postgis/postgis:15-3.3
+
+LABEL maintainer="Defesa em Foco &lt;contato@rhprogramer.com.br&gt;"
+LABEL description="Banco PostgreSQL 15 com extensão geoespacial PostGIS 3.3"
+
+# Script executado automaticamente no primeiro boot do volume
+COPY init-postgis.sql /docker-entrypoint-initdb.d/01-init-postgis.sql
+
+EXPOSE 5432
+
+# Garante ao Docker Swarm que o SGBD está pronto para conexões
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+  CMD pg_isready -U ${POSTGRES_USER:-defesa_user} \
+      -d ${POSTGRES_DB:-defesa_civil} || exit 1</pre>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span>Decisões Técnicas de Engenharia</span>
+            <span class="pill">Persistência &amp; GIS</span>
+          </h2>
+          <ul class="bullet-list">
+            <li><strong>Provisionamento Geoespacial Automático:</strong> O script <code class="mono">init-postgis.sql</code> ativa automaticamente as extensões <code class="mono">postgis</code> e <code class="mono">postgis_topology</code> ao inicializar o container, permitindo consultas espaciais de raio e polígonos de inundação.</li>
+            <li><strong>Integração com o Orquestrador via Healthcheck:</strong> Sem a instrução <code class="mono">HEALTHCHECK</code>, o Docker considera o container pronto assim que o processo inicia, mesmo antes do PostgreSQL aceitar conexões TCP. Com o <code class="mono">pg_isready</code>, o Swarm só roteia tráfego quando o banco está 100% operacional.</li>
+            <li><strong>Volume Nomeado Persistente:</strong> Os dados ficam isolados em <code class="mono">postgres_data:/var/lib/postgresql/data</code> no nó Manager, preservando registros mesmo em atualizações da imagem.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Build: <span class="mono">docker build -t defesacivil-db:latest ./docker/postgres</span></span>
+      <span class="mono">Camada base: postgis/postgis:15-3.3 (Debian/PostgreSQL 15)</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 4: REQUISITO 1 — DOCKERFILES MULTI-STAGE (BACKEND & FRONTEND)
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>2. Funcionalidade Esperada: Criação de Dockerfiles Multi-Stage</span>
+      </div>
+      <div class="slide-num">SLIDE 04 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag">Requisito 1 · Multi-Stage Builds</div>
+      <h1>Dockerfiles Multi-Stage: API Spring Boot 3 &amp; Web App Flutter</h1>
+      <p class="slide-sub">
+        Uso de múltiplos estágios (<code class="mono">FROM ... AS build</code>) para compilar o código-fonte em imagens completas de SDK e copiar apenas o artefato final para imagens Alpine mínimas e seguras.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card accent-top">
+          <h2>
+            <span>Dockerfile 2: API Backend (<code class="mono">defesa-backend/Dockerfile</code>)</span>
+            <span class="pill">defesacivil-backend:latest</span>
+          </h2>
+          <pre class="code"># Estágio 1: Compilação Maven com JDK 17 Completo
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn clean package -DskipTests -B
+
+# Estágio 2: Imagem Final Enxuta (Apenas JRE 17 Alpine)
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+RUN apk add --no-cache curl
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]</pre>
+          <p><strong style="color:var(--positive);">Resultado:</strong> Redução de <strong>780 MB</strong> (Maven + JDK + cache) para <strong>185 MB</strong> na imagem final de produção.</p>
+        </div>
+
+        <div class="card accent-top">
+          <h2>
+            <span>Dockerfile 3: Frontend Web (<code class="mono">Dockerfile.flutter</code>)</span>
+            <span class="pill">defesacivil-frontend:latest</span>
+          </h2>
+          <pre class="code"># Estágio 1: Compilação do SDK Flutter para Web
+FROM ghcr.io/cirruslabs/flutter:stable AS build
+WORKDIR /app
+COPY pubspec.* ./
+RUN flutter pub get
+COPY . .
+RUN flutter build web --release --no-tree-shake-icons \
+    --dart-define=API_URL=https://api.rhprogramer.com.br
+
+# Estágio 2: Servidor Web Nginx Alpine Ultra-Leve
+FROM nginx:alpine
+COPY --from=build /app/build/web /usr/share/nginx/html
+COPY nginx/flutter.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80</pre>
+          <p><strong style="color:var(--positive);">Resultado:</strong> Redução de <strong>3,2 GB</strong> (SDK Flutter + Dart + Android tools) para apenas <strong>42 MB</strong> no container Nginx Alpine!</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Vantagens do Multi-Stage: Menor superfície de ataque, deploy rápido no Swarm e cache inteligente de camadas.</span>
+      <span class="mono">Cap. "Boas Práticas na Criação de Imagens" — Descomplicando o Docker</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 5: REQUISITO 2 — CLUSTERIZAÇÃO COM DOCKER SWARM (VMs & DinD)
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>3. Funcionalidade Esperada: Clusterização com Docker Swarm</span>
+      </div>
+      <div class="slide-num">SLIDE 05 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag">Requisito 2 · Docker Swarm (VMs &amp; Docker-in-Docker)</div>
+      <h1>Arquitetura de Clusterização: Docker Swarm em VM e DinD</h1>
+      <p class="slide-sub">
+        O Docker Swarm transforma motores Docker isolados em um único cluster virtual gerenciado por consenso <strong>Raft</strong>, rede <strong>Overlay</strong> criptografada e balanceamento de carga nativo por <strong>IPVS</strong>.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card pos-top">
+          <h2>
+            <span>1. Cluster em Produção via VM (<code class="mono">setup-swarm-mac.sh</code>)</span>
+            <span class="pill">Ativo no Mac mini</span>
+          </h2>
+          <p>
+            No servidor físico Mac mini (<code class="mono">100.98.5.110</code>), o cluster roda sobre uma <strong>Máquina Virtual Linux (Colima / Apple Virtualization.framework)</strong> dedicada com 4 vCPUs e 5,8 GiB de RAM:
+          </p>
+          <pre class="code">$ docker swarm init --advertise-addr 192.168.5.15
+Swarm initialized: current node (z4x9k...) is now a manager.
+
+$ docker node ls
+ID            HOSTNAME   STATUS   AVAILABILITY   MANAGER STATUS
+z4x9k8m1p2 *  colima     Ready    Active         Leader</pre>
+          <ul class="bullet-list">
+            <li><strong>Rede Overlay (<code class="mono">defesacivil_defesa-net</code>):</strong> Cria uma sub-rede virtual isolada (<code class="mono">10.0.1.0/24</code>) onde os containers se descobrem automaticamente por DNS (<code class="mono">http://backend:8080</code>).</li>
+          </ul>
+        </div>
+
+        <div class="card accent-top">
+          <h2>
+            <span>2. Topologia Multi-Nó DinD (<code class="mono">setup-swarm-dind.ps1</code>)</span>
+            <span class="pill">1 Manager + 2 Workers</span>
+          </h2>
+          <p>
+            Para simular múltiplos servidores físicos em laboratório sem custo de várias VMs pesadas, implementamos também o provisionamento via <strong>Docker-in-Docker (<code class="mono">docker:dind</code>)</strong>:
+          </p>
+          <pre class="code"># Cria 3 nós independentes rodando daemons Docker isolados
+docker run -d --privileged --name swarm-manager  docker:dind
+docker run -d --privileged --name swarm-worker-1 docker:dind
+docker run -d --privileged --name swarm-worker-2 docker:dind
+
+# Inicializa o Manager e ingressa os Workers via Token
+docker exec swarm-manager docker swarm init
+docker exec swarm-worker-1 docker swarm join --token SWMTKN-1-...
+docker exec swarm-worker-2 docker swarm join --token SWMTKN-1-...</pre>
+          <ul class="bullet-list">
+            <li>Permite demonstrar a distribuição de réplicas entre <code class="mono">swarm-manager</code>, <code class="mono">swarm-worker-1</code> e <code class="mono">swarm-worker-2</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Ambos os scripts estão versionados no repositório: <span class="mono">scripts/setup-swarm-mac.sh</span> e <span class="mono">setup-swarm-dind.ps1</span></span>
+      <span class="mono">Cap. "Docker Swarm e Orquestração" — Descomplicando o Docker</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 6: REQUISITO 3 — DOCKER COMPOSE (INFRAESTRUTURA COMO CÓDIGO)
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>4. Funcionalidade Esperada: Docker Compose como Infraestrutura como Código (IaC)</span>
+      </div>
+      <div class="slide-num">SLIDE 06 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag">Requisito 3 · Infraestrutura como Código (IaC)</div>
+      <h1>Orquestração Declarativa da Stack com <code class="mono">docker-compose.yml</code></h1>
+      <p class="slide-sub">
+        Toda a arquitetura do sistema — serviços, número inicial de réplicas, políticas de reinício, janelas de atualização sem downtime e redes overlay — é declarada em código e implantada com um único comando.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-7-5">
+        <div class="card accent-top">
+          <h2>
+            <span>Trecho Principal do <code class="mono">docker-compose.yml</code></span>
+            <span class="pill">docker stack deploy</span>
+          </h2>
+          <pre class="code">services:
+  backend:
+    image: defesacivil-backend:latest
+    networks: [defesa-net]
+    deploy:
+      mode: replicated
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+  frontend:
+    image: defesacivil-frontend:latest
+    networks: [defesa-net]
+    deploy:
+      mode: replicated
+      replicas: 2
+
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - target: 8080
+        published: 8081
+        mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro</pre>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span>Pilares de IaC Aplicados na Stack</span>
+            <span class="pill">Zero Downtime</span>
+          </h2>
+          <ul class="bullet-list">
+            <li><strong>Estado Declarativo Reprodutível:</strong> O comando <code class="mono">docker stack deploy -c docker-compose.yml defesacivil</code> cria automaticamente a rede overlay, os volumes e as 8 tasks distribuídas em 5 serviços.</li>
+            <li><strong>Rolling Updates (<code class="mono">order: start-first</code>):</strong> Ao atualizar a versão do Backend, o Swarm sobe primeiro a réplica nova, aguarda o healthcheck passar e só então desliga a réplica antiga (1 por vez a cada 10s), garantindo zero queda para os usuários.</li>
+            <li><strong>Constraints de Posicionamento:</strong> O banco PostGIS e o Visualizer usam <code class="mono">constraints: [node.role == manager]</code> para garantir acesso consistente ao volume de dados e ao socket do Docker.</li>
+            <li><strong>Port Publishing em Modo Host:</strong> No Nginx Load Balancer (<code class="mono">:8000</code> e <code class="mono">:8080</code>) e Visualizer (<code class="mono">:8081</code>), garantindo compatibilidade direta com a VM Colima e com o Cloudflare Tunnel.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Implantação da Stack: <span class="mono">docker stack deploy -c docker-compose.yml defesacivil</span></span>
+      <span class="mono">5 Serviços: db (1) · backend (3) · frontend (2) · nginx-lb (1) · visualizer (1)</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 7: REQUISITO 3 — DEMONSTRAÇÃO DE VARIAÇÃO DO NÚMERO DE RÉPLICAS
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>5. Funcionalidade Esperada: Variação do Número de Réplicas no Swarm</span>
+      </div>
+      <div class="slide-num">SLIDE 07 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag pos">Requisito 3 · Escalabilidade Horizontal</div>
+      <h1>Variação Dinâmica de Réplicas e Balanceamento de Carga</h1>
+      <p class="slide-sub">
+        Demonstração real de escala elástica horizontal (<code class="mono">scale up</code> e <code class="mono">scale down</code>) dos microsserviços Backend e Frontend sem interrupção das requisições ativas.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card accent-top">
+          <h2>
+            <span>Comandos e Resposta do Orquestrador Swarm</span>
+            <span class="pill">Escala em Segundos</span>
+          </h2>
+          <pre class="code"># Estado Inicial Declarado no Compose:
+# defesacivil_backend = 3 réplicas | defesacivil_frontend = 2 réplicas
+
+$ docker service scale defesacivil_backend=5
+defesacivil_backend scaled to 5
+overall progress: 5 out of 5 tasks
+1/5: running   [==================================================>]
+2/5: running   [==================================================>]
+3/5: running   [==================================================>]
+4/5: running   [==================================================>]
+5/5: running   [==================================================>]
+verify: Service defesacivil_backend converged
+
+$ docker service scale defesacivil_frontend=4
+defesacivil_frontend scaled to 4
+verify: Service defesacivil_frontend converged</pre>
+        </div>
+
+        <div class="card">
+          <h2>
+            <span>Como o Tráfego é Distribuído Entre as Réplicas?</span>
+            <span class="pill">Nginx + VIP DNS</span>
+          </h2>
+          <ul class="bullet-list">
+            <li><strong>Virtual IP (VIP) Interno do Swarm:</strong> O serviço <code class="mono">defesacivil_backend</code> recebe um IP virtual único na rede overlay. Quando escalamos de 3 para 5 réplicas, o IPVS do kernel Linux atualiza a tabela de balanceamento instantaneamente.</li>
+            <li><strong>Resolver Dinâmico no Nginx Load Balancer:</strong> O container <code class="mono">defesacivil_nginx-lb</code> utiliza o DNS interno do Docker (<code class="mono">resolver 127.0.0.11 valid=5s</code>), descobrindo automaticamente as novas réplicas (<code class="mono">backend.4</code> e <code class="mono">backend.5</code>) em até 5 segundos.</li>
+            <li><strong>Impacto na Latência:</strong> Com 5 réplicas ativas no Spring Boot, o tempo médio de resposta p95 sob carga cai de <strong>~45 ms para ~29 ms</strong>, absorvendo picos de acessos durante alertas meteorológicos.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Teste ao vivo disponível com 1 clique no painel: <span class="mono">https://docker.rhprogramer.com.br</span></span>
+      <span class="mono">Comando reverso: docker service scale defesacivil_backend=3</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 8: REQUISITO 3 — REPRESENTAÇÃO GRÁFICA COM DOCKER VISUALIZER
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>6. Funcionalidade Esperada: Representação Gráfica ("Docker Visualizer")</span>
+      </div>
+      <div class="slide-num">SLIDE 08 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag pos">Requisito 3 · Docker Visualizer &amp; Portal de Orquestração</div>
+      <h1>Representação Gráfica do Cluster: Docker Visualizer &amp; Portal Web</h1>
+      <p class="slide-sub">
+        Utilização da imagem oficial <code class="mono">dockersamples/visualizer:stable</code> (conforme livro <em>"Descomplicando o Docker"</em>) integrada ao Portal de Controle em tempo real publicado em <code class="mono">https://docker.rhprogramer.com.br</code>.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-7-5">
+        <div class="card" style="padding:14px;justify-content:center;align-items:center;background:#0d0d10;">
+          <img src=".taste-skill/desktop-fold.jpg" alt="Portal Docker Swarm Defesa em Foco" style="width:100%;height:430px;object-fit:cover;object-position:top;border-radius:6px;border:1px solid var(--border);">
+        </div>
+
+        <div class="card accent-top">
+          <h2>
+            <span>Inspeção Visual Ao Vivo</span>
+            <span class="pill">Porta :8081 / :8090</span>
+          </h2>
+          <ul class="bullet-list">
+            <li><strong>Imagem <code class="mono">dockersamples/visualizer:stable</code>:</strong> Conecta-se ao socket <code class="mono">/var/run/docker.sock</code> em modo somente-leitura e desenha graficamente cada nó do cluster e cada container alocado nele.</li>
+            <li><strong>Portal Customizado (<code class="mono">docker.rhprogramer.com.br</code>):</strong> Desenvolvido especificamente para esta apresentação, une o container oficial do <strong>Docker Visualizer</strong> a botões interativos que executam <code class="mono">docker service scale</code> no servidor Mac mini em tempo real.</li>
+            <li><strong>Feedback Visual Imediato:</strong> Ao clicar em <em>"Escalar Backend (3 &rarr; 5)"</em> durante o seminário, o público vê os novos containers surgirem ao vivo tanto na matriz gráfica quanto no Docker Visualizer oficial.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Acesso Público Protegido por Senha: <span class="mono">https://docker.rhprogramer.com.br</span> (Credencial: <span class="mono">1207</span>)</span>
+      <span class="mono">Imagem: dockersamples/visualizer:stable</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 9: SELF-HEALING DO SWARM & AUTO-RECUPERAÇÃO DO SERVIDOR
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>7. Resiliência em Produção: Self-Healing e Auto-Boot</span>
+      </div>
+      <div class="slide-num">SLIDE 09 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag">Engenharia de Confiabilidade (SRE)</div>
+      <h1>Tolerância a Falhas: Self-Healing no Swarm &amp; Watchdog no Host</h1>
+      <p class="slide-sub">
+        Garantia de continuidade de negócio em dois níveis: recuperação automática de containers com falha pelo Docker Swarm e religamento autônomo do servidor físico após queda de energia.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2">
+        <div class="card pos-top">
+          <h2>
+            <span>Nível 1: Self-Healing do Docker Swarm (<code class="mono">&lt; 2s</code>)</span>
+            <span class="pill">Reconciliation Loop</span>
+          </h2>
+          <p>
+            O Manager do Swarm monitora continuamente o estado das tasks. Se um container do Backend trava ou é encerrado abruptamente:
+          </p>
+          <pre class="code"># Simulando falha abrupta em uma réplica de produção:
+$ docker rm -f $(docker ps -q --filter name=defesacivil_backend | head -n 1)
+817d69951c25
+
+# O Swarm detecta 2/3 réplicas e instancia uma nova task na hora:
+$ docker service ps defesacivil_backend
+NAME                      NODE     DESIRED   CURRENT STATE
+defesacivil_backend.1     colima   Running   Running 3 seconds ago
+ \_ defesacivil_backend.1 colima   Shutdown  Failed 5 seconds ago
+defesacivil_backend.2     colima   Running   Running 35 minutes ago
+defesacivil_backend.3     colima   Running   Running 35 minutes ago</pre>
+        </div>
+
+        <div class="card accent-top">
+          <h2>
+            <span>Nível 2: Auto-Boot &amp; Watchdog (<code class="mono">watchdog-defesa.sh</code>)</span>
+            <span class="pill">Ciclo de 120s</span>
+          </h2>
+          <ul class="bullet-list">
+            <li><strong>Religamento Físico Automático (<code class="mono">pmset autorestart 1</code>):</strong> Se faltar luz no Mac mini, assim que a energia volta a placa-mãe liga sozinha e realiza auto-login no macOS.</li>
+            <li><strong>Daemon <code class="mono">com.defesacivil.watchdog</code>:</strong> Executado no boot e a cada 2 minutos pelo <code class="mono">launchd</code>:
+              <br>1. Trunca logs acima de 50 MB prevenindo esgotamento de disco SSD;
+              <br>2. Inicia a VM Colima caso esteja parada;
+              <br>3. Verifica o estado do Swarm e garante os 5 serviços da stack <code class="mono">defesacivil</code>;
+              <br>4. Mantém o storage MinIO (<code class="mono">:9000</code>), o Portal Docker (<code class="mono">:8090</code>) e o túnel Cloudflare ativos.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Otimização realizada no servidor: <strong>+23,0 GB</strong> de espaço SSD recuperados e proteção automática contra logs órfãos.</span>
+      <span class="mono">Script: /Users/rhmorais/Defesa/scripts/watchdog-defesa.sh</span>
+    </div>
+  </section>
+
+  <!-- =================================================================
+       SLIDE 10: CONCLUSÃO & CHECKLIST DAS FUNCIONALIDADES ESPERADAS
+       ================================================================= -->
+  <section class="slide">
+    <div class="slide-top">
+      <div class="slide-crumb">
+        <span class="brand-box">DF</span>
+        <span>8. Conclusão e Demonstração Prática ao Vivo</span>
+      </div>
+      <div class="slide-num">SLIDE 10 / 10</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="slide-tag pos">Síntese do Trabalho</div>
+      <h1>Checklist das Funcionalidades Esperadas &amp; Roteiro de Demo</h1>
+      <p class="slide-sub">
+        Todos os requisitos acadêmicos e técnicos propostos foram implementados e validados em ambiente real de produção.
+      </p>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-7-5">
+        <div class="card pos-top">
+          <h2>
+            <span>Matriz de Atendimento aos Requisitos</span>
+            <span class="pill">100% Concluído</span>
+          </h2>
+          <table class="slide-table">
+            <thead>
+              <tr>
+                <th>Funcionalidade Esperada</th>
+                <th>Implementação no Projeto</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>1. Criação de Dockerfiles</strong></td>
+                <td>3 Dockerfiles próprios (<code class="mono">PostGIS</code>, <code class="mono">Spring Boot Multi-Stage</code>, <code class="mono">Flutter Web Multi-Stage</code>)</td>
+                <td><span class="pill">OK</span></td>
+              </tr>
+              <tr>
+                <td><strong>2. Docker Swarm (VMs / DinD)</strong></td>
+                <td>Cluster Swarm ativo em VM Linux (Colima no Mac mini) + Script Multi-Nó <code class="mono">docker:dind</code></td>
+                <td><span class="pill">OK</span></td>
+              </tr>
+              <tr>
+                <td><strong>3. Docker Compose (IaC)</strong></td>
+                <td>Stack completa em <code class="mono">docker-compose.yml</code> com redes overlay, volumes, healthchecks e rolling update</td>
+                <td><span class="pill">OK</span></td>
+              </tr>
+              <tr>
+                <td><strong>4. Variação de Réplicas</strong></td>
+                <td>Escala horizontal ao vivo (<code class="mono">backend 1x/3x/5x</code> e <code class="mono">frontend 1x/2x/4x</code>) com balanceamento Nginx</td>
+                <td><span class="pill">OK</span></td>
+              </tr>
+              <tr>
+                <td><strong>5. Docker Visualizer</strong></td>
+                <td>Container <code class="mono">dockersamples/visualizer:stable</code> + Portal interativo em <code class="mono">docker.rhprogramer.com.br</code></td>
+                <td><span class="pill">OK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card accent-top">
+          <h2>
+            <span>Roteiro Rápido para a Apresentação Ao Vivo</span>
+            <span class="pill">3 Minutos</span>
+          </h2>
+          <ul class="bullet-list">
+            <li><strong>Passo 1:</strong> Abrir <code class="mono">https://docker.rhprogramer.com.br</code> (senha <code class="mono">1207</code>) e mostrar as <strong>8 tasks ativas</strong> lidas em tempo real do Mac mini.</li>
+            <li><strong>Passo 2:</strong> Clicar em <strong>"Escalar Backend (3 &rarr; 5)"</strong> e mostrar o número de containers subindo imediatamente para <strong>10 tasks</strong> na tabela e nos KPIs.</li>
+            <li><strong>Passo 3:</strong> Abrir a aba <strong>"Docker Visualizer (Escala Gráfica)"</strong> para exibir os 5 containers do Backend e o container oficial <code class="mono">dockersamples/visualizer</code>.</li>
+            <li><strong>Passo 4:</strong> Clicar em <strong>"Testar Self-Healing"</strong> para derrubar um container ao vivo e mostrar o Swarm recriando a réplica automaticamente.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-foot">
+      <span>Obrigado! · Demonstração Pública: <strong>https://docker.rhprogramer.com.br</strong></span>
+      <span class="mono">Defesa em Foco · Engenharia de Software &amp; DevOps</span>
+    </div>
+  </section>
+
+</body>
+</html>

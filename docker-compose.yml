@@ -15,7 +15,7 @@
 
 networks:
   defesa-net:
-    driver: bridge
+    driver: overlay
     attachable: true
 
 volumes:
@@ -25,10 +25,13 @@ volumes:
 services:
 
   # ============================================================
-  # 1. BANCO DE DADOS - PostgreSQL 15
+  # 1. BANCO DE DADOS PRINCIPAL - PostgreSQL 15 Customizado (Manager)
   # ============================================================
   db:
-    image: postgres:15-alpine
+    image: defesacivil-db:latest
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
     environment:
       POSTGRES_DB: defesacivil
       POSTGRES_USER: defesa_user
@@ -37,7 +40,7 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - defesa-net
-    restart: on-failure
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U defesa_user -d defesacivil"]
       interval: 10s
@@ -47,53 +50,102 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 3
       placement:
         constraints:
           - node.role == manager
       resources:
         limits:
-          memory: 512M
+          memory: 384M
           cpus: '0.5'
         reservations:
           memory: 128M
 
   # ============================================================
-  # 2. OBJECT STORAGE - MinIO
+  # 1.1 BANCO DE DADOS - Réplica 1 (swarm-worker1)
   # ============================================================
-  # MinIO roda nativamente no Mac mini (fotos.rhprogramer.com.br).
-  # O backend acessa via host.docker.internal:9000.
-  # Para o seminario (Swarm local), suba antes do deploy:
-  #   docker run -d --name minio -p 9000:9000 -p 9001:9001
-  #     -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin
-  #     bitnami/minio:latest
+  db-replica1:
+    image: defesacivil-db:latest
+    environment:
+      POSTGRES_DB: defesacivil
+      POSTGRES_USER: defesa_user
+      POSTGRES_PASSWORD: defesa_password
+    networks:
+      - defesa-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defesa_user -d defesacivil"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.hostname == swarm-worker1
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
 
   # ============================================================
-  # 3. BACKEND - Spring Boot API REST
+  # 1.2 BANCO DE DADOS - Réplica 2 (swarm-worker2)
   # ============================================================
-  # Sem ports: o nginx-lb expoe a porta 8080 publicamente.
-  # Multiplas replicas sem conflito de porta de host.
+  db-replica2:
+    image: defesacivil-db:latest
+    environment:
+      POSTGRES_DB: defesacivil
+      POSTGRES_USER: defesa_user
+      POSTGRES_PASSWORD: defesa_password
+    networks:
+      - defesa-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defesa_user -d defesacivil"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.hostname == swarm-worker2
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+
+  # ============================================================
+  # 2. OBJECT STORAGE - MinIO
+  # ============================================================
+  # MinIO roda no Mac mini (fotos.rhprogramer.com.br :9000/:9001).
+
+  # ============================================================
+  # 3. BACKEND - Spring Boot API REST (Multi-réplicas)
+  # ============================================================
   backend:
     image: defesacivil-backend:latest
     build:
       context: ./defesa-backend
       dockerfile: Dockerfile
     env_file:
-      - ./defesa-backend/.env   # carrega todas as credenciais reais
+      - ./defesa-backend/.env
     environment:
-      # Sobrescreve apenas o que muda dentro do Docker:
-      # - "localhost" vira "db" (nome do serviço no compose)
-      # - "defesacivil_db" vira "defesacivil" (nome do banco no container)
       DATABASE_URL: jdbc:postgresql://db:5432/defesacivil
+      DATABASE_USERNAME: defesa_user
+      DATABASE_PASSWORD: defesa_password
       MANAGEMENT_HEALTH_MAIL_ENABLED: "false"
+      JAVA_TOOL_OPTIONS: "-Xmx256m -Xms128m"
     networks:
       - defesa-net
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/actuator/health"]
       interval: 30s
@@ -103,9 +155,8 @@ services:
     deploy:
       replicas: 3
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 10s
-        max_attempts: 5
       update_config:
         parallelism: 1
         delay: 15s
@@ -115,20 +166,21 @@ services:
         parallelism: 1
         delay: 10s
       placement:
-        constraints:
-          - node.role == worker
+        preferences:
+          - spread: node.id
       resources:
         limits:
-          memory: 768M
-          cpus: '1.0'
+          memory: 384M
+          cpus: '0.75'
         reservations:
-          memory: 256M
+          memory: 128M
 
   # ============================================================
-  # 4. FRONTEND - Flutter Web (servido pelo Nginx)
+  # 4. FRONTEND - Flutter Web + Nginx (Multi-réplicas)
   # ============================================================
-  # Sem ports: o nginx-lb expoe a porta 80 publicamente.
-  # Multiplas replicas sem conflito de porta de host.
+  # ============================================================
+  # 4. FRONTEND - Flutter Web + Nginx (2 Réplicas: Manager e Worker 1)
+  # ============================================================
   frontend:
     image: defesacivil-frontend:latest
     build:
@@ -136,7 +188,7 @@ services:
       dockerfile: Dockerfile.flutter
     networks:
       - defesa-net
-    restart: on-failure
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ || exit 1"]
       interval: 30s
@@ -145,7 +197,7 @@ services:
     deploy:
       replicas: 2
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
       update_config:
         parallelism: 1
@@ -154,7 +206,7 @@ services:
         order: start-first
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname != swarm-worker2
       resources:
         limits:
           memory: 128M
@@ -163,20 +215,49 @@ services:
           memory: 32M
 
   # ============================================================
-  # 5. LOAD BALANCER - Nginx (unica porta publica do sistema)
+  # 4.1 ADMINER - DB Explorer Web (Worker 2 no lugar do Frontend)
   # ============================================================
-  # porta 80   -> frontend (Flutter Web)
-  # porta 8080 -> backend API (Spring Boot)
+  adminer:
+    image: adminer:4-standalone
+    ports:
+      - target: 8080
+        published: 8082
+        protocol: tcp
+        mode: host
+    networks:
+      - defesa-net
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.hostname == swarm-worker2
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.2'
+
+  # ============================================================
+  # 5. LOAD BALANCER - Nginx (porta 8000 Web / 8080 API)
+  # ============================================================
   nginx-lb:
     image: nginx:1.25-alpine
     ports:
-      - "8000:80"
-      - "8080:8080"
+      - target: 80
+        published: 8000
+        protocol: tcp
+        mode: host
+      - target: 8080
+        published: 8080
+        protocol: tcp
+        mode: host
     volumes:
       - ./nginx/nginx-lb.conf:/etc/nginx/nginx.conf:ro
     networks:
       - defesa-net
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       - frontend
       - backend
@@ -188,7 +269,7 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
       placement:
         constraints:
           - node.role == manager
@@ -198,29 +279,26 @@ services:
           cpus: '0.25'
 
   # ============================================================
-  # 6. DOCKER VISUALIZER - Painel grafico do cluster Swarm
+  # 6. DOCKER VISUALIZER - Painel gráfico do cluster Swarm
   # ============================================================
-  # Referencia: "Descomplicando o Docker" - Jeferson Fernando
+  # Referência: "Descomplicando o Docker" - Jeferson Fernando
   # Acesse: http://localhost:8081
-  #
-  # APENAS para o seminario (profile "swarm"). Nao sobe no
-  # docker-compose up padrao (producao Mac mini).
-  #
-  # Para subir: docker-compose --profile swarm up -d
   visualizer:
     image: dockersamples/visualizer:stable
-    profiles: ["swarm"]
     ports:
-      - "8081:8080"
+      - target: 8080
+        published: 8081
+        protocol: tcp
+        mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - defesa-net
-    restart: on-failure
+    restart: unless-stopped
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
+        condition: any
       placement:
         constraints:
           - node.role == manager

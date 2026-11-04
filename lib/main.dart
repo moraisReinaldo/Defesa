@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
+import 'constants/app_colors.dart';
 import 'providers/ocorrencia_provider.dart';
 import 'providers/usuario_provider.dart';
 import 'providers/ponto_interesse_provider.dart';
@@ -22,10 +23,12 @@ import 'screens/loading_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Orientação apenas vertical
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  // Orientação apenas vertical em mobile
+  if (!kIsWeb) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  }
 
   // Edge-to-edge: habilitar modo de exibição de ponta a ponta (Android 15+)
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -51,9 +54,6 @@ void main() async {
 
   // AdService criado aqui, mas a inicialização (ATT + AdMob) acontece
   // no LoadingScreen após o primeiro frame renderizar.
-  // Isso é OBRIGATÓRIO no iPadOS 27+ com SceneDelegate — chamar
-  // requestTrackingAuthorization() antes de runApp() faz o prompt
-  // ATT falhar silenciosamente pois a janela ainda não está ativa.
   final adService = AdService();
 
   // Inicializar OneSignal
@@ -131,19 +131,88 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               useMaterial3: true,
+              scaffoldBackgroundColor: AppColors.slate50,
               colorScheme: ColorScheme.fromSeed(
-                seedColor:  const Color(0xFF003366),
-                primary:  const Color(0xFF003366),
-                secondary:  const Color(0xFFFF6600),
+                seedColor: AppColors.primaryTeal,
+                primary: AppColors.primaryTeal,
+                secondary: AppColors.accentAmber,
+                surface: Colors.white,
               ),
-              appBarTheme:  const AppBarTheme(
-                backgroundColor: Color(0xFF003366),
+              appBarTheme: const AppBarTheme(
+                backgroundColor: AppColors.primaryTeal,
                 foregroundColor: Colors.white,
                 elevation: 0,
+                centerTitle: false,
+                titleTextStyle: TextStyle(
+                  color: Colors.white,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              cardTheme: CardThemeData(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: const BorderSide(color: AppColors.slate200, width: 1),
+                ),
+                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 0),
+              ),
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.slate200, width: 1),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.slate200, width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primaryTeal, width: 1.8),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.statusActive, width: 1),
+                ),
+                labelStyle: const TextStyle(color: AppColors.slate600, fontSize: 14),
+                hintStyle: const TextStyle(color: AppColors.slate400, fontSize: 14),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  backgroundColor: AppColors.primaryTeal,
+                  foregroundColor: Colors.white,
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              dialogTheme: DialogThemeData(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                elevation: 6,
+                backgroundColor: Colors.white,
+              ),
+              dividerTheme: const DividerThemeData(
+                color: AppColors.slate200,
+                thickness: 1,
+                space: 1,
               ),
             ),
             navigatorObservers: [SyncNavigatorObserver(context)],
-            home:  const LoadingScreen(),
+            home: const LoadingScreen(),
           );
         }
       ),

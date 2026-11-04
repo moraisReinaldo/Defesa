@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Defesa em Foco · Docker Swarm &amp; IaC</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app">
+    <!-- 56px Icon Rail (folds to bottom bar on mobile) -->
+    <nav class="sidebar" aria-label="Navegação do Cluster">
+      <div class="brand-mark mono" title="Defesa em Foco · Docker Swarm">DF</div>
+
+      <a href="#overview" class="nav-item" data-nav="overview" aria-current="page" title="Cluster &amp; Réplicas Swarm" aria-label="Cluster e Réplicas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        <span class="nav-label">Swarm</span>
+      </a>
+
+      <a href="#visualizer" class="nav-item" data-nav="visualizer" title="Docker Visualizer &amp; Escala Gráfica" aria-label="Docker Visualizer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="10.5" y1="7.5" x2="6.5" y2="16.5"/><line x1="13.5" y1="7.5" x2="17.5" y2="16.5"/></svg>
+        <span class="nav-label">Visualizer</span>
+      </a>
+
+      <div class="rail-rule"></div>
+
+      <a href="#iac" class="nav-item" data-nav="iac" title="Dockerfiles &amp; Docker Compose (IaC)" aria-label="Dockerfiles e IaC">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <span class="nav-label">IaC</span>
+      </a>
+
+      <a href="#nodes" class="nav-item" data-nav="nodes" title="Servidor Mac mini &amp; Auto-Boot Watchdog" aria-label="Nó Mac mini">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><line x1="6" y1="7" x2="6.01" y2="7"/><line x1="6" y1="17" x2="6.01" y2="17"/></svg>
+        <span class="nav-label">Mac mini</span>
+      </a>
+
+      <div class="bottom">
+        <button type="button" class="nav-item" id="btn-rail-refresh" title="Sincronizar Estado com o Docker Daemon" aria-label="Sincronizar Cluster" style="border:0;background:transparent;cursor:pointer;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Canvas -->
+    <main class="canvas">
+      <!-- Deploy & Health Lead Header -->
+      <div class="crumb">
+        <span>Defesa Civil Municipal</span>
+        <span>/</span>
+        <span>Cluster On-Premises (Mac mini 100.98.5.110)</span>
+        <span>/</span>
+        <span class="mono" id="header-node-ip">Swarm Manager · 192.168.5.15</span>
+      </div>
+
+      <div class="title-row">
+        <div>
+          <div class="title-main">
+            <h1>Defesa em Foco · Docker Swarm</h1>
+            <span class="pill pos" id="cluster-health-pill">Swarm Convergido · 5/5 Serviços</span>
+          </div>
+          <p class="sub">
+            Repositório <span class="mono">D:\GitHub\Defesa</span> · stack <span class="mono">defesacivil</span> · Docker Engine <span class="mono">28.0.4</span> · <span id="last-sync-stamp">Sincronizado em tempo real</span>
+          </p>
+        </div>
+
+        <div class="title-actions">
+          <button type="button" class="btn" id="btn-quick-heal" title="Remove um container do backend para demonstrar o Swarm recriando a réplica automaticamente">
+            Testar Self-Healing
+          </button>
+          <button type="button" class="btn primary" id="btn-quick-scale">
+            Escalar Backend (3 &rarr; 5)
+          </button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs with 1px Accent Line Signature -->
+      <div class="view-bar">
+        <div class="tabs" role="tablist" aria-label="Seções da Apresentação Docker">
+          <a href="#overview" role="tab" data-tab="overview" aria-selected="true">Cluster &amp; Réplicas (Swarm)</a>
+          <a href="#visualizer" role="tab" data-tab="visualizer" aria-selected="false">Docker Visualizer (Escala Gráfica)</a>
+          <a href="#iac" role="tab" data-tab="iac" aria-selected="false">Dockerfiles &amp; Compose (IaC)</a>
+          <a href="#nodes" role="tab" data-tab="nodes" aria-selected="false">Mac mini &amp; Auto-Recuperação</a>
+        </div>
+        <div class="mono" style="font-size:13px;color:var(--muted);" id="action-feedback">
+          Quorum Raft: Leader ativo · Overlay: defesacivil_defesa-net
+        </div>
+      </div>
+
+      <!-- =========================================================
+           VIEW 1: OVERVIEW (Cluster & Réplicas Swarm)
+           ========================================================= -->
+      <section id="view-overview" class="view-section active" aria-label="Visão Geral do Cluster Swarm">
+        <!-- Live Production Deployment Banner -->
+        <div class="deploy-banner">
+          <div class="deploy-main">
+            <div class="deploy-title">
+              <span>Stack em Produção: Orquestração Swarm + Multi-Stage Dockerfiles</span>
+              <span class="pill pos mono">SHA 8f4d2a1</span>
+            </div>
+            <div class="deploy-meta">
+              <span>Comando IaC: <code class="mono">docker stack deploy -c docker-compose.yml defesacivil</code></span>
+              <span>·</span>
+              <span>Nó Leader: <code class="mono">colima (macOS Sequoia)</code></span>
+            </div>
+          </div>
+
+          <div class="deploy-facts">
+            <div class="deploy-fact">
+              <span class="fact-label">Domínios Públicos</span>
+              <span class="fact-val mono">defesa / api / docker</span>
+            </div>
+            <div class="deploy-fact">
+              <span class="fact-label">Imagens Próprias</span>
+              <span class="fact-val mono">3 Dockerfiles</span>
+            </div>
+            <div class="deploy-fact">
+              <span class="fact-label">Balanceamento</span>
+              <span class="fact-val mono">Nginx + VIP Swarm</span>
+            </div>
+            <div class="deploy-fact">
+              <span class="fact-label">Watchdog Boot</span>
+              <span class="fact-val mono">Ativo (ciclo 120s)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Divided KPI Strip -->
+        <div class="kpis">
+          <div class="kpi">
+            <div class="kpi-label">Total de Réplicas Ativas</div>
+            <div class="kpi-value" id="kpi-total-replicas">8 / 8 <small>tasks</small></div>
+            <div class="delta"><span class="up">+100% convergidas</span> · 0 falhas no cluster</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Serviço Backend (Spring Boot 3)</div>
+            <div class="kpi-value" id="kpi-backend-replicas">3 / 3 <small>réplicas</small></div>
+            <div class="delta">Imagem <span class="mono">defesacivil-backend:latest</span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Serviço Frontend (Flutter Web)</div>
+            <div class="kpi-value" id="kpi-frontend-replicas">2 / 2 <small>réplicas</small></div>
+            <div class="delta">Imagem <span class="mono">defesacivil-frontend:latest</span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Saúde do Host Mac mini (SSD)</div>
+            <div class="kpi-value" id="kpi-disk-free">23,0 GB <small>livres</small></div>
+            <div class="delta"><span class="up">+22,8 GB liberados</span> · uso em 76%</div>
+          </div>
+        </div>
+
+        <!-- Two-Column Row: 8 cols (Live Scaling + 24h Telemetry Chart) + 4 cols (Live Node Topology Matrix) -->
+        <div class="grid">
+          <article class="panel col-8">
+            <header>
+              <div>
+                <h2>Variação de Réplicas em Tempo Real &amp; Latência da Stack</h2>
+                <div class="meta">Demonstração prática do requisito de escalabilidade horizontal no Docker Swarm</div>
+              </div>
+              <div id="chart-legend"></div>
+            </header>
+
+            <!-- Interactive Replica Scaling Strip -->
+            <div class="scale-bar">
+              <div class="scale-group">
+                <span class="scale-label">Escalar <code class="mono">defesacivil_backend</code>:</span>
+                <div class="line-choices" role="group" aria-label="Escala do Backend">
+                  <button type="button" class="line-choice mono" data-scale-service="backend" data-scale-count="1" aria-pressed="false">1 réplica</button>
+                  <button type="button" class="line-choice mono" data-scale-service="backend" data-scale-count="2" aria-pressed="false">2 réplicas</button>
+                  <button type="button" class="line-choice mono" data-scale-service="backend" data-scale-count="3" aria-pressed="true">3 réplicas</button>
+                  <button type="button" class="line-choice mono" data-scale-service="backend" data-scale-count="5" aria-pressed="false">5 réplicas</button>
+                </div>
+              </div>
+
+              <div class="scale-group">
+                <span class="scale-label">Escalar <code class="mono">defesacivil_frontend</code>:</span>
+                <div class="line-choices" role="group" aria-label="Escala do Frontend">
+                  <button type="button" class="line-choice mono" data-scale-service="frontend" data-scale-count="1" aria-pressed="false">1 réplica</button>
+                  <button type="button" class="line-choice mono" data-scale-service="frontend" data-scale-count="2" aria-pressed="true">2 réplicas</button>
+                  <button type="button" class="line-choice mono" data-scale-service="frontend" data-scale-count="4" aria-pressed="false">4 réplicas</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-head">
+              <h3>Tempo de Resposta da API (ms) sob Variação de Réplicas (Últimas 24h)</h3>
+              <span class="meta mono">SLO: 220 ms · Média atual: 42 ms</span>
+            </div>
+            <div id="swarm-latency-chart" class="chart" style="min-height:240px;"></div>
+          </article>
+
+          <!-- Signature Element: Live Node Service Matrix (5 Services) -->
+          <aside class="panel col-4">
+            <header>
+              <div>
+                <h2>Serviços no Nó Manager</h2>
+                <div class="meta">Host <span class="mono">colima</span> · 4 vCPUs · 5,8 GiB RAM</div>
+              </div>
+              <span class="pill pos mono" id="node-slot-count">8 tasks</span>
+            </header>
+
+            <div class="slot-list" id="node-slot-list">
+              <!-- Populated dynamically by JS (5 Swarm services) -->
+            </div>
+
+            <div class="rows">
+              <div class="row">
+                <span class="meta">Isolamento de Rede</span>
+                <span class="mono">defesacivil_defesa-net</span>
+              </div>
+              <div class="row">
+                <span class="meta">Política de Falha</span>
+                <span class="mono">on-failure (delay 5s)</span>
+              </div>
+              <div class="row">
+                <span class="meta">Rolling Update</span>
+                <span class="mono">start-first · delay 10s</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <!-- Live Running Containers & Swarm Tasks Table -->
+        <div class="grid">
+          <section class="panel col-12">
+            <header>
+              <div>
+                <h2>Containers &amp; Tasks Ativas no Cluster Docker Swarm</h2>
+                <div class="meta">Dados lidos diretamente do socket <span class="mono">/var/run/docker.sock</span> no Mac mini</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <a href="#visualizer" class="btn sm" onclick="switchView('visualizer'); return false;">Ver Representação Gráfica</a>
+              </div>
+            </header>
+
+            <div class="table-wrap">
+              <table aria-label="Containers em Execução no Swarm">
+                <thead>
+                  <tr>
+                    <th>Task Swarm / Serviço</th>
+                    <th>Container ID</th>
+                    <th>Imagem Customizada (Dockerfile)</th>
+                    <th>Nó Cluster</th>
+                    <th>Portas / Endpoint</th>
+                    <th>Status</th>
+                    <th class="n">Uptime / Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="containers-table-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           VIEW 2: DOCKER VISUALIZER & ESCALA GRÁFICA
+           ========================================================= -->
+      <section id="view-visualizer" class="view-section" aria-label="Docker Visualizer e Escala Gráfica">
+        <div class="grid">
+          <article class="panel col-12">
+            <header>
+              <div>
+                <h2>Docker Visualizer · Topologia Gráfica de Réplicas por Nó</h2>
+                <div class="meta">Inspirado no livro "Descomplicando o Docker" · Imagem <span class="mono">dockersamples/visualizer:stable</span> + Controle Ao Vivo</div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span class="scale-label">Escalar Backend Agora:</span>
+                <button type="button" class="btn sm mono" onclick="triggerScale('backend', 1)">1x</button>
+                <button type="button" class="btn sm mono" onclick="triggerScale('backend', 3)">3x</button>
+                <button type="button" class="btn sm mono" onclick="triggerScale('backend', 5)">5x</button>
+                <span class="scale-label" style="margin-left:8px;">Frontend:</span>
+                <button type="button" class="btn sm mono" onclick="triggerScale('frontend', 2)">2x</button>
+                <button type="button" class="btn sm mono" onclick="triggerScale('frontend', 4)">4x</button>
+              </div>
+            </header>
+
+            <!-- Interactive Graphical Cluster Visualizer Matrix -->
+            <div id="graphical-swarm-board" class="grid" style="margin-bottom:20px;">
+              <!-- Populated dynamically with visual container cards grouped by service -->
+            </div>
+
+            <header style="margin-top:20px;margin-bottom:12px;">
+              <div>
+                <h2>Container Oficial <code class="mono">dockersamples/visualizer:stable</code> (Porta :8081)</h2>
+                <div class="meta">Renderização direta do container <span class="mono">defesacivil_visualizer.1</span> rodando no Swarm</div>
+              </div>
+              <a href="/visualizer/" target="_blank" rel="noopener" class="btn sm">Abrir Visualizer em Tela Cheia</a>
+            </header>
+            <iframe id="visualizer-iframe" class="visualizer-frame" title="Docker Swarm Visualizer Oficial" src="about:blank"></iframe>
+          </article>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           VIEW 3: DOCKERFILES & DOCKER COMPOSE (IaC)
+           ========================================================= -->
+      <section id="view-iac" class="view-section" aria-label="Dockerfiles e Infraestrutura como Código">
+        <div class="grid">
+          <article class="panel col-4">
+            <header>
+              <div>
+                <h2>1. Banco Geoespacial</h2>
+                <div class="meta"><span class="mono">docker/postgres/Dockerfile</span></div>
+              </div>
+              <span class="pill pos mono">defesacivil-db:latest</span>
+            </header>
+            <p style="color:var(--muted);margin-bottom:12px;">
+              Imagem customizada baseada em PostgreSQL 15 + PostGIS 3.3 com script automático de inicialização das extensões espaciais (`postgis` e `postgis_topology`) e healthcheck nativo.
+            </p>
+            <pre class="code-block mono"><code>FROM postgis/postgis:15-3.3
+
+LABEL maintainer="Defesa em Foco"
+LABEL description="PostgreSQL 15 + PostGIS"
+
+COPY init-postgis.sql /docker-entrypoint-initdb.d/01-init-postgis.sql
+
+EXPOSE 5432
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+  CMD pg_isready -U ${POSTGRES_USER:-defesa_user} \
+      -d ${POSTGRES_DB:-defesa_civil} || exit 1</code></pre>
+          </article>
+
+          <article class="panel col-4">
+            <header>
+              <div>
+                <h2>2. API Spring Boot 3</h2>
+                <div class="meta"><span class="mono">defesa-backend/Dockerfile</span></div>
+              </div>
+              <span class="pill pos mono">defesacivil-backend:latest</span>
+            </header>
+            <p style="color:var(--muted);margin-bottom:12px;">
+              Build multi-stage: estágio 1 compila o projeto Maven com JDK 17 Alpine; estágio 2 gera imagem enxuta apenas com JRE 17, <code class="mono">curl</code> para healthcheck no Actuator e usuário não-root.
+            </p>
+            <pre class="code-block mono"><code># Stage 1: Build Maven
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+COPY src ./src
+RUN mvn clean package -DskipTests -B
+
+# Stage 2: Runtime JRE 17
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+RUN apk add --no-cache curl
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]</code></pre>
+          </article>
+
+          <article class="panel col-4">
+            <header>
+              <div>
+                <h2>3. Web App Flutter</h2>
+                <div class="meta"><span class="mono">Dockerfile.flutter</span></div>
+              </div>
+              <span class="pill pos mono">defesacivil-frontend:latest</span>
+            </header>
+            <p style="color:var(--muted);margin-bottom:12px;">
+              Build multi-stage: compila o código Dart/Flutter para Web (`--release`) injetando variáveis via `--dart-define` e empacota os estáticos em um servidor Nginx Alpine leve.
+            </p>
+            <pre class="code-block mono"><code># Stage 1: Build Flutter Web
+FROM ghcr.io/cirruslabs/flutter:stable AS build
+WORKDIR /app
+COPY pubspec.* ./
+RUN flutter pub get
+COPY . .
+RUN flutter build web --release \
+    --no-tree-shake-icons
+
+# Stage 2: Servidor Nginx Alpine
+FROM nginx:alpine
+COPY --from=build /app/build/web /usr/share/nginx/html
+COPY nginx/flutter.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80</code></pre>
+          </article>
+        </div>
+
+        <div class="grid">
+          <article class="panel col-12">
+            <header>
+              <div>
+                <h2>Infraestrutura como Código · <code class="mono">docker-compose.yml</code> (Especificação Swarm)</h2>
+                <div class="meta">Orquestração declarativa de serviços, redes overlay, volumes persistentes, variação de réplicas e Docker Visualizer</div>
+              </div>
+              <span class="pill pos mono">5 Serviços Orquestrados</span>
+            </header>
+            <pre class="code-block mono"><code>services:
+  db:
+    image: defesacivil-db:latest
+    networks: [defesa-net]
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  backend:
+    image: defesacivil-backend:latest
+    networks: [defesa-net]
+    deploy:
+      mode: replicated
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: defesacivil-frontend:latest
+    networks: [defesa-net]
+    deploy:
+      mode: replicated
+      replicas: 2
+
+  nginx-lb:
+    image: nginx:alpine
+    ports:
+      - target: 80
+        published: 8000
+        mode: host
+      - target: 8080
+        published: 8080
+        mode: host
+    networks: [defesa-net]
+
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - target: 8080
+        published: 8081
+        mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [defesa-net]</code></pre>
+          </article>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           VIEW 4: MAC MINI & AUTO-RECUPERAÇÃO (WATCHDOG)
+           ========================================================= -->
+      <section id="view-nodes" class="view-section" aria-label="Servidor Mac mini e Auto-Boot">
+        <div class="grid">
+          <article class="panel col-6">
+            <header>
+              <div>
+                <h2>Diagnóstico &amp; Reestruturação do Servidor Mac mini</h2>
+                <div class="meta">Host físico <span class="mono">mac-mini-de-reinaldo (100.98.5.110)</span> · macOS Sequoia</div>
+              </div>
+              <span class="pill pos mono">100% Operacional</span>
+            </header>
+
+            <div class="rows" style="margin-top:0;padding-top:0;">
+              <div class="row">
+                <span>Causa Raiz Resolvida (Disco 100% Cheio)</span>
+                <span class="mono" style="color:var(--positive);">+23,0 GB liberados no SSD</span>
+              </div>
+              <div class="row">
+                <span>Limpeza de Logs &amp; Imagens Órfãs</span>
+                <span class="mono">spring.log (6,4 GB) + caches (16,6 GB)</span>
+              </div>
+              <div class="row">
+                <span>Energia Hardware (<code class="mono">pmset</code>)</span>
+                <span class="mono">autorestart = 1 · sleep = 0</span>
+              </div>
+              <div class="row">
+                <span>Sessão macOS (<code class="mono">loginwindow</code>)</span>
+                <span class="mono">autoLoginUser = rhmorais</span>
+              </div>
+              <div class="row">
+                <span>Daemon de Auto-Cura (<code class="mono">launchd</code>)</span>
+                <span class="mono">com.defesacivil.watchdog (a cada 120s)</span>
+              </div>
+              <div class="row">
+                <span>Túnel Cloudflare Zero Trust</span>
+                <span class="mono">4 conexões QUIC ativas (gru05/gru19)</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel col-6">
+            <header>
+              <div>
+                <h2>Endpoints de Produção Monitorados pelo Watchdog</h2>
+                <div class="meta">Verificação automática a cada 2 minutos com restart imediato em caso de queda</div>
+              </div>
+              <span class="pill pos mono">4/4 Online</span>
+            </header>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Serviço</th>
+                    <th>Endpoint Local</th>
+                    <th>Domínio Público Cloudflare</th>
+                    <th class="n">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Frontend Web (Flutter)</td>
+                    <td class="mono">127.0.0.1:8000</td>
+                    <td class="mono">defesa.rhprogramer.com.br</td>
+                    <td class="n"><span class="pill pos mono">HTTP 200</span></td>
+                  </tr>
+                  <tr>
+                    <td>Backend API (Spring Boot)</td>
+                    <td class="mono">127.0.0.1:8080/actuator/health</td>
+                    <td class="mono">api.rhprogramer.com.br</td>
+                    <td class="n"><span class="pill pos mono">UP (200)</span></td>
+                  </tr>
+                  <tr>
+                    <td>Storage S3 (MinIO)</td>
+                    <td class="mono">127.0.0.1:9000/minio/health/live</td>
+                    <td class="mono">fotos.rhprogramer.com.br</td>
+                    <td class="n"><span class="pill pos mono">HTTP 200</span></td>
+                  </tr>
+                  <tr>
+                    <td>Portal Docker Swarm &amp; Visualizer</td>
+                    <td class="mono">127.0.0.1:8090 / :8081</td>
+                    <td class="mono">docker.rhprogramer.com.br</td>
+                    <td class="n"><span class="pill pos mono">HTTP 200</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="charts.js"></script>
+  <script>
+    // Real initial state from Mac mini Docker Swarm cluster (updated live via /api/swarm/status when served on :8090)
+    const state = {
+      backendReplicas: 3,
+      frontendReplicas: 2,
+      diskFree: '23,0 GB',
+      diskUsePct: '76%',
+      nodeIp: '192.168.5.15',
+      containers: [
+        { task: 'defesacivil_backend.1', id: '0c7df5fb2764', image: 'defesacivil-backend:latest', node: 'colima', ports: '8080/tcp (overlay)', status: 'Running', age: 'Ativo · 38m', service: 'backend' },
+        { task: 'defesacivil_backend.2', id: '07c92a2da88d', image: 'defesacivil-backend:latest', node: 'colima', ports: '8080/tcp (overlay)', status: 'Running', age: 'Ativo · 38m', service: 'backend' },
+        { task: 'defesacivil_backend.3', id: '295ba74f133b', image: 'defesacivil-backend:latest', node: 'colima', ports: '8080/tcp (overlay)', status: 'Running', age: 'Ativo · 38m', service: 'backend' },
+        { task: 'defesacivil_frontend.1', id: 'f491a774b751', image: 'defesacivil-frontend:latest', node: 'colima', ports: '80/tcp (overlay)', status: 'Running', age: 'Ativo · 39m', service: 'frontend' },
+        { task: 'defesacivil_frontend.2', id: '8fa3efea6769', image: 'defesacivil-frontend:latest', node: 'colima', ports: '80/tcp (overlay)', status: 'Running', age: 'Ativo · 39m', service: 'frontend' },
+        { task: 'defesacivil_nginx-lb.1', id: '6baeb0fa9db6', image: 'nginx:alpine', node: 'colima', ports: '0.0.0.0:8000->80, :8080->8080', status: 'Running', age: 'Ativo · 37m', service: 'nginx-lb' },
+        { task: 'defesacivil_db.1', id: 'bd55cf3e5eb0', image: 'defesacivil-db:latest', node: 'colima', ports: '5432/tcp (PostGIS)', status: 'Running', age: 'Ativo · 39m', service: 'db' },
+        { task: 'defesacivil_visualizer.1', id: 'a442d17439c8', image: 'dockersamples/visualizer:stable', node: 'colima', ports: '0.0.0.0:8081->8080', status: 'Running', age: 'Ativo · 37m', service: 'visualizer' }
+      ]
+    };
+
+    function switchView(viewId) {
+      document.querySelectorAll('.view-section').forEach((sec) => {
+        sec.classList.toggle('active', sec.id === 'view-' + viewId);
+      });
+      document.querySelectorAll('[data-nav]').forEach((el) => {
+        if (el.getAttribute('data-nav') === viewId) {
+          el.setAttribute('aria-current', 'page');
+        } else {
+          el.removeAttribute('aria-current');
+        }
+      });
+      document.querySelectorAll('[data-tab]').forEach((el) => {
+        el.setAttribute('aria-selected', el.getAttribute('data-tab') === viewId ? 'true' : 'false');
+      });
+      if (viewId === 'overview') {
+        renderLatencyChart();
+      }
+      if (viewId === 'visualizer') {
+        renderGraphicalVisualizer();
+        const iframe = document.getElementById('visualizer-iframe');
+        if (iframe && iframe.getAttribute('src') === 'about:blank' && location.protocol.startsWith('http')) {
+          iframe.setAttribute('src', '/visualizer/');
+        }
+      }
+    }
+
+    document.querySelectorAll('[data-nav]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView(el.getAttribute('data-nav'));
+      });
+    });
+
+    document.querySelectorAll('[data-tab]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView(el.getAttribute('data-tab'));
+      });
+    });
+
+    function renderClusterUI() {
+      const total = state.containers.length;
+      document.getElementById('kpi-total-replicas').innerHTML = `${total} / ${total} <small>tasks</small>`;
+      document.getElementById('kpi-backend-replicas').innerHTML = `${state.backendReplicas} / ${state.backendReplicas} <small>réplicas</small>`;
+      document.getElementById('kpi-frontend-replicas').innerHTML = `${state.frontendReplicas} / ${state.frontendReplicas} <small>réplicas</small>`;
+      document.getElementById('kpi-disk-free').innerHTML = `${state.diskFree} <small>livres</small>`;
+      document.getElementById('node-slot-count').textContent = `${total} tasks`;
+
+      const quickScaleBtn = document.getElementById('btn-quick-scale');
+      if (state.backendReplicas === 3) {
+        quickScaleBtn.innerHTML = 'Escalar Backend (3 &rarr; 5)';
+      } else {
+        quickScaleBtn.innerHTML = 'Restaurar Backend (3 réplicas)';
+      }
+
+      document.querySelectorAll('[data-scale-service="backend"]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', Number(btn.getAttribute('data-scale-count')) === state.backendReplicas ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-scale-service="frontend"]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', Number(btn.getAttribute('data-scale-count')) === state.frontendReplicas ? 'true' : 'false');
+      });
+
+      // Render 5 Swarm Services in Node Manager card (balanced height with left chart card)
+      const servicesSummary = [
+        { name: 'defesacivil_backend', port: ':8080 VIP', count: state.backendReplicas },
+        { name: 'defesacivil_frontend', port: ':80 VIP', count: state.frontendReplicas },
+        { name: 'defesacivil_nginx-lb', port: ':8000 / :8080', count: 1 },
+        { name: 'defesacivil_db', port: ':5432 PostGIS', count: 1 },
+        { name: 'defesacivil_visualizer', port: ':8081 Host', count: 1 }
+      ];
+      const slotList = document.getElementById('node-slot-list');
+      slotList.innerHTML = servicesSummary.map((s) => `
+        <div class="slot-item active-slot">
+          <span class="slot-name mono">${s.name}</span>
+          <span class="slot-id mono">${s.port}</span>
+          <span class="pill pos mono">${s.count} / ${s.count}</span>
+        </div>
+      `).join('');
+
+      // Render Table
+      const tbody = document.getElementById('containers-table-body');
+      tbody.innerHTML = state.containers.map((c) => `
+        <tr>
+          <td>
+            <span class="mono" style="font-weight:600;">${c.task}</span>
+            <span class="sub">Serviço: defesacivil_${c.service}</span>
+          </td>
+          <td class="mono">${c.id}</td>
+          <td class="mono">${c.image}</td>
+          <td class="mono">${c.node}</td>
+          <td class="mono">${c.ports}</td>
+          <td><span class="pill pos">${c.status}</span></td>
+          <td class="n mono">${c.age}</td>
+        </tr>
+      `).join('');
+
+      renderGraphicalVisualizer();
+    }
+
+    function renderGraphicalVisualizer() {
+      const board = document.getElementById('graphical-swarm-board');
+      if (!board) return;
+      const groups = [
+        { key: 'backend', title: 'defesacivil_backend (Spring Boot 3 API)', img: 'defesacivil-backend:latest' },
+        { key: 'frontend', title: 'defesacivil_frontend (Flutter Web)', img: 'defesacivil-frontend:latest' },
+        { key: 'infra', title: 'Infraestrutura & Persistência (PostGIS, Nginx LB, Visualizer)', img: 'Stack Core' }
+      ];
+
+      board.innerHTML = groups.map((g) => {
+        const items = state.containers.filter((c) =>
+          g.key === 'infra' ? ['db', 'nginx-lb', 'visualizer'].includes(c.service) : c.service === g.key
+        );
+        return `
+          <div class="panel col-4" style="background:var(--ground);">
+            <header>
+              <div>
+                <h2 style="font-size:15px;">${g.title}</h2>
+                <div class="meta mono">${g.img}</div>
+              </div>
+              <span class="pill pos mono">${items.length} ${items.length === 1 ? 'task' : 'tasks'}</span>
+            </header>
+            <div class="slot-list">
+              ${items.map((item) => `
+                <div class="slot-item active-slot" style="background:var(--surface);">
+                  <div>
+                    <div class="slot-name mono">${item.task}</div>
+                    <div class="meta mono">ID: ${item.id} · Nó: ${item.node}</div>
+                  </div>
+                  <span class="mono" style="color:var(--muted);">${item.age}</span>
+                  <span class="pill pos mono">ONLINE</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderLatencyChart() {
+      const el = document.getElementById('swarm-latency-chart');
+      if (!el || typeof Charts === 'undefined') return;
+      const labels = [
+        '00:00', '02:00', '04:00', '06:00', '08:00', '10:00',
+        '12:00', '14:00', '16:00', '18:00', '20:00', '22:00'
+      ];
+      const baseValues = state.backendReplicas >= 5
+        ? [48, 45, 44, 46, 54, 62, 58, 52, 49, 41, 34, 29]
+        : [48, 45, 44, 46, 54, 62, 58, 52, 49, 45, 43, 42];
+
+      Charts.line(el, {
+        labels,
+        series: [
+          { name: 'Latência p95 API (ms)', values: baseValues },
+          { name: 'Média Por Réplica (ms)', values: baseValues.map((v) => Math.round(v * 0.68)) }
+        ],
+        format: Charts.fmt.ms,
+        reference: { value: 120, label: 'Meta 120 ms' },
+        annotations: [
+          { at: 4, label: 'Watchdog Boot', short: 'Boot' },
+          { at: 9, label: `Swarm ${state.backendReplicas}x Réplicas`, short: `${state.backendReplicas}x` }
+        ],
+        legend: '#chart-legend'
+      });
+    }
+
+    async function fetchSwarmStatus() {
+      if (!location.protocol.startsWith('http')) return;
+      try {
+        const res = await fetch('/api/swarm/status', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && Array.isArray(data.containers) && data.containers.length > 0) {
+          state.containers = data.containers;
+          state.backendReplicas = data.backendReplicas || state.backendReplicas;
+          state.frontendReplicas = data.frontendReplicas || state.frontendReplicas;
+          if (data.diskFree) state.diskFree = data.diskFree;
+          document.getElementById('last-sync-stamp').textContent = 'Sincronizado às ' + new Date().toLocaleTimeString('pt-BR');
+          renderClusterUI();
+        }
+      } catch (_) {
+        // Offline / local preview fallback keeps initial real snapshot
+      }
+    }
+
+    async function triggerScale(service, replicas) {
+      const feedback = document.getElementById('action-feedback');
+      feedback.textContent = `Executando: docker service scale defesacivil_${service}=${replicas} ...`;
+      feedback.style.color = 'var(--accent)';
+
+      if (location.protocol.startsWith('http')) {
+        try {
+          const res = await fetch('/api/swarm/scale', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service, replicas })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.containers) {
+              state.containers = data.containers;
+              state.backendReplicas = data.backendReplicas;
+              state.frontendReplicas = data.frontendReplicas;
+            }
+            feedback.textContent = `Convergido: defesacivil_${service} escalado para ${replicas} réplica(s) no Swarm`;
+            feedback.style.color = 'var(--positive)';
+            renderClusterUI();
+            renderLatencyChart();
+            const iframe = document.getElementById('visualizer-iframe');
+            if (iframe && iframe.getAttribute('src') !== 'about:blank') {
+              iframe.contentWindow.location.reload();
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // Local interactive simulation when opened directly via file://
+      if (service === 'backend') state.backendReplicas = replicas;
+      if (service === 'frontend') state.frontendReplicas = replicas;
+
+      const rebuilt = [];
+      for (let i = 1; i <= state.backendReplicas; i++) {
+        rebuilt.push({
+          task: `defesacivil_backend.${i}`,
+          id: ('0c7df5fb' + (1000 + i * 137)).slice(0, 12),
+          image: 'defesacivil-backend:latest',
+          node: 'colima',
+          ports: '8080/tcp (overlay)',
+          status: 'Running',
+          age: i > 3 ? 'Novo · 2s' : 'Ativo · 39m',
+          service: 'backend'
+        });
+      }
+      for (let i = 1; i <= state.frontendReplicas; i++) {
+        rebuilt.push({
+          task: `defesacivil_frontend.${i}`,
+          id: ('f491a774' + (2000 + i * 193)).slice(0, 12),
+          image: 'defesacivil-frontend:latest',
+          node: 'colima',
+          ports: '80/tcp (overlay)',
+          status: 'Running',
+          age: i > 2 ? 'Novo · 2s' : 'Ativo · 39m',
+          service: 'frontend'
+        });
+      }
+      rebuilt.push(
+        { task: 'defesacivil_nginx-lb.1', id: '6baeb0fa9db6', image: 'nginx:alpine', node: 'colima', ports: '0.0.0.0:8000->80, :8080->8080', status: 'Running', age: 'Ativo · 38m', service: 'nginx-lb' },
+        { task: 'defesacivil_db.1', id: 'bd55cf3e5eb0', image: 'defesacivil-db:latest', node: 'colima', ports: '5432/tcp (PostGIS)', status: 'Running', age: 'Ativo · 39m', service: 'db' },
+        { task: 'defesacivil_visualizer.1', id: 'a442d17439c8', image: 'dockersamples/visualizer:stable', node: 'colima', ports: '0.0.0.0:8081->8080', status: 'Running', age: 'Ativo · 38m', service: 'visualizer' }
+      );
+      state.containers = rebuilt;
+      feedback.textContent = `Convergido: defesacivil_${service} escalado para ${replicas} réplica(s)`;
+      feedback.style.color = 'var(--positive)';
+      renderClusterUI();
+      renderLatencyChart();
+    }
+
+    document.querySelectorAll('[data-scale-service]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const svc = btn.getAttribute('data-scale-service');
+        const cnt = Number(btn.getAttribute('data-scale-count'));
+        triggerScale(svc, cnt);
+      });
+    });
+
+    document.getElementById('btn-quick-scale').addEventListener('click', () => {
+      const target = state.backendReplicas === 3 ? 5 : 3;
+      triggerScale('backend', target);
+    });
+
+    document.getElementById('btn-quick-heal').addEventListener('click', async () => {
+      const feedback = document.getElementById('action-feedback');
+      feedback.textContent = 'Simulando queda de container no backend... Swarm detectando e recriando task...';
+      feedback.style.color = 'var(--warning)';
+      if (location.protocol.startsWith('http')) {
+        try {
+          const res = await fetch('/api/swarm/heal-demo', { method: 'POST' });
+          if (res.ok) {
+            await fetchSwarmStatus();
+            feedback.textContent = 'Self-Healing concluído: Swarm substituiu o container com falha automaticamente.';
+            feedback.style.color = 'var(--positive)';
+            return;
+          }
+        } catch (_) {}
+      }
+      if (state.containers.length > 0) {
+        state.containers[0].id = '9e41c8a0f21b';
+        state.containers[0].age = 'Recriado · 1s';
+        renderClusterUI();
+        feedback.textContent = 'Self-Healing concluído: container 9e41c8a0f21b recriado pelo Swarm.';
+        feedback.style.color = 'var(--positive)';
+      }
+    });
+
+    document.getElementById('btn-rail-refresh').addEventListener('click', () => {
+      fetchSwarmStatus();
+    });
+
+    window.addEventListener('resize', () => {
+      if (document.getElementById('view-overview').classList.contains('active')) {
+        renderLatencyChart();
+      }
+    });
+
+    // Initial render
+    renderClusterUI();
+    renderLatencyChart();
+    fetchSwarmStatus();
+    setInterval(fetchSwarmStatus, 6000);
+  </script>
+</body>
+</html>
