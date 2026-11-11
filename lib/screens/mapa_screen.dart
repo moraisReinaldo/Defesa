@@ -26,6 +26,7 @@ import '../widgets/responsive_layout.dart';
 import 'registro_ocorrencia_screen.dart'; // Contém SelecaoTipoOcorrenciaScreen
 import 'historico_screen.dart';
 import 'perfil_screen.dart';
+import 'login_screen.dart';
 import 'registro_ponto_interesse_screen.dart';
 import 'dashboard_relatorios_screen.dart';
 import 'cadastro_agente_screen.dart';
@@ -1132,80 +1133,126 @@ class _MapaScreenState extends State<MapaScreen> {
 
   void _onNovaOcorrenciaPressed(UsuarioProvider usuarioProvider, {LatLng? latlng}) async {
     if (kIsWeb) {
-      if (!usuarioProvider.isAdmin) {
-        // Exibe modal de download do aplicativo para cidadãos na web
-        showDialog(
+      if (!usuarioProvider.estaLogado) {
+        // Exige login para registrar ocorrência pela Web (App mobile fica opcional)
+        final acao = await showDialog<String>(
           context: context,
-          builder: (context) => Dialog(
+          builder: (ctx) => Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Container(
-              width: 400,
-              padding: const EdgeInsets.all(32),
+              width: 420,
+              padding: const EdgeInsets.all(28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.app_shortcut_rounded, size: 64, color: AppColors.primaryTeal),
-                  const SizedBox(height: 16),
-                  const Text('Aplicativo Necessário', 
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                  const SizedBox(height: 16),
-                  const Text('Para registrar ocorrências em tempo real com precisão de GPS e envio de mídia, utilize nosso aplicativo para Android ou iOS.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 15, color: AppColors.textSecondary, height: 1.5)),
-                  const SizedBox(height: 32),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=defesa.civil.foco&hl=pt_BR'));
-                      },
-                      icon: const Icon(Icons.android, color: Colors.white),
-                      label: const Text('Baixar no Google Play'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF3DDC84),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryTeal.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
                     ),
+                    child: const Icon(Icons.lock_person_rounded, size: 34, color: AppColors.primaryTeal),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Login Necessário',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        launchUrl(Uri.parse('https://apps.apple.com/br/app/defesa-em-foco/id6782083182'));
-                      },
-                      icon: const Icon(Icons.apple, color: Colors.white),
-                      label: const Text('Baixar na App Store'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
+                  const Text(
+                    'Para registrar ocorrências pela Web e acompanhar o atendimento da Defesa Civil, entre na sua conta ou crie um cadastro gratuito.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14.5, color: AppColors.textSecondary, height: 1.5),
                   ),
-
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('Entendi'),
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(ctx, 'login'),
+                      icon: const Icon(Icons.login_rounded, color: Colors.white, size: 18),
+                      label: const Text('Entrar na Minha Conta'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryTeal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(ctx, 'registro'),
+                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                      label: const Text('Criar Conta Gratuita'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primaryTeal,
+                        side: const BorderSide(color: AppColors.primaryTeal),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'App mobile opcional disponível para Android e iOS:',
+                    style: TextStyle(fontSize: 11.5, color: AppColors.textLight),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=defesa.civil.foco&hl=pt_BR'));
+                        },
+                        icon: const Icon(Icons.android, size: 16, color: Color(0xFF2E7D32)),
+                        label: const Text('Google Play', style: TextStyle(fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          launchUrl(Uri.parse('https://apps.apple.com/br/app/defesa-em-foco/id6782083182'));
+                        },
+                        icon: const Icon(Icons.apple, size: 16, color: Colors.black87),
+                        label: const Text('App Store', style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
         );
-        return;
+
+        if (!mounted || acao == null) return;
+
+        final logou = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(24),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 540, maxHeight: 820),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundOffWhite,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: LoginScreen(modoRegistro: acao == 'registro'),
+            ),
+          ),
+        );
+
+        if (!mounted || (logou != true && !usuarioProvider.estaLogado)) return;
       }
 
-      // Web + Administrador: Abre Dialog de cadastro com as coordenadas do ponto clicado no mapa
+      // Usuário logado na Web (Cidadão, Agente, Coordenador ou Super Admin): abre modal de Nova Ocorrência
+      final pontoInicial = latlng ?? _marcadorEnderecoSelecionado;
       final res = await showDialog<bool>(
         context: context,
         builder: (context) => Dialog(
@@ -1217,13 +1264,13 @@ class _MapaScreenState extends State<MapaScreen> {
             clipBehavior: Clip.antiAlias,
             child: Navigator(
               onGenerateRoute: (settings) => MaterialPageRoute(
-                builder: (context) => SelecaoTipoOcorrenciaScreen(posicaoInicial: latlng),
+                builder: (context) => SelecaoTipoOcorrenciaScreen(posicaoInicial: pontoInicial),
               ),
             ),
           ),
         ),
       );
-      if (res == true && mounted) _inicializarMapa();
+      if (res == true && mounted) _inicializarMapa(forcar: true);
       return;
     } else {
       // Mobile (Android / iOS)

@@ -52,6 +52,18 @@ if docker info >/dev/null 2>&1; then
         bash "$DEFESA_DIR/scripts/setup-swarm-workers.sh" >> "$LOG_FILE" 2>&1
     fi
 
+    # 4.2 Garantir fix de VXLAN (UDP 4789 SNAT 192.168.5.1 + route src + checksum) em DinD/Colima
+    colima ssh -- sudo sh -c '
+      BR_IFACE=$(ip -o -4 addr show | awk "/172\.30\.0\.1/{print \$2}" | head -n 1)
+      if [ -n "$BR_IFACE" ]; then
+        ip route replace 172.30.0.0/16 dev "$BR_IFACE" proto kernel scope link src 192.168.5.1 2>/dev/null || true
+      fi
+      iptables -t nat -C POSTROUTING -s 172.30.0.1 -d 172.30.0.0/16 -p udp --dport 4789 -j SNAT --to-source 192.168.5.1 2>/dev/null || \
+      iptables -t nat -I POSTROUTING 1 -s 172.30.0.1 -d 172.30.0.0/16 -p udp --dport 4789 -j SNAT --to-source 192.168.5.1
+      iptables -t mangle -C POSTROUTING -p udp --dport 4789 -j CHECKSUM --checksum-fill 2>/dev/null || \
+      iptables -t mangle -A POSTROUTING -p udp --dport 4789 -j CHECKSUM --checksum-fill
+    ' < /dev/null 2>/dev/null || true
+
     SERVICES_COUNT=$(docker service ls --filter "name=defesacivil_" -q 2>/dev/null | wc -l | tr -d ' ')
     if [ "$SERVICES_COUNT" -lt 5 ]; then
         echo "[$(date '+%d/%m/%Y %H:%M:%S')] [Watchdog] Stack incompleta ($SERVICES_COUNT/5). Fazendo deploy da stack defesacivil..." >> "$LOG_FILE"

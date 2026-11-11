@@ -1,3 +1,5 @@
+import '../providers/acessibilidade_provider.dart';
+import '../widgets/cartilha_rota_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -75,6 +77,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               _buildInfoCard(prov, usuario),
                               const SizedBox(height: 16),
                               _buildCardVitalicio(prov, usuario),
+                              const SizedBox(height: 16),
+                              _buildCardAcessibilidadeERota(context),
                               const SizedBox(height: 24),
                               _buildActionButtons(prov, usuario),
                             ],
@@ -94,6 +98,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         _buildInfoCard(prov, usuario),
                         const SizedBox(height: 16),
                         _buildCardVitalicio(prov, usuario),
+                        const SizedBox(height: 16),
+                        _buildCardAcessibilidadeERota(context),
                         const SizedBox(height: 16),
                         if (prov.isAdmin) ...[
                           _buildAdminCard(prov),
@@ -1105,4 +1111,62 @@ class _PerfilScreenState extends State<PerfilScreen> {
     _emailPromoController.dispose();
     super.dispose();
   }
+
+  Widget _buildCardAcessibilidadeERota(BuildContext context) {
+    final acessProv = context.watch<AcessibilidadeProvider>();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.borderLight),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadowColor,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.accessibility_new_rounded, color: AppColors.primaryTeal, size: 22),
+              SizedBox(width: 8),
+              Text(
+                'Acessibilidade & Emergência',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: Icon(
+              Icons.contrast_rounded,
+              color: acessProv.modoAltoContraste ? Colors.amber.shade700 : Colors.grey,
+            ),
+            title: const Text('Modo Alto Contraste', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            subtitle: const Text('Para idosos e baixa visão (fundo preto e textos ampliados)', style: TextStyle(fontSize: 12)),
+            value: acessProv.modoAltoContraste,
+            activeThumbColor: Colors.amber.shade700,
+            onChanged: (val) => acessProv.alternarAltoContraste(),
+          ),
+          const Divider(),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.shield_rounded, color: Colors.deepOrange),
+            title: const Text('Cartilha R.O.T.A.', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            subtitle: const Text('Guia rápido de emergência e telefones 199/193', style: TextStyle(fontSize: 12)),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => CartilhaRotaDialog.exibir(context),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

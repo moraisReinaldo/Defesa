@@ -130,4 +130,15 @@ public class OcorrenciaController {
         boolean deletado = ocorrenciaService.deletarOcorrencia(id);
         return deletado ? ResponseEntity.ok().<Void>build() : ResponseEntity.notFound().build();
     }
+
+    /** Confirmar ocorrência (upvote comunitário tipo Waze — Ramona) — público */
+    @PostMapping("/{id}/confirmar")
+    public ResponseEntity<Ocorrencia> confirmarOcorrencia(
+            @PathVariable String id,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String usuarioId = body != null ? body.get("usuarioId") : null;
+        Ocorrencia confirmada = ocorrenciaService.confirmarOcorrencia(id, usuarioId);
+        return confirmada != null ? ResponseEntity.ok(confirmada) : ResponseEntity.notFound().build();
+    }
+
 }

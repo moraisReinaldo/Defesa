@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import '../providers/ocorrencia_provider.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/ocorrencia_tipos.dart';
@@ -163,31 +165,65 @@ class OcorrenciaCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      if (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                      // Validação Comunitária Waze (Ramona): Botão de confirmação / upvote
+                      InkWell(
+                        onTap: () async {
+                          await context.read<OcorrenciaProvider>().confirmarOcorrencia(ocorrencia.id);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('👍 Ocorrência confirmada! A comunidade agradece seu relato.'),
+                                duration: Duration(seconds: 2),
+                                backgroundColor: AppColors.primaryTeal,
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryTeal.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.5)),
+                            color: (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
+                                ? AppColors.primaryTeal.withValues(alpha: 0.15)
+                                : AppColors.slate200.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
+                                  ? AppColors.primaryTeal
+                                  : AppColors.borderLight,
+                              width: 1,
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.verified_user_rounded, size: 12, color: AppColors.primaryTeal),
+                              Icon(
+                                (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
+                                    ? Icons.verified_user_rounded
+                                    : Icons.thumb_up_alt_outlined,
+                                size: 12,
+                                color: (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
+                                    ? AppColors.primaryTeal
+                                    : AppColors.textSecondary,
+                              ),
                               const SizedBox(width: 4),
                               Text(
-                                'Comunidade (+${ocorrencia.totalRelatosCluster! - 1})',
-                                style: const TextStyle(
+                                (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
+                                    ? 'Comunidade (+${ocorrencia.totalRelatosCluster! - 1})'
+                                    : 'Confirmar',
+                                style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryTeal,
+                                  color: (ocorrencia.totalRelatosCluster != null && ocorrencia.totalRelatosCluster! >= 2)
+                                      ? AppColors.primaryTeal
+                                      : AppColors.textSecondary,
                                 ),
                               ),
                             ],
                           ),
                         ),
+                      ),
                       if (ocorrencia.caminhoFoto != null &&
                           ocorrencia.caminhoFoto!.isNotEmpty)
                         Container(

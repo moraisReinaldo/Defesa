@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pitch Deck: Governança de TI & LGPD - Defesa em Foco</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card-bg: rgba(18, 26, 42, 0.85);
+      --border: rgba(255, 255, 255, 0.1);
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.25);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at top right, #1e293b 0%, #0b0f17 100%);
+      color: var(--text);
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header Nav */
+    header {
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11, 15, 23, 0.6);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand span {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--accent);
+      background: var(--accent-glow);
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    /* Container de Slides */
+    main {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .slide {
+      position: absolute;
+      width: 92%;
+      max-width: 1200px;
+      height: 82vh;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 48px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(30px) scale(0.98);
+      pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .slide-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #60a5fa;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 2.3rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+      line-height: 1.15;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      color: #93c5fd;
+      margin-bottom: 24px;
+      font-weight: 600;
+    }
+
+    p.lead {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 16px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .card h3 {
+      font-size: 1.1rem;
+      color: #f8fafc;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card p, .card ul {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .card ul {
+      list-style-position: inside;
+      margin-top: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+    .badge-gov { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+    .badge-gest { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    td strong {
+      color: #e2e8f0;
+    }
+
+    .raci-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-align: center;
+      display: inline-block;
+    }
+    .raci-r { background: #ef4444; color: white; }
+    .raci-a { background: #3b82f6; color: white; }
+    .raci-c { background: #f59e0b; color: white; }
+    .raci-i { background: #64748b; color: white; }
+
+    /* Footer & Controls */
+    footer {
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      background: rgba(11, 15, 23, 0.6);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    button {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .hint {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      🛡️ <span>Defesa em Foco</span> &bull; Governança COBIT 2019 & LGPD
+    </div>
+    <div class="slide-counter" id="counter">Slide 1 / 8</div>
+  </header>
+
+  <main>
+    <!-- SLIDE 1: Capa -->
+    <section class="slide active">
+      <div class="slide-tag">Instrumento de Avaliação &bull; Pitch Deck (10 min)</div>
+      <h1 style="font-size: 3rem; margin-top: 20px;">Governança de Tecnologia da Informação & LGPD</h1>
+      <h2>Aplicação Prática no Projeto Defesa em Foco (BRAOTI2)</h2>
+      <p class="lead">
+        Alinhamento estratégico entre tecnologia, gestão pública e sociedade para mitigação de riscos de desastres climáticos, resiliência de infraestrutura e conformidade com a Lei nº 13.709/2018.
+      </p>
+      <div class="grid-2" style="margin-top: 40px;">
+        <div class="card">
+          <h3>👨‍💻 Equipe Responsável</h3>
+          <p>Reinaldo Morais dos Santos & Grupo BRAOTI2</p>
+          <p style="font-size: 0.85rem; margin-top: 4px; color: #64748b;">Curso Superior de Tecnologia em ADS &bull; 6º Módulo</p>
+        </div>
+        <div class="card">
+          <h3>👩‍🏫 Disciplina e Docência</h3>
+          <p>Governança de TI &bull; Profª Letícia</p>
+          <p style="font-size: 0.85rem; margin-top: 4px; color: #64748b;">Projeto de Extensão Interdisciplinar</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: Visão Geral do Projeto -->
+    <section class="slide">
+      <div class="slide-tag">7.2.1 &bull; Contexto e Escopo</div>
+      <h1>Visão Geral do Projeto Defesa em Foco</h1>
+      <h2>Solução Integrada de Alerta, Triagem e Resposta a Desastres Naturais</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>📱 App Móvel (Flutter)</h3>
+          <p>Cidadãos relatam ocorrências (alagamentos, quedas de barreiras) com fotos e GPS.</p>
+          <ul>
+            <li><strong>Modo 100% Offline:</strong> Mapas vetoriais locais e fila assíncrona Hive.</li>
+            <li>Rotas de evacuação e sirenes digitais.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🧠 Central Inteligente</h3>
+          <p>Backend robusto em Java 17 + Spring Boot 3 com processamento geoespacial.</p>
+          <ul>
+            <li><strong>PostGIS:</strong> Centroides automáticos de incidentes.</li>
+            <li><strong>Gemini AI Multimodal:</strong> Triagem e auditoria automática de fotos.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🐳 Infraestrutura Swarm</h3>
+          <p>Cluster Docker Swarm distribuído em 3 nós balanceados via Nginx.</p>
+          <ul>
+            <li>Object Storage MinIO para mídias seguras.</li>
+            <li>Túnel Cloudflare Tunnels (Zero Trust).</li>
+            <li>Exportação oficial padrão <strong>COBRADE</strong>.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: Objetivos de Negócio vs Objetivos de TI -->
+    <section class="slide">
+      <div class="slide-tag">6.1 &bull; Alinhamento Estratégico</div>
+      <h1>Mapeamento: Objetivos de Negócio vs. Objetivos de TI</h1>
+      <h2>Desdobramento de Metas Estratégicas (COBIT Goals Cascade)</h2>
+      <div class="grid-2">
+        <div class="card" style="border-left: 4px solid #3b82f6;">
+          <h3 style="color: #60a5fa;">🎯 Objetivos de Negócio / Extensão</h3>
+          <p><strong>ON-01 (Salvar Vidas e Mitigar Danos):</strong> Reduzir o tempo médio de resposta da Defesa Civil aos desastres em até 40%.</p>
+          <p style="margin-top: 12px;"><strong>ON-02 (Continuidade Operacional):</strong> Garantir canal de atendimento contínuo mesmo sob tempestades severas e apagões locais de telecomunicação.</p>
+          <p style="margin-top: 12px;"><strong>ON-03 (Conformidade e Transparência):</strong> Atendimento integral à LGPD e padronização governamental com o protocolo nacional COBRADE.</p>
+        </div>
+        <div class="card" style="border-left: 4px solid #10b981;">
+          <h3 style="color: #34d399;">⚙️ Objetivos de TI Alinhados</h3>
+          <p><strong>OT-01 (Alta Resiliência e Disponibilidade):</strong> Cluster Swarm multi-nó, replicação de microsserviços e resiliência offline no cliente móvel.</p>
+          <p style="margin-top: 12px;"><strong>OT-02 (Segurança e Privacidade por Padrão):</strong> Comunicação TLS, criptografia de dados (BCrypt/JWT) e isolamento restrito de privilégios.</p>
+          <p style="margin-top: 12px;"><strong>OT-03 (Qualidade dos Dados e Automação):</strong> Triagem com IA e centróides PostGIS para eliminar denúncias falsas e duplicadas.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Processos COBIT 2019 Escolhidos -->
+    <section class="slide">
+      <div class="slide-tag">7.2.2 &bull; Framework de Governança</div>
+      <h1>Processos COBIT 2019 Selecionados</h1>
+      <h2>2 Processos de Governança (EDM) e 4 Processos de Gestão (APO / DSS / MEA)</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3><span class="badge badge-gov">Governança</span> Camada EDM</h3>
+          <p><strong>EDM01 – Garantir Configuração do Framework:</strong> Define papéis, autoridade, tomada de decisão e prestação de contas no município.</p>
+          <p style="margin-top: 12px;"><strong>EDM03 – Garantir Otimização de Riscos:</strong> Fixa apetite de risco e diretrizes estratégicas para mitigação de catástrofes e falhas de TI.</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge badge-gest">Gestão</span> Camada APO / DSS / MEA</h3>
+          <p><strong>APO12 – Gerenciar Riscos:</strong> Contingência técnica ativa (fallback PostGIS, cache assíncrono Hive contra quedas de sinal).</p>
+          <p style="margin-top: 8px;"><strong>APO13 – Gerenciar Segurança da Informação:</strong> Criptografia ponta a ponta, BCrypt, Rate Limiting e conformidade LGPD.</p>
+          <p style="margin-top: 8px;"><strong>DSS01 – Gerenciar Operações:</strong> Sustentação do cluster Swarm em 3 nós, watchdog e balanceamento de carga Nginx.</p>
+          <p style="margin-top: 8px;"><strong>MEA01 – Monitorar Desempenho e Conformidade:</strong> Avaliação de SLAs de socorro e aderência ao padrão nacional COBRADE.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Níveis de Capacidade -->
+    <section class="slide">
+      <div class="slide-tag">7.2.3 &bull; Avaliação de Maturidade</div>
+      <h1>Níveis de Capacidade dos Processos (COBIT / CMMI)</h1>
+      <h2>Diagnóstico Atual com Evidências de Código e Metas de Evolução</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Processo COBIT</th>
+            <th>Nível Atual</th>
+            <th>Nível Alvo</th>
+            <th>Evidência Real no Projeto</th>
+            <th>Plano de Evolução</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>EDM01</strong> (Gov. Framework)</td>
+            <td><span class="badge badge-gest">Nível 2</span></td>
+            <td><span class="badge badge-gov">Nível 3</span></td>
+            <td>RBAC bem segregado no código (Cidadão, Agente, Coordenador)</td>
+            <td>Instituir Comitê Formal Intermunicipal</td>
+          </tr>
+          <tr>
+            <td><strong>EDM03</strong> (Otimização Riscos)</td>
+            <td><span class="badge badge-gest">Nível 2</span></td>
+            <td><span class="badge badge-gov">Nível 4</span></td>
+            <td>Arquitetura resiliente com fallbacks operacionais</td>
+            <td>Formalizar painel quantitativo de apetite de risco</td>
+          </tr>
+          <tr>
+            <td><strong>APO12</strong> (Gestão Riscos)</td>
+            <td><span class="badge badge-gov">Nível 3</span></td>
+            <td><span class="badge badge-gov">Nível 4</span></td>
+            <td>Cache offline e sincronização automática transparente</td>
+            <td>Automação de testes de estresse contínuos (k6)</td>
+          </tr>
+          <tr>
+            <td><strong>APO13</strong> (Segurança Info)</td>
+            <td><span class="badge badge-gov">Nível 3</span></td>
+            <td><span class="badge badge-gov">Nível 4</span></td>
+            <td>JWT, BCrypt, Cloudflare Tunnels e RateLimitingFilter</td>
+            <td>Implementar 2FA obrigatório para coordenadores</td>
+          </tr>
+          <tr>
+            <td><strong>DSS01</strong> (Operações TI)</td>
+            <td><span class="badge badge-gov">Nível 3</span></td>
+            <td><span class="badge badge-gov">Nível 4</span></td>
+            <td>Cluster Docker Swarm 3 nós, Nginx LB e watchdog</td>
+            <td>Centralizar métricas com Prometheus + Grafana</td>
+          </tr>
+          <tr>
+            <td><strong>MEA01</strong> (Conformidade)</td>
+            <td><span class="badge badge-gest">Nível 2</span></td>
+            <td><span class="badge badge-gov">Nível 3</span></td>
+            <td>Exportação oficial COBRADE e logs auditáveis no Actuator</td>
+            <td>Dashboard executivo em tempo real de SLAs</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SLIDE 6: Matriz RACI -->
+    <section class="slide">
+      <div class="slide-tag">7.2.4 &bull; Responsabilidade e Autoridade</div>
+      <h1>Matriz RACI do Projeto Defesa em Foco</h1>
+      <h2>Definição Clara de Papéis: Quem Executa, Responde, é Consultado ou Informado</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Processo / Atividade Principal</th>
+            <th style="text-align: center;">Cidadão</th>
+            <th style="text-align: center;">Agente Campo</th>
+            <th style="text-align: center;">Coordenador</th>
+            <th style="text-align: center;">Equipe Dev</th>
+            <th style="text-align: center;">DPO / Seg</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>EDM01:</strong> Definir Diretrizes e Prioridades de TI</td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-c">C</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-a">A</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-r">R</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-c">C</span></td>
+          </tr>
+          <tr>
+            <td><strong>EDM03:</strong> Definir Apetite de Risco Institucional</td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-c">C</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-a">A</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-c">C</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-r">R</span></td>
+          </tr>
+          <tr>
+            <td><strong>APO13:</strong> Gestão de Segurança da Informação</td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-c">C</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-r">R</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-a">A</span></td>
+          </tr>
+          <tr>
+            <td><strong>DSS01:</strong> Operações e Disponibilidade dos Nós</td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-a">R / A</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+          </tr>
+          <tr>
+            <td><strong>Operação:</strong> Registro de Ocorrência com Foto/GPS</td>
+            <td style="text-align: center;"><span class="raci-pill raci-r">R</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+          </tr>
+          <tr>
+            <td><strong>Operação:</strong> Triagem e Despacho de Socorro</td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-r">R</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-a">A</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-c">C</span></td>
+            <td style="text-align: center;"><span class="raci-pill raci-i">I</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- SLIDE 7: LGPD -->
+    <section class="slide">
+      <div class="slide-tag">7.2.5 &bull; Proteção de Dados & Privacidade</div>
+      <h1>Conformidade com a LGPD (Lei nº 13.709/2018)</h1>
+      <h2>Segurança por Padrão e Amparo Legal no Artigo 7º da Legislação</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="color: #60a5fa;">📋 Dados Tratados & Bases Legais</h3>
+          <p><strong>Dados Comuns:</strong> Nome, telefone, e-mail, senhas criptografadas.</p>
+          <p style="margin-top: 8px;"><strong>Dados Geográficos:</strong> Coordenadas GPS de desastres e fotos enviadas em tempo real.</p>
+          <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; margin-top: 12px;">
+            <strong style="color: #34d399;">⚖️ Artigo 7º, Inciso VII da LGPD:</strong>
+            <p style="font-size: 0.85rem; color: #a7f3d0; margin-top: 4px;">Tratamento permitido expressamente para <em>"a proteção da vida ou da incolumidade física do titular ou de terceiro"</em>.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="color: #f59e0b;">🛡️ Riscos Identificados & Controles</h3>
+          <p><strong>1. Exposição de Localização Residencial:</strong></p>
+          <p style="font-size: 0.85rem;"><em>Controle:</em> Telas públicas mascaram comunicante; dados restritos ao Coordenador.</p>
+          <p style="margin-top: 8px;"><strong>2. Armazenamento de Imagens:</strong></p>
+          <p style="font-size: 0.85rem;"><em>Controle:</em> MinIO Storage com URLs temporárias assinadas criptograficamente.</p>
+          <p style="margin-top: 8px;"><strong>3. Canal do Titular (DPO):</strong></p>
+          <p style="font-size: 0.85rem;"><em>Controle:</em> Contato oficial do Encarregado de Dados ativo na Política de Privacidade.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Conclusão -->
+    <section class="slide">
+      <div class="slide-tag">7.2.6 &bull; Considerações Finais</div>
+      <h1>Conclusões, Aprendizados e Próximos Passos</h1>
+      <h2>Governança Como Diferencial de Engenharia de Software</h2>
+      <div class="grid-3" style="margin-top: 24px;">
+        <div class="card">
+          <h3>💡 Governança é Alicerce</h3>
+          <p>Sistemas de emergência não podem depender do acaso. O COBIT 2019 estruturou a resiliência e a responsabilidade da nossa arquitetura Swarm.</p>
+        </div>
+        <div class="card">
+          <h3>🔒 Privacy by Design</h3>
+          <p>A conformidade LGPD desde a concepção do banco PostGIS e do app Flutter garante solidez jurídica e confiança da população no poder público.</p>
+        </div>
+        <div class="card">
+          <h3>🚀 Próximas Entregas</h3>
+          <ul>
+            <li>Implementar 2FA obrigatório (30 dias).</li>
+            <li>Dashboard com Prometheus/Grafana (60 dias).</li>
+            <li>Anonimização facial por IA no MinIO (90 dias).</li>
+          </ul>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 40px;">
+        <h3 style="font-size: 1.4rem; color: #60a5fa;">Muito obrigado! Estamos à disposição da Banca.</h3>
+        <p style="color: #64748b; margin-top: 6px;">Projeto Defesa em Foco &bull; ADS 6º Módulo &bull; 2026</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="hint">Use as setas do teclado &larr; &rarr; ou os botões para navegar</div>
+    <div class="btn-group">
+      <button onclick="prevSlide()">&larr; Anterior</button>
+      <button onclick="nextSlide()">Próximo &rarr;</button>
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const counter = document.getElementById('counter');
+
+    function updateSlide() {
+      slides.forEach((slide, idx) => {
+        slide.classList.toggle('active', idx === currentSlide);
+      });
+      counter.textContent = `Slide ${currentSlide + 1} / ${slides.length}`;
+    }
+
+    function nextSlide() {
+      if (currentSlide < slides.length - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+  </script>
+</body>
+</html>

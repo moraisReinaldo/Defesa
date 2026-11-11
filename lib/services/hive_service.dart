@@ -59,6 +59,16 @@ class HiveService {
   /// Recupera a preferência de tema. Padrão: false (tema claro).
   bool get temaEscuro => _box.get(_chaveTemaEscuro, defaultValue: false) as bool;
 
+  static const String _chaveAltoContraste = 'alto_contraste';
+
+  /// Salva a preferência de acessibilidade em alto contraste.
+  Future<void> salvarAltoContraste(bool ativo) async {
+    await _box.put(_chaveAltoContraste, ativo);
+  }
+
+  /// Recupera a preferência de alto contraste. Padrão: false.
+  bool get altoContraste => _box.get(_chaveAltoContraste, defaultValue: false) as bool;
+
   // =========================================================================
   // FILTROS DE OCORRÊNCIA
   // =========================================================================

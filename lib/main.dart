@@ -1,3 +1,4 @@
+import 'providers/acessibilidade_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -120,16 +121,31 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => RotaEmergenciaProvider(apiService, hiveService),
         ),
+        ChangeNotifierProvider(
+          create: (_) => AcessibilidadeProvider(hiveService),
+        ),
         Provider.value(value: notificationService),
         Provider.value(value: hiveService),
         ChangeNotifierProvider.value(value: adService),
       ],
       child: Builder(
         builder: (context) {
+          final acessibilidade = context.watch<AcessibilidadeProvider>();
           return MaterialApp(
+            builder: (context, child) {
+              if (child == null) return const SizedBox.shrink();
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(acessibilidade.escalaFonte),
+                ),
+                child: child,
+              );
+            },
             title: 'Defesa em Foco',
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
+            theme: acessibilidade.modoAltoContraste
+                ? acessibilidade.temaAltoContraste
+                : ThemeData(
               useMaterial3: true,
               scaffoldBackgroundColor: AppColors.slate50,
               colorScheme: ColorScheme.fromSeed(

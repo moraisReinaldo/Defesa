@@ -17,5 +17,7 @@
     <string>/Users/rhmorais/logs/watchdog.log</string>
     <key>StandardErrorPath</key>
     <string>/Users/rhmorais/logs/watchdog.log</string>
+    <key>AbandonProcessGroup</key>
+    <true/>
 </dict>
 </plist>

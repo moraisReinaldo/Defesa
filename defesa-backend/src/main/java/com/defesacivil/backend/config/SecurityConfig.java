@@ -52,6 +52,9 @@ public class SecurityConfig {
                 // ===== ROTAS PÚBLICAS (sem token) =====
                 .requestMatchers("/", "/api/health", "/actuator/health").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/iot/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/campanhas", "/api/campanhas/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/ocorrencias/*/confirmar").permitAll()
                 .requestMatchers("/api/usuarios/login").permitAll()
                 .requestMatchers("/api/usuarios/esqueci-senha").permitAll()
                 .requestMatchers("/api/usuarios/resetar-senha").permitAll()

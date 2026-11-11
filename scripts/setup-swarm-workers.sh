@@ -51,9 +51,20 @@ TOKEN=$(docker swarm join-token -q worker)
 docker network inspect "$NET" >/dev/null 2>&1 || \
     docker network create --driver bridge --subnet "$SUBNET" "$NET" >/dev/null
 
-# 2.1 Garantir fix de checksum UDP para redes overlay Swarm (VXLAN 4789 em DinD/Colima)
-colima ssh -- sudo iptables -C POSTROUTING -t mangle -p udp --dport 4789 -j CHECKSUM --checksum-fill 2>/dev/null || \
-    colima ssh -- sudo iptables -A POSTROUTING -t mangle -p udp --dport 4789 -j CHECKSUM --checksum-fill 2>/dev/null || true
+# 2.1 Garantir fix de VXLAN (UDP 4789 SNAT 192.168.5.1 + route src + checksum) em DinD/Colima
+colima ssh -- sudo sh -c '
+  BR_IFACE=$(ip -o -4 addr show | awk "/172\.30\.0\.1/{print \$2}" | head -n 1)
+  if [ -n "$BR_IFACE" ]; then
+    ip route replace 172.30.0.0/16 dev "$BR_IFACE" proto kernel scope link src 192.168.5.1 2>/dev/null || true
+  fi
+  iptables -t nat -C POSTROUTING -s 172.30.0.1 -d 172.30.0.0/16 -p udp --dport 4789 -j SNAT --to-source 192.168.5.1 2>/dev/null || \
+  iptables -t nat -I POSTROUTING 1 -s 172.30.0.1 -d 172.30.0.0/16 -p udp --dport 4789 -j SNAT --to-source 192.168.5.1
+  iptables -t mangle -C POSTROUTING -p udp --dport 4789 -j CHECKSUM --checksum-fill 2>/dev/null || \
+  iptables -t mangle -A POSTROUTING -p udp --dport 4789 -j CHECKSUM --checksum-fill
+  for iface in $(ls /sys/class/net/ | grep -E "^(br-|veth|eth|docker)"); do
+    ethtool -K "$iface" tx off rx off 2>/dev/null || true
+  done
+' < /dev/null 2>/dev/null || true
 
 
 # 3. Containers DinD (persistentes: volume proprio + restart always)

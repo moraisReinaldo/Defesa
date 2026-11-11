@@ -149,4 +149,20 @@ class OcorrenciaService {
       throw _client.handleDioError(e);
     }
   }
+
+  Future<Ocorrencia?> confirmarOcorrencia(String id, {String? usuarioId}) async {
+    try {
+      final res = await _client.dio.post(
+        '/ocorrencias/$id/confirmar',
+        data: {if (usuarioId != null) 'usuarioId': usuarioId},
+      );
+      if (res.statusCode == 200 && res.data != null) {
+        return Ocorrencia.fromJson(res.data);
+      }
+    } on DioException catch (e) {
+      debugPrint('Erro ao confirmar ocorrência comunitária: $e');
+    }
+    return null;
+  }
+
 }

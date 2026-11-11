@@ -749,4 +749,22 @@ public class OcorrenciaService {
         String clean = val.replace("\"", "\"\"").replace("\n", " ").replace("\r", "");
         return "\"" + clean + "\"";
     }
+
+    /**
+     * Validação comunitária tipo Waze (Ramona):
+     * Incrementa o cluster de confirmações de uma ocorrência ativa por cidadãos.
+     */
+    @Transactional
+    public Ocorrencia confirmarOcorrencia(String id, String usuarioId) {
+        Ocorrencia oc = ocorrenciaRepository.findById(id).orElse(null);
+        if (oc == null) return null;
+
+        int total = (oc.getTotalRelatosCluster() != null) ? oc.getTotalRelatosCluster() : 1;
+        oc.setTotalRelatosCluster(total + 1);
+        log.info("👍 [Waze Comunitário] Ocorrência {} confirmada pelo cidadão {}. Total cluster: {}",
+                id, (usuarioId != null ? usuarioId : "anônimo"), total + 1);
+
+        return ocorrenciaRepository.save(oc);
+    }
+
 }

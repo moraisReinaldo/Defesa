@@ -385,6 +385,19 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
       await _obterLocalizacaoSemAlterarCarregando();
       if (!mounted) return;
     }
+    if (_codigoCidadeDetectada == null) {
+      final provFallback = context.read<UsuarioProvider>();
+      final cidFallback = provFallback.cidadeAtiva ?? provFallback.usuarioLogado?.cidade;
+      if (cidFallback != null && cidFallback.isNotEmpty) {
+        final match = provFallback.cidadesSuportadas.firstWhere(
+          (c) => c['codigo'] == cidFallback || c['nome']?.toLowerCase() == cidFallback.toLowerCase(),
+          orElse: () => {},
+        );
+        _codigoCidadeDetectada = match.isNotEmpty ? match['codigo'] : cidFallback;
+      } else if (kIsWeb) {
+        _codigoCidadeDetectada = 'PIR';
+      }
+    }
     
     if (_codigoCidadeDetectada == null) {
       setState(() => _carregando = false);
@@ -438,11 +451,11 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
       final usuarioLogado = usuarioProvider.usuarioLogado;
       final isAgenteOuAdmin = usuarioProvider.isAdmin || (usuarioLogado?.role == Role.agente);
 
-      if (kIsWeb && usuarioProvider.isAdmin && _dataCustomizada == null) {
+      if (kIsWeb && !usuarioProvider.estaLogado) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Administradores no Web devem obrigatoriamente informar uma Data e Hora no passado.'),
+              content: Text('Você precisa estar logado para registrar uma ocorrência pela Web.'),
               backgroundColor: AppColors.statusActive,
             ),
           );
@@ -543,6 +556,7 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
         origemSuspeita: origemSuspeita,
       );
 
+      if (!mounted) return;
       await context.read<OcorrenciaProvider>().adicionarOcorrencia(ocorrencia);
       if (!mounted) return;
 
@@ -856,10 +870,10 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryTeal),
-                        title: const Text('Data e Hora Personalizada (Obrigatório)'),
+                        title: const Text('Data e Hora Personalizada (Opcional - Retroativo)'),
                         subtitle: Text(_dataCustomizada != null 
                           ? '${_dataCustomizada!.day.toString().padLeft(2, '0')}/${_dataCustomizada!.month.toString().padLeft(2, '0')}/${_dataCustomizada!.year} às ${_dataCustomizada!.hour.toString().padLeft(2, '0')}:${_dataCustomizada!.minute.toString().padLeft(2, '0')}'
-                          : 'Toque para selecionar uma data no passado'),
+                          : 'Deixe em branco para usar a data/hora atual ou toque para informar data retroativa'),
                         trailing: const Icon(Icons.edit_calendar_rounded, size: 20),
                         onTap: () async {
                           final date = await showDatePicker(
@@ -1385,14 +1399,80 @@ class _DetalhesOcorrenciaScreenState extends State<DetalhesOcorrenciaScreen>
               ],
             ),
           ],
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _obterLocalizacao,
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Atualizar localização'),
+          if (kIsWeb) ...[
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: context.watch<UsuarioProvider>().cidadesSuportadas.any((c) => c['codigo'] == _codigoCidadeDetectada)
+                  ? _codigoCidadeDetectada
+                  : null,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: 'Município da Ocorrência',
+                prefixIcon: const Icon(Icons.location_city_rounded, color: AppColors.primaryTeal, size: 18),
+                isDense: true,
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              items: context.watch<UsuarioProvider>().cidadesSuportadas
+                  .map((c) => DropdownMenuItem<String>(
+                        value: c['codigo'],
+                        child: Text(c['nome'] ?? c['codigo'] ?? ''),
+                      ))
+                  .toList(),
+              onChanged: (novoCodigo) {
+                if (novoCodigo == null) return;
+                final prov = context.read<UsuarioProvider>();
+                final nomeCid = prov.cidadesSuportadas.firstWhere(
+                  (c) => c['codigo'] == novoCodigo,
+                  orElse: () => {'nome': novoCodigo},
+                )['nome'];
+                final coords = ClimaService.obterCoordenadasCidade(novoCodigo);
+                setState(() {
+                  _codigoCidadeDetectada = novoCodigo;
+                  _cidadeDetectada = nomeCid;
+                  if (widget.posicaoInicial == null) {
+                    _posicaoAtual = Position(
+                      latitude: coords['lat']!,
+                      longitude: coords['lng']!,
+                      timestamp: DateTime.now(),
+                      accuracy: 10,
+                      altitude: 0,
+                      heading: 0,
+                      speed: 0,
+                      speedAccuracy: 0,
+                      altitudeAccuracy: 0,
+                      headingAccuracy: 0,
+                    );
+                  }
+                });
+              },
             ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _obterLocalizacao,
+                  icon: const Icon(Icons.my_location_rounded, size: 18),
+                  label: const Text('Usar Meu GPS'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _mostrarDialogLocalizacaoManual(context.read<UsuarioProvider>()),
+                  icon: const Icon(Icons.map_rounded, size: 18),
+                  label: const Text('Marcar no Mapa'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

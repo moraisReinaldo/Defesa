@@ -1,3 +1,4 @@
+import 'cartilha_rota_dialog.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -390,10 +391,6 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
     final isAdmin = usuarioProv.isAdmin;
     final cidadeAtiva = usuarioProv.cidadeAtiva;
 
-    if (!provider.temAlertaAtivo) {
-      return const SizedBox.shrink();
-    }
-
     // Filtrar alertas para exibir SOMENTE alertas correspondentes à cidade ativa do usuário
     final alertasLocais = provider.alertasAtivos.where((a) {
       if (usuarioProv.isSuperAdmin || cidadeAtiva == null || cidadeAtiva.isEmpty) return true;
@@ -410,8 +407,9 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
       return false;
     }).toList();
 
-    if (alertasLocais.isEmpty) {
-      return const SizedBox.shrink();
+    // BANNER SEMPRE ON: Se não houver alerta crítico no momento, exibe o Banner Institucional Oficial
+    if (!provider.temAlertaAtivo || alertasLocais.isEmpty) {
+      return _buildBannerInstitucional(context, cidadeAtiva, isAdmin);
     }
 
     final alerta = alertasLocais.first;
@@ -509,4 +507,191 @@ class _AlertaBannerWidgetState extends State<AlertaBannerWidget>
       },
     );
   }
+
+  Widget _buildBannerInstitucional(BuildContext context, String? cidadeAtiva, bool isAdmin) {
+    final cidadeNome = (cidadeAtiva != null && cidadeAtiva.isNotEmpty) ? cidadeAtiva : 'Joanópolis';
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F2B48), Color(0xFF1E3A8A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.4), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          )
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _exibirDetalhesCampanha(context, cidadeNome),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.campaign_rounded, color: Colors.amberAccent, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryTeal.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '🏛️ PREFEITURA & DEFESA CIVIL • $cidadeNome',
+                              style: const TextStyle(
+                                color: Colors.amberAccent,
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'Mutirão de Prevenção e Combate à Dengue 2026',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        'Agentes nos bairros neste sábado • Toque para ver postos e dicas',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (isAdmin)
+                  IconButton(
+                    icon: const Icon(Icons.add_alert_rounded, color: Colors.amberAccent, size: 20),
+                    tooltip: 'Emitir Alerta Geral de Emergência',
+                    onPressed: () => AlertaBannerWidget.exibirModalEmitirAlerta(context, cidadeNome),
+                  )
+                else
+                  const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _exibirDetalhesCampanha(BuildContext context, String cidade) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 5,
+                decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.campaign_rounded, color: Color(0xFF1E3A8A), size: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Campanha Institucional • $cidade',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Mutirão de Prevenção e Combate à Dengue 2026',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0F2B48)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'A Defesa Civil Municipal e a Secretaria de Saúde de $cidade realizam neste sábado ação integrada de descarte consciente, vistoria em calhas e eliminação de focos do mosquito Aedes aegypti nos bairros.\n\nFique atento aos agentes uniformizados com crachá oficial.',
+              style: TextStyle(fontSize: 13.5, color: Colors.grey.shade800, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      CartilhaRotaDialog.exibir(context);
+                    },
+                    icon: const Icon(Icons.shield_outlined, size: 18),
+                    label: const Text('Cartilha R.O.T.A.'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.check_rounded, color: Colors.white, size: 18),
+                    label: const Text('Entendido', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1E3A8A),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }

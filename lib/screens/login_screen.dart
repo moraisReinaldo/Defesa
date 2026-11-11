@@ -120,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ? 'Bem-vindo! Seu cadastro foi realizado e está aguardando homologação do Super Admin. 🏛️' 
                 : 'Bem-vindo! Cadastro realizado com sucesso! ✅'),
               backgroundColor: AppColors.statusResolved));
-          if (mounted) Navigator.pop(context, true);
+          if (mounted && Navigator.canPop(context)) Navigator.pop(context, true);
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(result['message'] ?? 'Erro ao cadastrar'),
@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Login realizado! ✅'),
               backgroundColor: AppColors.statusResolved));
-          if (mounted) Navigator.pop(context, true);
+          if (mounted && Navigator.canPop(context)) Navigator.pop(context, true);
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Email ou senha incorretos'),
@@ -240,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Padding(
                         padding: const EdgeInsets.only(left: 16),
                         child: GestureDetector(
-                          onTap: () => Navigator.pop(context),
+                          onTap: () { if (Navigator.canPop(context)) Navigator.pop(context); },
                           child: Container(
                             width: 40, height: 40,
                             decoration: BoxDecoration(

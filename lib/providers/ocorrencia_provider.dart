@@ -358,4 +358,32 @@ class OcorrenciaProvider extends ChangeNotifier {
       return null;
     }
   }
+
+  /// Confirmação comunitária estilo Waze (Ramona)
+  Future<bool> confirmarOcorrencia(String id, {String? usuarioId}) async {
+    // Incremento otimista no estado local
+    final idx = _ocorrencias.indexWhere((o) => o.id == id);
+    if (idx != -1) {
+      final oc = _ocorrencias[idx];
+      final novoCluster = (oc.totalRelatosCluster ?? 1) + 1;
+      _ocorrencias[idx] = oc.copyWith(totalRelatosCluster: novoCluster);
+      notifyListeners();
+    }
+
+    try {
+      final atualizada = await _apiService.client.dio.post(
+        '/ocorrencias/$id/confirmar',
+        data: {if (usuarioId != null) 'usuarioId': usuarioId},
+      );
+      if (atualizada.statusCode == 200 && atualizada.data != null && idx != -1) {
+        _ocorrencias[idx] = Ocorrencia.fromJson(atualizada.data);
+        notifyListeners();
+      }
+      return true;
+    } catch (e) {
+      if (kDebugMode) print('Erro ao confirmar ocorrência: $e');
+      return true; // Mantém otimista
+    }
+  }
+
 }

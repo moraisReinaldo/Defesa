@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Governança de TI e LGPD - Defesa em Foco</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 15mm 20mm 15mm;
+      @bottom-right {
+        content: counter(page);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #1e293b;
+      line-height: 1.55;
+      font-size: 10.5pt;
+      background: #ffffff;
+    }
+
+    /* Cabeçalho Institucional */
+    .header-box {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .inst-title {
+      font-size: 11pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #0f172a;
+    }
+
+    .inst-sub {
+      font-size: 9pt;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .doc-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    /* Título do Trabalho */
+    .main-title-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 5px solid #2563eb;
+      padding: 16px 20px;
+      border-radius: 6px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      font-size: 9pt;
+      color: #475569;
+      margin-top: 10px;
+    }
+
+    .meta-item strong {
+      color: #0f172a;
+    }
+
+    /* Seções e Tipografia */
+    h2 {
+      font-size: 12.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin-top: 22px;
+      margin-bottom: 12px;
+      page-break-after: avoid;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    h3 {
+      font-size: 11pt;
+      font-weight: 600;
+      color: #1e3a8a;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+
+    h4 {
+      font-size: 10pt;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 10px;
+      margin-bottom: 4px;
+      page-break-after: avoid;
+    }
+
+    p {
+      margin-bottom: 8px;
+      text-align: justify;
+      hyphens: auto;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 10px;
+      font-size: 10pt;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    /* Tabelas Formais */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 16px 0;
+      font-size: 9pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    /* Destaques e Boxes */
+    .callout {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-left: 4px solid #3b82f6;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 9.5pt;
+      margin: 12px 0;
+      page-break-inside: avoid;
+    }
+
+    .callout-title {
+      font-weight: 700;
+      color: #1e40af;
+      margin-bottom: 3px;
+    }
+
+    .badge-raci {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+      text-align: center;
+      border-radius: 3px;
+      font-size: 8pt;
+    }
+    .raci-r { background: #fee2e2; color: #b91c1c; border: 1px solid #f87171; }
+    .raci-a { background: #dbeafe; color: #1d4ed8; border: 1px solid #60a5fa; }
+    .raci-c { background: #fef3c7; color: #b45309; border: 1px solid #fbbf24; }
+    .raci-i { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    .tag-gov {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      background: #f3e8ff;
+      color: #7e22ce;
+      border: 1px solid #d8b4fe;
+    }
+
+    .tag-gest {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #7dd3fc;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cabeçalho -->
+  <div class="header-box">
+    <div>
+      <div class="inst-title">Curso Superior de Tecnologia em Análise e Desenvolvimento de Sistemas</div>
+      <div class="inst-sub">Governança de Tecnologia da Informação &bull; Projeto de Extensão BRAOTI2 &bull; 6º Módulo</div>
+    </div>
+    <div class="doc-badge">INSTRUMENTO AVALIATIVO: PR</div>
+  </div>
+
+  <!-- Título Principal -->
+  <div class="main-title-card">
+    <h1>Relatório Técnico de Governança de TI (COBIT 2019) e Conformidade LGPD</h1>
+    <div style="font-size: 11pt; font-weight: 600; color: #2563eb;">Plataforma Integrada de Gestão de Riscos e Desastres: Defesa em Foco</div>
+    <div class="meta-grid">
+      <div class="meta-item"><strong>Docente Responsável:</strong> Profª Letícia</div>
+      <div class="meta-item"><strong>Data de Entrega:</strong> Novembro de 2026</div>
+      <div class="meta-item"><strong>Equipe de Desenvolvimento:</strong> Reinaldo Morais dos Santos & Grupo BRAOTI2</div>
+      <div class="meta-item"><strong>Status do Projeto:</strong> Em Produção / Infraestrutura Swarm Ativa</div>
+    </div>
+  </div>
+
+  <!-- 1. Introdução e Resumo -->
+  <h2>1. Resumo do Projeto BRAOTI2 (Defesa em Foco)</h2>
+  <p>
+    O <strong>Defesa em Foco</strong> é uma plataforma integrada de tecnologia e inovação comunitária voltada à modernização dos processos de triagem, comunicação rápida e resposta a desastres naturais e eventos climáticos extremos (como enchentes, enxurradas, deslizamentos e queimadas). Desenvolvido no escopo da disciplina interdisciplinar BRAOTI2, o projeto atua diretamente na articulação entre a sociedade civil e os órgãos municipais de Defesa Civil.
+  </p>
+  <p>
+    O ecossistema divide-se em três pilares arquiteturais:
+  </p>
+  <ul>
+    <li><strong>Aplicativo Móvel Comunitário (Flutter):</strong> Disponibilizado para cidadãos em Android e iOS, operando com <em>resiliência offline total</em> (armazenamento local via Hive e mapas vetoriais cacheados pelo FMTC). Permite o envio de ocorrências com coordenadas georreferenciadas e fotos, além de receber alertas com sirenes e rotas de fuga.</li>
+    <li><strong>Sala de Situação e Dashboard Web (Spring Boot 3 + Flutter Web):</strong> Painel de comando operacional para coordenadores da Defesa Civil. Integra Inteligência Artificial Multimodal (Google Gemini) para auditoria e agrupamento espacial com o banco relacional <strong>PostGIS</strong>, reduzindo duplicidades e acionando equipes de rua.</li>
+    <li><strong>Infraestrutura Distribuída (Docker Swarm On-Premises):</strong> Cluster em alta disponibilidade distribuído em 3 nós (colima manager e workers DinD), balanceador de carga reverso Nginx, armazenamento de objetos MinIO e comunicação segura criptografada via túneis Cloudflare (Zero Trust).</li>
+  </ul>
+
+  <!-- 2. Objetivos de Negócio vs Objetivos de TI -->
+  <h2>2. Mapeamento aos Objetivos de Negócio e de TI (COBIT Goals Cascade)</h2>
+  <p>
+    A governança eficaz exige que toda decisão tecnológica decorra diretamente de uma meta da organização. Utilizando o desdobramento de metas do framework COBIT 2019, estruturamos os seguintes alinhamentos:
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 50%;">Objetivos de Negócio / Extensão Pública (ON)</th>
+        <th style="width: 50%;">Objetivos de TI Alinhados (OT)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ON-01 (Salvar Vidas e Mitigar Danos):</strong> Reduzir em até 40% o tempo médio decorrido entre a emissão do relato pelo cidadão e o despacho da equipe de rua.</td>
+        <td><strong>OT-01 (Automação e Triagem Inteligente):</strong> Implementação de clusters espaciais (PostGIS `ST_DWithin`) e auditoria rápida via IA Multimodal para validação imediata do sinistro.</td>
+      </tr>
+      <tr>
+        <td><strong>ON-02 (Continuidade e Confiabilidade Operacional):</strong> Garantir que o canal de socorro funcione ininterruptamente durante eventos climáticos severos e apagões parciais.</td>
+        <td><strong>OT-02 (Alta Disponibilidade e Operação Offline):</strong> Cluster Swarm distribuído em múltiplos nós com réplicas ativas e aplicativo móvel com sincronização assíncrona automática.</td>
+      </tr>
+      <tr>
+        <td><strong>ON-03 (Conformidade, Governança e Transparência):</strong> Assegurar conformidade integral com a LGPD (Lei nº 13.709/18) e padronização com o protocolo nacional COBRADE da Defesa Civil.</td>
+        <td><strong>OT-03 (Segurança, Privacidade e Interoperabilidade):</strong> Criptografia ponta a ponta (TLS/BCrypt), autenticação JWT Stateless, controle de acesso RBAC e rotinas de exportação CSV padronizadas.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 3. Processos COBIT -->
+  <h2>3. Processos do Framework COBIT 2019 Selecionados</h2>
+  <p>
+    Para estabelecer um modelo de governança completo, foram selecionados <strong>2 processos da Camada de Governança (EDM)</strong> e <strong>4 processos da Camada de Gestão (APO, DSS, MEA)</strong>:
+  </p>
+
+  <h3>3.1 Camada de Governança</h3>
+  <p>
+    <span class="tag-gov">EDM01</span> <strong>Garantir a Configuração e Manutenção do Framework de Governança:</strong> Responsável por estruturar o modelo de tomada de decisões, transparência pública e definição de autoridades entre prefeituras consorciadas, Defesa Civil e a equipe de TI.
+  </p>
+  <p>
+    <span class="tag-gov">EDM03</span> <strong>Garantir a Otimização de Riscos:</strong> Fixa os limites de apetite e tolerância ao risco do município, assegurando que falhas tecnológicas, perda de dados ou indisponibilidade de infraestrutura não inviabilizem operações de salvamento humano.
+  </p>
+
+  <h3>3.2 Camada de Gestão</h3>
+  <p>
+    <span class="tag-gest">APO12</span> <strong>Gerenciar Riscos:</strong> Identifica riscos técnicos operacionais (como cotas da API de IA atingidas ou queda de sinal de telefonia móvel) e implementa planos práticos de mitigação (cache no Hive e fallback de centroid PostGIS).
+  </p>
+  <p>
+    <span class="tag-gest">APO13</span> <strong>Gerenciar Segurança da Informação:</strong> Estabelece controles cibernéticos de defesa, políticas de acesso por papéis (RBAC: Cidadão, Agente, Coordenador), hashing BCrypt e proteção de borda contra ataques maliciosos via `RateLimitingFilter`.
+  </p>
+  <p>
+    <span class="tag-gest">DSS01</span> <strong>Gerenciar Operações:</strong> Garante o funcionamento rotineiro dos servidores, volumes de dados, balanceador Nginx e execução dos scripts de <em>watchdog</em> para recuperação imediata de containers e serviços do Swarm.
+  </p>
+  <p>
+    <span class="tag-gest">MEA01</span> <strong>Monitorar, Avaliar e Medir Desempenho e Conformidade:</strong> Acompanha métricas e SLAs de atendimento, taxa de sucesso de entregas de notificações push e audita a conformidade do software junto à LGPD e normas da ANPD.
+  </p>
+
+  <div class="page-break"></div>
+
+  <!-- 4. Níveis de Capacidade -->
+  <h2>4. Avaliação do Nível de Capacidade dos Processos (COBIT 2019 / CMMI)</h2>
+  <p>
+    A maturidade foi avaliada na escala padrão de <strong>Nível 0 (Incompleto) a Nível 5 (Otimizado)</strong>, confrontando a situação atual do projeto com as metas e planos de evolução técnica:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 14%;">Processo</th>
+        <th class="center" style="width: 10%;">Atual</th>
+        <th class="center" style="width: 10%;">Alvo</th>
+        <th style="width: 36%;">Evidências Reais no Projeto Defesa em Foco</th>
+        <th style="width: 30%;">Lacunas e Ações de Melhoria</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>EDM01</strong><br>(Governança)</td>
+        <td class="center"><strong>Nível 2</strong></td>
+        <td class="center"><strong>Nível 3</strong></td>
+        <td>RBAC rígido implementado no Spring Boot; papéis e permissões documentados; repositório Git com governança de branches.</td>
+        <td>Falta institucionalização de comitê formal intermunicipal. <em>Ação:</em> Criar termo de governança com municípios parceiros.</td>
+      </tr>
+      <tr>
+        <td><strong>EDM03</strong><br>(Riscos Gov)</td>
+        <td class="center"><strong>Nível 2</strong></td>
+        <td class="center"><strong>Nível 4</strong></td>
+        <td>Arquitetura de tolerância a falhas implementada (failover PostGIS e planos de contingência técnica documentados).</td>
+        <td>Ausência de matriz quantitativa de impacto financeiro. <em>Ação:</em> Elaborar painel de risco formal com limites de tolerância.</td>
+      </tr>
+      <tr>
+        <td><strong>APO12</strong><br>(Gestão Riscos)</td>
+        <td class="center"><strong>Nível 3</strong></td>
+        <td class="center"><strong>Nível 4</strong></td>
+        <td>Resiliência ativa comprovada: app armazena ocorrências sem sinal e dispara sincronização via `SyncNavigatorObserver`.</td>
+        <td>Testes de estresse executados manualmente. <em>Ação:</em> Inserir testes de carga contínuos (k6/JMeter) na esteira de integração.</td>
+      </tr>
+      <tr>
+        <td><strong>APO13</strong><br>(Segurança)</td>
+        <td class="center"><strong>Nível 3</strong></td>
+        <td class="center"><strong>Nível 4</strong></td>
+        <td>Senhas criptografadas (BCrypt), JWT Stateless, SSL/TLS de ponta a ponta e Política de Privacidade publicada.</td>
+        <td>Acesso administrativo sem segundo fator. <em>Ação:</em> Implementar 2FA obrigatório (TOTP) para Coordenadores.</td>
+      </tr>
+      <tr>
+        <td><strong>DSS01</strong><br>(Operações)</td>
+        <td class="center"><strong>Nível 3</strong></td>
+        <td class="center"><strong>Nível 4</strong></td>
+        <td>Cluster Swarm com 3 nós ativos, watchdog automatizado em bash, balanceamento Nginx e Docker Visualizer.</td>
+        <td>Métricas dispersas em logs. <em>Ação:</em> Implantar stack Prometheus + Grafana com alertas imediatos no Telegram.</td>
+      </tr>
+      <tr>
+        <td><strong>MEA01</strong><br>(Conformidade)</td>
+        <td class="center"><strong>Nível 2</strong></td>
+        <td class="center"><strong>Nível 3</strong></td>
+        <td>Exportação de relatórios oficiais COBRADE e monitoramento de saúde via Spring Boot Actuator (`/health`).</td>
+        <td>Auditorias manuais periódicas. <em>Ação:</em> Criar dashboard de SLA de atendimento com metas de tempo por bairro.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 5. Matriz RACI -->
+  <h2>5. Matriz RACI dos Processos de Governança e Gestão</h2>
+  <p>
+    Define com exatidão as atribuições entre os papéis: <strong>Cidadão (CID)</strong>, <strong>Agente de Campo (AGE)</strong>, <strong>Coordenador Defesa Civil (COO)</strong>, <strong>Equipe de TI/Dev (DEV)</strong> e <strong>Encarregado de Dados (DPO)</strong>:
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 45%;">Processo / Atividade Chave</th>
+        <th class="center" style="width: 11%;">CID</th>
+        <th class="center" style="width: 11%;">AGE</th>
+        <th class="center" style="width: 11%;">COO</th>
+        <th class="center" style="width: 11%;">DEV</th>
+        <th class="center" style="width: 11%;">DPO</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>EDM01:</strong> Definir diretrizes estratégicas e prioridades de TI</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+        <td class="center"><span class="badge-raci raci-a">A</span></td>
+        <td class="center"><span class="badge-raci raci-r">R</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+      </tr>
+      <tr>
+        <td><strong>EDM03:</strong> Definir apetite de risco e continuidade operacional</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+        <td class="center"><span class="badge-raci raci-a">A</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+        <td class="center"><span class="badge-raci raci-r">R</span></td>
+      </tr>
+      <tr>
+        <td><strong>APO12:</strong> Monitorar contingências técnicas e falhas de rede</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+        <td class="center"><span class="badge-raci raci-a">R/A</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+      </tr>
+      <tr>
+        <td><strong>APO13:</strong> Gerenciar segurança cibernética e auditoria de acessos</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+        <td class="center"><span class="badge-raci raci-r">R</span></td>
+        <td class="center"><span class="badge-raci raci-a">A</span></td>
+      </tr>
+      <tr>
+        <td><strong>DSS01:</strong> Operar cluster Swarm, rotinas de backup e failover</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-a">R/A</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+      </tr>
+      <tr>
+        <td><strong>MEA01:</strong> Medir tempo de resposta (SLAs) e conformidade LGPD</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+        <td class="center"><span class="badge-raci raci-a">A</span></td>
+        <td class="center"><span class="badge-raci raci-r">R</span></td>
+        <td class="center"><span class="badge-raci raci-a">A</span></td>
+      </tr>
+      <tr>
+        <td><strong>Operação:</strong> Registro de ocorrência com GPS e fotografia</td>
+        <td class="center"><span class="badge-raci raci-r">R</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+      </tr>
+      <tr>
+        <td><strong>Operação:</strong> Triagem e validação com IA / PostGIS</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-c">C</span></td>
+        <td class="center"><span class="badge-raci raci-a">A</span></td>
+        <td class="center"><span class="badge-raci raci-r">R</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+      </tr>
+      <tr>
+        <td><strong>Operação:</strong> Atendimento presencial e despacho de socorro</td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-r">R</span></td>
+        <td class="center"><span class="badge-raci raci-a">A</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+        <td class="center"><span class="badge-raci raci-i">I</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="font-size: 8pt; color: #64748b; margin-top: -6px;">
+    <strong>Legenda:</strong> R = Responsible (Executor); A = Accountable (Aprovador/Responsável Final); C = Consulted (Consultado); I = Informed (Informado).
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- 6. LGPD -->
+  <h2>6. Análise de Conformidade com a LGPD (Lei Federal nº 13.709/2018)</h2>
+
+  <h3>6.1 Mapeamento e Bases Legais Aplicadas (Artigo 7º da LGPD)</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Dado Pessoal Tratado</th>
+        <th>Classificação</th>
+        <th>Finalidade Operacional</th>
+        <th>Base Legal Aplicável</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Nome Completo</strong></td>
+        <td>Dado Pessoal Comum</td>
+        <td>Identificação do comunicante e prestação de contas à Defesa Civil</td>
+        <td>Art. 7º, V (Execução de contrato/serviço público)</td>
+      </tr>
+      <tr>
+        <td><strong>E-mail e Telefone</strong></td>
+        <td>Dado Pessoal Comum</td>
+        <td>Contato emergencial para confirmação de fatos e autenticação no sistema</td>
+        <td>Art. 7º, V (Execução de contrato)</td>
+      </tr>
+      <tr>
+        <td><strong>Senha Cadastral</strong></td>
+        <td>Dado Pessoal de Acesso</td>
+        <td>Controle de acesso autenticado (criptografada via hash BCrypt)</td>
+        <td>Art. 7º, V (Segurança de sistemas)</td>
+      </tr>
+      <tr>
+        <td><strong>Geolocalização GPS</strong></td>
+        <td>Dado Pessoal Geográfico</td>
+        <td>Determinação do local exato do desastre para envio imediato de viaturas</td>
+        <td><strong>Art. 7º, VII (Proteção da vida e incolumidade física)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Fotos do Incidente</strong></td>
+        <td>Dado Multimodal / Imagem</td>
+        <td>Auditoria visual do estrago e classificação pelo modelo de IA Gemini</td>
+        <td><strong>Art. 7º, VII (Proteção da vida)</strong> c/c Art. 7º, I</td>
+      </tr>
+      <tr>
+        <td><strong>Token Push (FCM)</strong></td>
+        <td>Dado Técnico Identificador</td>
+        <td>Disparo imediato de sirenes digitais e ordens de evacuação por bairro</td>
+        <td><strong>Art. 7º, VII (Proteção da vida e socorro público)</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">⚖️ Destino Jurídico Estratégico: O Artigo 7º, Inciso VII da LGPD</div>
+    Em situações extremas de desastres naturais (alagamentos repentinos, desabamentos de encostas e soterramentos), o consentimento prévio formal torna-se juridicamente secundário perante o <strong>Art. 7º, Inciso VII da Lei 13.709/18: "para a proteção da vida ou da incolumidade física do titular ou de terceiro"</strong>. Esse dispositivo confere legitimidade inatacável à atuação rápida do Defesa em Foco em conjunto com os órgãos oficiais do município.
+  </div>
+
+  <h3>6.2 Riscos Identificados e Medidas de Controle Técnico</h3>
+  <ul>
+    <li><strong>Risco 1: Exposição pública do endereço residencial de cidadãos denunciantes.</strong><br>
+    <em>Controle:</em> Os dados pessoais são anonimizados nas listagens públicas do app. O munícipe só vê a descrição da rua; nome, telefone e dados de contato são criptografados e acessíveis exclusivamente por Coordenadores com perfil autorizado no banco.</li>
+    <li><strong>Risco 2: Captura acidental de faces de vítimas ou de terceiros em fotografias.</strong><br>
+    <em>Controle:</em> As imagens residem no MinIO com URLs assinadas e tempo de expiração curto. Está em implementação pipeline com a API Gemini para aplicação automática de desfoque (<em>blur</em>) facial preventivo.</li>
+    <li><strong>Risco 3: Exercício dos Direitos do Titular (Artigo 18 da LGPD).</strong><br>
+    <em>Controle:</em> Disponibilização expressa de canal oficial do Encarregado de Dados (DPO) através do e-mail <code>reinaldoinfra07@gmail.com</code> na Política de Privacidade ativa, assegurando retificação e exclusão cadastral.</li>
+  </ul>
+
+  <!-- 7. Plano de Melhorias -->
+  <h2>7. Plano de Melhorias e Roadmap de Governança (PDCA)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Meta / Ação Proposta</th>
+        <th class="center">Processo COBIT</th>
+        <th class="center">Prazo</th>
+        <th class="center">Responsável</th>
+        <th>Métrica / Resultado Esperado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>M-01:</strong> Implementação de 2FA obrigatório (TOTP)</td>
+        <td class="center">APO13</td>
+        <td class="center">30 dias</td>
+        <td class="center">DEV</td>
+        <td>100% dos coordenadores logando com segundo fator.</td>
+      </tr>
+      <tr>
+        <td><strong>M-02:</strong> Pipeline de Testes de Estresse Automatizados (k6)</td>
+        <td class="center">APO12 / DSS01</td>
+        <td class="center">45 dias</td>
+        <td class="center">DEV</td>
+        <td>Garantir 2.000 requisições/s sem perda de pacotes.</td>
+      </tr>
+      <tr>
+        <td><strong>M-03:</strong> Monitoramento Centralizado (Prometheus/Grafana)</td>
+        <td class="center">DSS01 / MEA01</td>
+        <td class="center">60 dias</td>
+        <td class="center">DEV</td>
+        <td>Alertas em tempo real via Telegram de integridade dos nós.</td>
+      </tr>
+      <tr>
+        <td><strong>M-04:</strong> Elaboração do Relatório de Impacto Formal (RIPD)</td>
+        <td class="center">EDM03 / MEA01</td>
+        <td class="center">60 dias</td>
+        <td class="center">DPO</td>
+        <td>Protocolo de conformidade documentado e validado.</td>
+      </tr>
+      <tr>
+        <td><strong>M-05:</strong> Anonimização Facial Automática de Imagens</td>
+        <td class="center">APO13</td>
+        <td class="center">90 dias</td>
+        <td class="center">DEV</td>
+        <td>Desfoque automático de faces humanas antes do MinIO.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- 8. Conclusão -->
+  <h2>8. Conclusões e Considerações Finais</h2>
+  <p>
+    A aplicação prática dos frameworks de Governança de TI (COBIT 2019) e dos preceitos da LGPD ao ecossistema do <strong>Defesa em Foco</strong> comprova que sistemas voltados a serviços essenciais exigem rigor que transcende a excelência de código. A governança proporcionou a garantia de que a arquitetura distribuída (Docker Swarm com 3 nós) opere com responsabilidade definida (Matriz RACI), com contingências estruturadas contra desastres de rede e sob amparo legal intransigente para a proteção da vida humana.
+  </p>
+
+  <!-- 9. Referências -->
+  <h2>9. Referências Bibliográficas</h2>
+  <ol>
+    <li>ISACA. <em>COBIT 2019 Framework: Governance and Management Objectives</em>. Rolling Meadows, IL: ISACA, 2018.</li>
+    <li>BRASIL. <em>Lei Federal nº 13.709, de 14 de agosto de 2018</em>. Lei Geral de Proteção de Dados Pessoais (LGPD). Brasília, DF, 2018.</li>
+    <li>SECRETARIA NACIONAL DE PROTEÇÃO E DEFESA CIVIL (SEDEC). <em>Instrução Normativa sobre a Classificação e Codificação Brasileira de Desastres (COBRADE)</em>. Brasília: Ministério do Desenvolvimento Regional, 2023.</li>
+    <li>FERNANDO, Jeferson. <em>Descomplicando o Docker</em>. São Paulo: LINUXtips, 2022.</li>
+    <li>PROJETO DEFESA EM FOCO. <em>Documentação Oficial de Arquitetura e Engenharia de Software</em>. Repositório BRAOTI2, 2026.</li>
+  </ol>
+
+</body>
+</html>

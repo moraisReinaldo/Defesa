@@ -279,10 +279,15 @@ foreach ($worker in @($WORKER1_NAME, $WORKER2_NAME)) {
 # ==============================================================
 Write-Step "6/6" "Realizando deploy da Stack '$STACK_NAME' no Swarm..."
 
-# Copiar o docker-compose.yml e o nginx-lb.conf para o Manager
+# Copiar o docker-compose.yml, .env e o nginx-lb.conf para o Manager
 docker cp docker-compose.yml "${MANAGER_NAME}:/docker-compose.yml" 2>&1 | Out-Null
-docker exec $MANAGER_NAME mkdir -p /nginx 2>&1 | Out-Null
+docker exec $MANAGER_NAME mkdir -p /nginx /defesa-backend 2>&1 | Out-Null
 docker cp nginx/nginx-lb.conf "${MANAGER_NAME}:/nginx/nginx-lb.conf" 2>&1 | Out-Null
+if (Test-Path "defesa-backend/.env") {
+    docker cp defesa-backend/.env "${MANAGER_NAME}:/defesa-backend/.env" 2>&1 | Out-Null
+} elseif (Test-Path "defesa-backend/.env.example") {
+    docker cp defesa-backend/.env.example "${MANAGER_NAME}:/defesa-backend/.env" 2>&1 | Out-Null
+}
 
 # Criar a Docker Config para o Nginx LB (necessário no Swarm)
 $configExists = docker exec $MANAGER_NAME docker config ls --filter "name=nginx_lb_conf" --format "{{.Name}}" 2>$null
