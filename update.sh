@@ -52,7 +52,7 @@ echo ""
 echo "🐳 4. Construindo imagens customizadas (DB, Backend, Frontend)..."
 docker build -t defesacivil-db:latest ./docker/postgres
 docker build -t defesacivil-backend:latest ./defesa-backend
-docker build -t defesacivil-frontend:latest .
+docker build -t defesacivil-frontend:latest -f Dockerfile.flutter .
 echo "✅ Imagens construídas."
 echo ""
 
