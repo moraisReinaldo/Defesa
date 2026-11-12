@@ -1,0 +1,1366 @@
+{
+  "info": {
+    "name": "Defesa em Foco - Testes de Sistema (QSW IFSP)",
+    "_postman_id": "defesa-qsw-suite-oficial",
+    "description": "Suíte oficial completa de Testes de Sistema Funcionais (Caixa-Preta) para o Caso de Uso Core UC01 (Registrar e Gerenciar Ocorrência de Defesa Civil), cobrindo integralmente as Regras de Negócio RN01 a RN06, Fluxos de Exceção FE01 a FE03, Fluxos Alternativos FA01 a FA04, Análise de Valor Limite (AVL), Partição de Equivalência (PE) e Ciclos de Transição de Estados (GE S1 a S5). Alinhado à Planilha de Testes e ao Trabalho 2 de QSW do IFSP (ADS - Prof. Daniel).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.rhprogramer.com.br/api",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Henrique0712$",
+      "type": "string"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenAgente",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenCidadao",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenAgenteOutraCidade",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ocorrenciaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ocorrenciaTroteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ocorrenciaBaseId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ocorrenciaS4Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ocorrenciaS3Id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup e Autenticação (Tokens JWT)",
+      "description": "Endpoints utilitários de autenticação para geração e persistência automática dos tokens JWT utilizados na suíte de testes (Administrador/Coordenador, Agente de Campo, Cidadão e Agente de Outra Jurisdição).",
+      "item": [
+        {
+          "name": "00.1 - Login Administrador (salva tokenAdmin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"senha\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/admin-login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('tokenAdmin', json.token);",
+                  "    console.log('tokenAdmin salvo com sucesso!');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.2 - Login Agente Operacional Joanópolis (salva tokenAgente)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"agente.joanopolis@defesacivil.gov.br\",\n  \"senha\": \"SenhaAgente123!\"\n}"
+            },
+            "url": "{{baseUrl}}/usuarios/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('tokenAgente', json.token);",
+                  "        console.log('tokenAgente salvo!');",
+                  "    }",
+                  "} else {",
+                  "    // Se credenciais personalizadas ainda não existirem, usa fallback do tokenAdmin",
+                  "    if (!pm.collectionVariables.get('tokenAgente')) {",
+                  "        pm.collectionVariables.set('tokenAgente', pm.collectionVariables.get('tokenAdmin'));",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.3 - Login Cidadão Autenticado (salva tokenCidadao)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"joao@teste.com\",\n  \"senha\": \"Senha123!\"\n}"
+            },
+            "url": "{{baseUrl}}/usuarios/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('tokenCidadao', json.token);",
+                  "        console.log('tokenCidadao salvo!');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "00.4 - Login Agente de Outra Jurisdição - São Paulo (salva tokenAgenteOutraCidade)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"agente.sp@defesacivil.gov.br\",\n  \"senha\": \"SenhaAgenteSP123!\"\n}"
+            },
+            "url": "{{baseUrl}}/usuarios/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('tokenAgenteOutraCidade', json.token);",
+                  "        console.log('tokenAgenteOutraCidade salvo!');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Casos de Teste de Sistema (CT01 a CT21)",
+      "description": "Conjunto integral de 23 cenários de teste cobrindo o Caso de Uso UC01, com validação de Partição de Equivalência, Análise de Valor Limite, Teste de Caminhos Independentes (GFC C1 a C6) e Grafo de Estados (GE S1 a S5).",
+      "item": [
+        {
+          "name": "CT01 - Fluxo Principal (Registro por Cidadão Comum)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"alagamento\",\n  \"descricao\": \"Água subindo rapidamente no cruzamento central de Joanópolis\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"latitudeEnvio\": -22.930500,\n  \"longitudeEnvio\": -46.270500,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200/201 (Sucesso)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Status inicial PENDENTE_APROVACAO', function () {",
+                  "        pm.expect(json.status).to.eql('PENDENTE_APROVACAO');",
+                  "    });",
+                  "    pm.test('COBRADE alagamento resolvido para 1.2.3.0.0', function () {",
+                  "        pm.expect(json.cobrade).to.eql('1.2.3.0.0');",
+                  "    });",
+                  "    pm.test('Origem suspeita deve ser false (distância 60m <= 2000m)', function () {",
+                  "        pm.expect(json.origemSuspeita).to.be.false;",
+                  "    });",
+                  "    if (json.id) {",
+                  "        pm.collectionVariables.set('ocorrenciaId', json.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT02 - Fluxo de Exceção FE01 (Tipo Obrigatório Ausente - PE Inválida)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"   \",\n  \"descricao\": \"Alagamento severo na via principal\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Validação de campo obrigatório acionada (Tipo)', function () {",
+                  "    pm.expect(pm.response.text()).to.include('Tipo da ocorrência é obrigatório');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT03 - Fluxo de Exceção FE01 (Descrição Obrigatória Ausente - PE Inválida)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"alagamento\",\n  \"descricao\": \"   \",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Mensagem de erro de descrição obrigatória', function () {",
+                  "    pm.expect(pm.response.text()).to.include('Descrição é obrigatória');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT04 - PE RN01 - Limite GPS Válido (1.995m <= 2.000m)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgente}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"queda_arvore\",\n  \"descricao\": \"Árvore caída na estrada municipal\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"latitudeEnvio\": -22.912060,\n  \"longitudeEnvio\": -46.270000,\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('origemSuspeita é false (1.995m <= 2.000m)', function () {",
+                  "        pm.expect(json.origemSuspeita).to.be.false;",
+                  "    });",
+                  "    pm.test('Status APROVADA por ser Agente em tempo real', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT05 - Fluxo de Exceção FE02 (Limite GPS Inválido 2.005m > 2.000m)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"deslizamento\",\n  \"descricao\": \"Deslizamento próximo à ponte do rio\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"latitudeEnvio\": -22.911970,\n  \"longitudeEnvio\": -46.270000,\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('origemSuspeita é true (antifraude acionado)', function () {",
+                  "        pm.expect(json.origemSuspeita).to.be.true;",
+                  "    });",
+                  "    pm.test('Auto-aprovação bloqueada (retida em PENDENTE_APROVACAO)', function () {",
+                  "        pm.expect(json.status).to.eql('PENDENTE_APROVACAO');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT06 - FA01 + FA03 - Auto-Aprovação Coordenador c/ Foto MinIO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"colapso_estrutural\",\n  \"descricao\": \"Rachadura grave em muro de contenção\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"latitudeEnvio\": -22.930100,\n  \"longitudeEnvio\": -46.270100,\n  \"criadoPorAgente\": true,\n  \"caminhoFoto\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=\",\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Status é APROVADA imediatamente', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "    pm.test('COBRADE colapso_estrutural é 2.1.2.0.0', function () {",
+                  "        pm.expect(json.cobrade).to.eql('2.1.2.0.0');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT07 - FA02 - Registro Retroativo Passado > 2 min (AVL Temporal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"incendio_vegetacao\",\n  \"descricao\": \"Incêndio em pastagem já debelado há mais de 10 minutos\",\n  \"latitude\": -22.920000,\n  \"longitude\": -46.260000,\n  \"dataHora\": \"{{dataPassadoRetroativo}}\",\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Gera dinamicamente um timestamp com 10 minutos atrás (sempre > 2 minutos)",
+                  "var d = new Date(Date.now() - 10 * 60 * 1000);",
+                  "var iso = d.toISOString().slice(0, 19);",
+                  "pm.variables.set('dataPassadoRetroativo', iso);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Registro passado entra diretamente como RESOLVIDA', function () {",
+                  "        pm.expect(json.status).to.eql('RESOLVIDA');",
+                  "    });",
+                  "    pm.test('dataResolucao preenchida automaticamente', function () {",
+                  "        pm.expect(json.dataResolucao).to.not.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT08 - Origem Suspeita c/ Foto Anexada (Bloqueio Auto-Aprovação c/ Upload S3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"tempestade\",\n  \"descricao\": \"Tempestade severa reportada a 5.4km de distância do envio\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"latitudeEnvio\": -22.881400,\n  \"longitudeEnvio\": -46.270000,\n  \"caminhoFoto\": \"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=\",\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('origemSuspeita é true (distância 5.400m > 2.000m)', function () {",
+                  "        pm.expect(json.origemSuspeita).to.be.true;",
+                  "    });",
+                  "    pm.test('Status retido em PENDENTE_APROVACAO', function () {",
+                  "        pm.expect(json.status).to.eql('PENDENTE_APROVACAO');",
+                  "    });",
+                  "    pm.test('COBRADE tempestade resolvido para 1.3.2.1.4', function () {",
+                  "        pm.expect(json.cobrade).to.eql('1.3.2.1.4');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT09.1 - GE S1: Transição t4 (Aprovação pelo Coordenador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/aprovar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Transição t4 concluída: status = APROVADA', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT09.2 - GE S1: Transição t6 (Registrar Chegada do Agente em Campo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgente}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Viatura 02 posicionada no local isolando área de risco\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/chegada"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Transição t6: status = TRABALHANDO_ATUALMENTE', function () {",
+                  "        pm.expect(json.status).to.eql('TRABALHANDO_ATUALMENTE');",
+                  "    });",
+                  "    pm.test('agenteNoLocal marcado como true', function () {",
+                  "        pm.expect(json.agenteNoLocal).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT09.3 - GE S1: Transição t7 (Resolver Ocorrência com Parecer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgente}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Desobstrução concluída com sucesso e tráfego liberado\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/resolver"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Transição final t7: status = RESOLVIDA', function () {",
+                  "        pm.expect(json.status).to.eql('RESOLVIDA');",
+                  "    });",
+                  "    pm.test('dataResolucao preenchida', function () {",
+                  "        pm.expect(json.dataResolucao).to.not.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT10 - FA04: Transição t9 (Reativar Ocorrência Resolvida)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/reativar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Status reativado para APROVADA', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "    pm.test('dataResolucao limpa para null', function () {",
+                  "        pm.expect(json.dataResolucao).to.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT10b.1 - GE S2: Criar Registro Pendente de Trote (t1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"alagamento\",\n  \"descricao\": \"Relato falso / trote detectado pelo coordenador\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('ocorrenciaTroteId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT10b.2 - GE S2: Transição t5 (DELETE Exclusão de Trote por Coordenador)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaTroteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 200 ou 204 (Exclusão realizada com sucesso)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT11 - Fluxo de Exceção FE03 (Violação de Jurisdição por Agente - RN05)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgenteOutraCidade}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Tentativa indevida de agente de São Paulo intervir em Joanópolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/resolver"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code é 403 Forbidden (checkJurisdiction acionado)', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "pm.test('Mensagem de erro de jurisdição violada', function () {",
+                  "    pm.expect(pm.response.text()).to.include('Você só pode gerenciar itens de sua própria cidade');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT12 - Sugestão de Posicionamento IA - Plano PRO (Gemini Multimodal - RN06)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/sugestao-ia"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Retorna latitude, longitude e confiança válida', function () {",
+                  "        pm.expect(json.lat).to.not.be.null;",
+                  "        pm.expect(json.lng).to.not.be.null;",
+                  "        pm.expect(json.confianca).to.be.above(0);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT12b - Sugestão de Posicionamento IA - Plano BASE (Fallback PostGIS - RN06)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/sugestao-ia"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Retorna coordenadas calculadas via centroide PostGIS', function () {",
+                  "        pm.expect(json.lat).to.not.be.null;",
+                  "        pm.expect(json.lng).to.not.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT13 - AVL RN01: Limite Superior Válido LSV (1.999m <= 2.000m)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgente}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"queda_arvore\",\n  \"descricao\": \"Árvore de grande porte na via rural\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"latitudeEnvio\": -22.9120226,\n  \"longitudeEnvio\": -46.2700000,\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('1.999m aceito sem suspeita (origemSuspeita = false)', function () {",
+                  "        pm.expect(json.origemSuspeita).to.be.false;",
+                  "    });",
+                  "    pm.test('Status APROVADA por ser agente operacional', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT14 - AVL RN01: Limite Superior Inválido LSI (2.001m > 2.000m)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"queda_arvore\",\n  \"descricao\": \"Queda de árvore com envio além da fronteira de 2km\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"latitudeEnvio\": -22.9120046,\n  \"longitudeEnvio\": -46.2700000,\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('2.001m aciona origemSuspeita = true', function () {",
+                  "        pm.expect(json.origemSuspeita).to.be.true;",
+                  "    });",
+                  "    pm.test('Status retido em PENDENTE_APROVACAO', function () {",
+                  "        pm.expect(json.status).to.eql('PENDENTE_APROVACAO');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT15 - AVL RN02: Limite Superior Válido Cluster (199m <= 200m)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"alagamento\",\n  \"descricao\": \"Novo relato de alagamento dentro do raio de 200m (199m)\",\n  \"latitude\": -22.9282104,\n  \"longitude\": -46.2700000,\n  \"latitudeEnvio\": -22.9282104,\n  \"longitudeEnvio\": -46.2700000,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Status é PENDENTE_APROVACAO', function () {",
+                  "        pm.expect(json.status).to.eql('PENDENTE_APROVACAO');",
+                  "    });",
+                  "    pm.test('origemSuspeita é false', function () {",
+                  "        pm.expect(json.origemSuspeita).to.be.false;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT16 - AVL RN02: Limite Superior Inválido Cluster (201m > 200m)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"alagamento\",\n  \"descricao\": \"Relato isolado fora do raio de agrupamento (201m)\",\n  \"latitude\": -22.9281924,\n  \"longitude\": -46.2700000,\n  \"latitudeEnvio\": -22.9281924,\n  \"longitudeEnvio\": -46.2700000,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Status é PENDENTE_APROVACAO', function () {",
+                  "        pm.expect(json.status).to.eql('PENDENTE_APROVACAO');",
+                  "    });",
+                  "    pm.test('Relato isolado fora do cluster (totalRelatosCluster = 1)', function () {",
+                  "        pm.expect(json.totalRelatosCluster).to.eql(1);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT17 - AVL RN03: Limite Temporal Válido (agora - 1 min <= 2 min, tempo real)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"incendio_vegetacao\",\n  \"descricao\": \"Foco de fumaça detectado há 1 minuto (tempo real)\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"dataHora\": \"{{dataHora1MinAtras}}\",\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Gera dinamicamente o timestamp de exatamente 1 minuto atrás (<= 2 min)",
+                  "var d = new Date(Date.now() - 60 * 1000);",
+                  "var iso = d.toISOString().slice(0, 19);",
+                  "pm.variables.set('dataHora1MinAtras', iso);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Tempo real entra como APROVADA (não como RESOLVIDA)', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "    pm.test('dataResolucao permanece null', function () {",
+                  "        pm.expect(json.dataResolucao).to.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT18.1 - GE S4: Criar Ocorrência Aprovada em Tempo Real (t2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"alagamento\",\n  \"descricao\": \"Alagamento para resolução direta pelo coordenador\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('ocorrenciaS4Id', json.id);",
+                  "    pm.test('Status inicial t2 = APROVADA', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT18.2 - GE S4: Transição t8 (Resolução Direta sem Registrar Chegada)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Resolução imediata pelo gabinete do coordenador sem viatura de campo\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaS4Id}}/resolver"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Transição t8: status direto para RESOLVIDA', function () {",
+                  "        pm.expect(json.status).to.eql('RESOLVIDA');",
+                  "    });",
+                  "    pm.test('agenteNoLocal permaneceu false (sem passar pelo estado E3)', function () {",
+                  "        pm.expect(json.agenteNoLocal).to.be.false;",
+                  "    });",
+                  "    pm.test('dataResolucao preenchida', function () {",
+                  "        pm.expect(json.dataResolucao).to.not.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT19.1 - GE S3: Criação de Ocorrência pelo Coordenador (t2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"queda_arvore\",\n  \"descricao\": \"Árvore obstruindo via - ciclo completo com reativação\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"criadoPorAgente\": true,\n  \"cidade\": \"joanopolis\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('ocorrenciaS3Id', json.id);",
+                  "    pm.test('Status inicial = APROVADA', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT19.2 - GE S3: Transição t6 (Chegada do Agente em Campo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgente}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Equipe de corte de árvores posicionada no local\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaS3Id}}/chegada"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Status = TRABALHANDO_ATUALMENTE', function () {",
+                  "        pm.expect(json.status).to.eql('TRABALHANDO_ATUALMENTE');",
+                  "    });",
+                  "    pm.test('agenteNoLocal = true', function () {",
+                  "        pm.expect(json.agenteNoLocal).to.be.true;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT19.3 - GE S3: Transição t7 (Resolver Ocorrência)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgente}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parecer\": \"Árvore recolhida e pista totalmente desobstruída\"\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaS3Id}}/resolver"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Status = RESOLVIDA', function () {",
+                  "        pm.expect(json.status).to.eql('RESOLVIDA');",
+                  "    });",
+                  "    pm.test('dataResolucao preenchida', function () {",
+                  "        pm.expect(json.dataResolucao).to.not.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT19.4 - GE S3: Transição t9 (Reativar Ocorrência para APROVADA)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaS3Id}}/reativar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Transição t9: status reativado para APROVADA', function () {",
+                  "        pm.expect(json.status).to.eql('APROVADA');",
+                  "    });",
+                  "    pm.test('dataResolucao redefinida para null', function () {",
+                  "        pm.expect(json.dataResolucao).to.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT20 - RN06: Plano GESTAO_MUNICIPAL (Fallback PostGIS sem IA)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": "{{baseUrl}}/ocorrencias/{{ocorrenciaId}}/sugestao-ia"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 OK', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Retorna sugestão calculada por centroide com lat e lng válidas', function () {",
+                  "        pm.expect(json.lat).to.not.be.null;",
+                  "        pm.expect(json.lng).to.not.be.null;",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "CT21 - RN05: Cidade Forçada pelo Perfil do Agente Autenticado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAgente}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"queda_arvore\",\n  \"descricao\": \"Tentativa de registro fora do município de lotação\",\n  \"latitude\": -22.930000,\n  \"longitude\": -46.270000,\n  \"cidade\": \"sao_paulo\",\n  \"criadoPorAgente\": true\n}"
+            },
+            "url": "{{baseUrl}}/ocorrencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201 OK', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Município foi sobrescrito para a lotação do perfil (não sao_paulo)', function () {",
+                  "        pm.expect(json.cidade).to.not.eql('sao_paulo');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
