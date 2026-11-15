@@ -171,7 +171,7 @@ class OcorrenciaServiceTest {
         agente.setCidade("joanopolis");
 
         when(usuarioRepository.findByEmail("agente@defesa.gov.br")).thenReturn(Optional.of(agente));
-        when(cidadeService.normalizarCodigoCidade(anyString())).thenReturn("joanopolis");
+        when(cidadeService.normalizarCodigoCidade(nullable(String.class))).thenReturn("joanopolis");
         when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(inv -> inv.getArgument(0));
 
         OcorrenciaRequest request = new OcorrenciaRequest();
@@ -179,6 +179,7 @@ class OcorrenciaServiceTest {
         request.setDescricao("Deslizamento de encosta no km 12");
         request.setLatitude(-22.9300);
         request.setLongitude(-46.2700);
+        request.setCidade("joanopolis");
         // Coordenada de envio a ~15km de distância (> 2000m)
         request.setLatitudeEnvio(-23.0500);
         request.setLongitudeEnvio(-46.3500);
@@ -203,7 +204,7 @@ class OcorrenciaServiceTest {
         coord.setCidade("joanopolis");
 
         when(usuarioRepository.findByEmail("coordenador@joanopolis.sp.gov.br")).thenReturn(Optional.of(coord));
-        when(cidadeService.normalizarCodigoCidade(anyString())).thenReturn("joanopolis");
+        when(cidadeService.normalizarCodigoCidade(nullable(String.class))).thenReturn("joanopolis");
         when(minioService.uploadBase64Image(anyString(), eq("ocorrencias"))).thenReturn("ocorrencias/foto123.jpg");
         when(minioService.getPresignedUrl("ocorrencias/foto123.jpg")).thenReturn("https://fotos.rhprogramer.com.br/ocorrencias/foto123.jpg");
         when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -333,5 +334,117 @@ class OcorrenciaServiceTest {
         when(cidadeService.normalizarCodigoCidade("joanopolis")).thenReturn("joanopolis");
 
         assertThrows(SecurityException.class, () -> ocorrenciaService.resolverOcorrencia("oc-400", "Parecer indevido"));
+    }
+
+    @Test
+    @DisplayName("CT10 (P8-V): Agentes informados no request são sanitizados e gravados")
+    void deveGravarAgentesInformadosNoRequest() {
+        OcorrenciaRequest request = new OcorrenciaRequest();
+        request.setTipo("alagamento");
+        request.setDescricao("Alagamento na Rua Central");
+        request.setLatitude(-22.9300);
+        request.setLongitude(-46.2700);
+        request.setCriadoPorAgente(true);
+        request.setAgentes("  Agente A, Agente B  "); // espaços serão removidos pelo sanitizeInput
+
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ocorrencia resultado = ocorrenciaService.registrarOcorrencia(request);
+
+        assertEquals("Agente A, Agente B", resultado.getAgentes());
+    }
+
+    @Test
+    @DisplayName("CT11 (P9-V / RN04): COBRADE informado manualmente prevalece sobre o resolvido pelo tipo")
+    void deveUsarCobradeInformadoManualmente() {
+        OcorrenciaRequest request = new OcorrenciaRequest();
+        request.setTipo("alagamento"); // pelo tipo seria 1.2.3.0.0
+        request.setDescricao("Ocorrência com COBRADE manual");
+        request.setLatitude(-22.9300);
+        request.setLongitude(-46.2700);
+        request.setCriadoPorAgente(true);
+        request.setCobrade("1.3.2.1.4");
+        request.setCobradeDescricao("Tempestade local");
+
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ocorrencia resultado = ocorrenciaService.registrarOcorrencia(request);
+
+        assertEquals("1.3.2.1.4", resultado.getCobrade());
+        assertEquals("Tempestade local", resultado.getCobradeDescricao());
+    }
+
+    @Test
+    @DisplayName("CT12 (P11-F / RN03): dataHora informada mas recente (< 2 min) NÃO é retroativa -> APROVADA")
+    void naoDeveTratarDataHoraRecenteComoRetroativa() {
+        OcorrenciaRequest request = new OcorrenciaRequest();
+        request.setTipo("incendio_vegetacao");
+        request.setDescricao("Foco de incêndio em andamento");
+        request.setLatitude(-22.9200);
+        request.setLongitude(-46.2600);
+        request.setCriadoPorAgente(true);
+        request.setDataHora(LocalDateTime.now().minusSeconds(30).toString()); // dentro dos 2 min
+
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ocorrencia resultado = ocorrenciaService.registrarOcorrencia(request);
+
+        assertEquals(OcorrenciaStatus.APROVADA.name(), resultado.getStatus());
+        assertNull(resultado.getDataResolucao());
+    }
+
+    @Test
+    @DisplayName("CT13 (P13-V, P14-V / RN03): flag não veio do app, mas o usuário no banco é AGENTE -> auto-aprovação (fallback)")
+    void deveAutoAprovarPeloPapelDoUsuarioNoBanco() {
+        autenticarUsuario("cidadao@teste.com", "CIDADAO"); // token sem papel privilegiado
+
+        Usuario doToken = new Usuario();
+        doToken.setId("u-09");
+        doToken.setEmail("cidadao@teste.com");
+        doToken.setRole("CIDADAO");
+
+        Usuario doBanco = new Usuario();
+        doBanco.setId("u-09");
+        doBanco.setRole(Role.AGENTE.name()); // papel real no banco
+
+        when(usuarioRepository.findByEmail("cidadao@teste.com")).thenReturn(Optional.of(doToken));
+        when(usuarioRepository.findById("u-09")).thenReturn(Optional.of(doBanco));
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OcorrenciaRequest request = new OcorrenciaRequest();
+        request.setTipo("queda_arvore");
+        request.setDescricao("Árvore caída na calçada");
+        request.setLatitude(-22.9310);
+        request.setLongitude(-46.2710);
+        // criadoPorAgente = false (flag não enviada pelo app)
+
+        Ocorrencia resultado = ocorrenciaService.registrarOcorrencia(request);
+
+        assertEquals(OcorrenciaStatus.APROVADA.name(), resultado.getStatus());
+    }
+
+    @Test
+    @DisplayName("CT14 (P14-F / RN03): usuário autenticado não encontrado no banco -> permanece PENDENTE_APROVACAO")
+    void devePermanecerPendenteQuandoCriadorNaoExisteNoBanco() {
+        autenticarUsuario("cidadao@teste.com", "CIDADAO");
+
+        Usuario doToken = new Usuario();
+        doToken.setId("u-10");
+        doToken.setEmail("cidadao@teste.com");
+        doToken.setRole("CIDADAO");
+
+        when(usuarioRepository.findByEmail("cidadao@teste.com")).thenReturn(Optional.of(doToken));
+        when(usuarioRepository.findById("u-10")).thenReturn(Optional.empty());
+        when(ocorrenciaRepository.save(any(Ocorrencia.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OcorrenciaRequest request = new OcorrenciaRequest();
+        request.setTipo("alagamento");
+        request.setDescricao("Água na via");
+        request.setLatitude(-22.9300);
+        request.setLongitude(-46.2700);
+
+        Ocorrencia resultado = ocorrenciaService.registrarOcorrencia(request);
+
+        assertEquals(OcorrenciaStatus.PENDENTE_APROVACAO.name(), resultado.getStatus());
     }
 }
